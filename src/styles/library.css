@@ -1,0 +1,433 @@
+/* ===== Biblioteca de projetos ===== */
+.lib {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  grid-template-rows: var(--topbar-h) minmax(0, 1fr);
+  grid-template-areas:
+    'top top'
+    'side main';
+  background: var(--bg-0);
+}
+
+.lib-top {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 14px 0 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.lib-search {
+  flex: 1;
+  max-width: 520px;
+  margin: 0 auto 0 12px;
+  position: relative;
+  display: block;
+}
+.lib-search svg {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  margin-top: -8px;
+  color: var(--text-3);
+  font-size: 16px;
+}
+.lib-search input {
+  width: 100%;
+  height: 32px;
+  padding: 0 12px 0 34px;
+  background: var(--bg-0);
+  border: 1px solid var(--line-2);
+  border-radius: 20px;
+  transition: border-color 0.14s;
+}
+.lib-search input::placeholder {
+  color: var(--text-4);
+}
+.lib-search input:focus {
+  outline: none;
+  border-color: var(--accent-line);
+}
+.lib-top-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.lib-side {
+  grid-area: side;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 16px 10px 12px;
+  border-right: 1px solid var(--line);
+  background: var(--bg-1);
+  overflow: auto;
+}
+.lib-side nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lib-cats h3 {
+  padding: 0 10px 6px;
+  color: var(--text-3);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.lib-nav {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  text-align: left;
+  transition: background 0.14s, color 0.14s;
+}
+.lib-nav:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+.lib-nav[data-on='1'] {
+  background: var(--accent-soft);
+  color: var(--accent-hi);
+}
+.lib-nav-ico {
+  display: inline-flex;
+  font-size: 16px;
+}
+.lib-nav-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lib-nav-count {
+  color: var(--text-3);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.lib-nav[data-on='1'] .lib-nav-count {
+  color: var(--accent-lo);
+}
+.lib-side-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lib-trash {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+}
+.lib-trash:hover {
+  background: var(--bg-3);
+  color: var(--text-2);
+}
+.lib-trash svg {
+  font-size: 16px;
+}
+.lib-trash span {
+  margin-left: auto;
+  font-size: 11.5px;
+}
+.lib-status {
+  padding: 0 10px;
+  color: var(--text-4);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.lib-status [data-bad='1'] {
+  color: var(--warn);
+}
+
+.lib-main {
+  grid-area: main;
+  overflow: auto;
+  padding: 22px 28px 40px;
+}
+.lib-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: rgb(242 178 76 / 0.1);
+  border: 1px solid rgb(242 178 76 / 0.35);
+  color: var(--warn);
+  line-height: 1.45;
+}
+.lib-banner svg {
+  flex: none;
+  font-size: 18px;
+}
+.lib-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.lib-head h1 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+}
+.lib-count {
+  color: var(--text-3);
+}
+.lib-sort {
+  margin-left: auto;
+  width: 150px;
+  align-self: center;
+}
+
+.lib-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: 18px;
+}
+
+.pcard {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-2);
+  overflow: hidden;
+  transition: border-color 0.18s, transform 0.22s var(--ease), box-shadow 0.22s;
+}
+.pcard:hover,
+.pcard:focus-within {
+  border-color: var(--line-3);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px -14px rgb(0 0 0 / 0.8);
+}
+.pcard-thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 8px 8px 0;
+  text-align: left;
+}
+.pcard-thumb .thumb {
+  border-radius: var(--r-sm);
+  box-shadow: 0 0 0 1px var(--line-2);
+}
+.pcard-blank {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -30%);
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgb(0 0 0 / 0.55);
+  color: var(--text-2);
+  font-size: 11px;
+  backdrop-filter: blur(4px);
+}
+.pcard-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px 2px 12px;
+}
+.pcard-titles {
+  flex: 1;
+  min-width: 0;
+}
+.pcard-titles h3 {
+  font-size: 14px;
+  font-weight: 620;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pcard-titles p {
+  color: var(--text-3);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pcard-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  padding: 6px 12px 12px;
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+.pcard-foot .chip {
+  height: 19px;
+  font-size: 11px;
+}
+.pcard-go {
+  margin-left: auto;
+}
+
+.lib-empty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  max-width: 420px;
+  margin: 12vh auto 0;
+  text-align: center;
+  color: var(--text-3);
+}
+.lib-empty > svg {
+  font-size: 34px;
+  color: var(--accent-lo);
+  margin-bottom: 4px;
+}
+.lib-empty h3 {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+}
+.lib-empty p {
+  line-height: 1.55;
+  margin-bottom: 8px;
+}
+
+/* ===== Diálogo "Novo louvor" ===== */
+.np {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 26px;
+}
+.np-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+}
+.np-two .field + .field {
+  margin-top: 0;
+}
+/* o grid de duas colunas não é um .field: devolve o respiro da regra .field + .field */
+.np-two + .field {
+  margin-top: 14px;
+}
+.np-split {
+  margin-top: 8px;
+  width: 200px;
+}
+.np-count {
+  margin-right: auto;
+  color: var(--text-3);
+  font-size: 12px;
+}
+.np-themes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.np-theme {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 6px 8px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  text-align: left;
+  transition: border-color 0.14s, background 0.14s;
+}
+.np-theme:hover {
+  border-color: var(--line-3);
+}
+.np-theme[data-on='1'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.np-theme span {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0 3px;
+  font-weight: 560;
+  font-size: 12.5px;
+}
+.np-theme small {
+  color: var(--text-3);
+  font-weight: 400;
+  font-size: 11px;
+}
+
+.trash-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.trash-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px 8px 10px;
+  border-radius: var(--r-sm);
+}
+.trash-list li:hover {
+  background: var(--bg-3);
+}
+.trash-list li > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.trash-list strong {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trash-list span {
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+
+@media (max-width: 860px) {
+  .lib {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'top'
+      'main';
+  }
+  .lib-side {
+    display: none;
+  }
+  .lib-search {
+    display: none;
+  }
+  .np {
+    grid-template-columns: 1fr;
+  }
+}

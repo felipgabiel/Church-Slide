@@ -1,0 +1,140 @@
+import { applyPreset } from './anim/presets';
+import { defaultTheme } from './defaults';
+import type { DeepPartial, Theme } from './types';
+import { deepMerge } from './util';
+
+export interface ThemePreset {
+  id: string;
+  name: string;
+  description: string;
+  theme: Theme;
+}
+
+const GEORGIA = 'Georgia, "Palatino Linotype", "Book Antiqua", Palatino, serif';
+const HELVETICA = '"Helvetica Neue", Helvetica, Arial, sans-serif';
+
+function make(patch: DeepPartial<Theme>, preset: string, animPatch: Partial<Theme['animation']> = {}): Theme {
+  const theme = deepMerge(defaultTheme(), patch);
+  theme.animation = { ...applyPreset(preset), ...animPatch };
+  return theme;
+}
+
+/** Modelos visuais prontos. Cada um é um tema completo (texto + fundo + animação). */
+export const THEME_PRESETS: ThemePreset[] = [
+  {
+    id: 'aurora',
+    name: 'Aurora',
+    description: 'Fundo animado em cores vivas, texto com brilho',
+    theme: make(
+      {
+        text: { glow: { enabled: true, color: '#a9b8ff', blur: 26 }, letterSpacing: 2 },
+        background: {
+          kind: 'animated',
+          animated: 'aurora',
+          color: '#070914',
+          gradient: {
+            angle: 160,
+            stops: [
+              { color: '#6d5cff', at: 0 },
+              { color: '#00c2a8', at: 50 },
+              { color: '#ff5ea8', at: 100 },
+            ],
+          },
+          adjust: { brightness: 100, contrast: 105, saturate: 110, blur: 0, dim: 10 },
+        },
+      },
+      'by-line',
+    ),
+  },
+  {
+    id: 'dourado',
+    name: 'Dourado clássico',
+    description: 'Serifa elegante sobre fundo escuro quente',
+    theme: make(
+      {
+        text: {
+          fontFamily: GEORGIA,
+          bold: false,
+          color: '#f6e4b5',
+          letterSpacing: 3,
+          fontSize: 7.6,
+          glow: { enabled: true, color: '#c9972b', blur: 20 },
+        },
+        background: {
+          kind: 'gradient',
+          gradient: {
+            angle: 180,
+            stops: [
+              { color: '#34250f', at: 0 },
+              { color: '#0b0805', at: 100 },
+            ],
+          },
+        },
+      },
+      'fade',
+      { duration: 1200, easing: 'smooth' },
+    ),
+  },
+  {
+    id: 'minimal',
+    name: 'Minimal',
+    description: 'Preto absoluto, tipografia limpa, palavra por palavra',
+    theme: make(
+      {
+        text: { fontFamily: HELVETICA, bold: true, letterSpacing: -1, fontSize: 8.6, shadow: { enabled: false, color: '#000000', x: 0, y: 0, blur: 0 } },
+        background: { kind: 'solid', color: '#000000' },
+      },
+      'by-word',
+    ),
+  },
+  {
+    id: 'noite',
+    name: 'Noite azul',
+    description: 'Gradiente azul profundo com entrada em foco',
+    theme: make(
+      {
+        text: { color: '#e8f0ff', glow: { enabled: true, color: '#5b8cff', blur: 22 } },
+        background: {
+          kind: 'gradient',
+          gradient: {
+            angle: 180,
+            stops: [
+              { color: '#123677', at: 0 },
+              { color: '#050a1c', at: 100 },
+            ],
+          },
+        },
+      },
+      'focus',
+    ),
+  },
+  {
+    id: 'luz',
+    name: 'Luz suave',
+    description: 'Fundo claro e quente, texto escuro, flutuação leve',
+    theme: make(
+      {
+        text: {
+          color: '#2a1f14',
+          bold: true,
+          shadow: { enabled: true, color: '#ffffff', x: 0, y: 2, blur: 8 },
+        },
+        background: {
+          kind: 'gradient',
+          gradient: {
+            angle: 170,
+            stops: [
+              { color: '#fff5e1', at: 0 },
+              { color: '#efd2a2', at: 100 },
+            ],
+          },
+        },
+      },
+      'float',
+    ),
+  },
+];
+
+export function getThemePreset(id: string): ThemePreset | undefined {
+  return THEME_PRESETS.find((t) => t.id === id);
+}

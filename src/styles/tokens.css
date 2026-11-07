@@ -1,0 +1,43 @@
+/* Tokens de design — grafite azulado, acento dourado de vela. */
+:root {
+  --bg-0: #08090c;
+  --bg-1: #0d0f13;
+  --bg-2: #13161b;
+  --bg-3: #1a1e25;
+  --bg-4: #232832;
+  --line: #20242c;
+  --line-2: #2c313c;
+  --line-3: #3a4150;
+
+  --text: #eceef2;
+  --text-2: #a7adb9;
+  --text-3: #727888;
+  --text-4: #4d5361;
+
+  --accent: #e8b84a;
+  --accent-hi: #f6d57f;
+  --accent-lo: #b98a22;
+  --accent-ink: #181203;
+  --accent-soft: rgb(232 184 74 / 0.13);
+  --accent-line: rgb(232 184 74 / 0.45);
+
+  --live: #ff5c4d;
+  --ok: #62d394;
+  --warn: #f2b24c;
+  --info: #7aa7ff;
+
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 9px;
+  --r-lg: 14px;
+
+  --font-ui: 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Roboto, sans-serif;
+  --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', 'Source Serif 4', Georgia, serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Consolas, monospace;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-io: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --shadow-pop: 0 18px 48px -12px rgb(0 0 0 / 0.7), 0 0 0 1px var(--line-2);
+  --topbar-h: 48px;
+}

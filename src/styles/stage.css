@@ -1,0 +1,290 @@
+/* ===== Palco (telão) =====
+ * Único componente visual que desenha um slide: editor, prévia do operador e janela do público.
+ * `container-type: size` habilita as unidades cqh/cqw: o texto escala com a altura do palco.
+ */
+.stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  container-type: size;
+  isolation: isolate;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.stage-filters {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.bg-layer,
+.text-frame {
+  position: absolute;
+  inset: 0;
+}
+.text-frame {
+  pointer-events: none;
+}
+.bg-layer.bg-in {
+  animation: cs-bg-in 700ms var(--ease-io) both;
+}
+@keyframes cs-bg-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.bg-media {
+  position: absolute;
+  inset: 0;
+}
+.bg-fill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.bg-video {
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+.bg-video.is-ready {
+  opacity: 1;
+}
+.bg-filter,
+.bg-dim {
+  position: absolute;
+  inset: 0;
+}
+.bg-dim {
+  background: #000;
+}
+
+/* ----- texto ----- */
+.layer {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+.layer-inner {
+  display: block;
+}
+.u {
+  display: block;
+  min-height: 1em;
+}
+.u.w {
+  display: inline-block;
+  white-space: pre;
+}
+.ln {
+  display: block;
+  min-height: 1em;
+}
+.layer-inner.floating {
+  animation: cs-float 7s ease-in-out infinite;
+}
+@keyframes cs-float {
+  0%,
+  100% {
+    transform: translate3d(0, calc(var(--float, 0) * -0.05cqh), 0);
+  }
+  50% {
+    transform: translate3d(0, calc(var(--float, 0) * 0.05cqh), 0);
+  }
+}
+
+.stage-black {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+.stage-black[data-on='1'] {
+  opacity: 1;
+}
+
+/* ----- fundos animados (somente transform/opacity: leves para a GPU) ----- */
+.bg-anim {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  --speed: 1;
+}
+.bg-aurora i {
+  position: absolute;
+  width: 125cqh;
+  height: 125cqh;
+  border-radius: 50%;
+  opacity: 0.8;
+  will-change: transform;
+}
+.bg-aurora i:nth-child(1) {
+  left: -12%;
+  top: -35%;
+  background: radial-gradient(circle, var(--c1) 0, transparent 62%);
+  animation: cs-aur-a calc(28s / var(--speed)) ease-in-out infinite alternate;
+}
+.bg-aurora i:nth-child(2) {
+  right: -14%;
+  top: -10%;
+  background: radial-gradient(circle, var(--c2) 0, transparent 62%);
+  animation: cs-aur-b calc(34s / var(--speed)) ease-in-out infinite alternate;
+}
+.bg-aurora i:nth-child(3) {
+  left: 22%;
+  bottom: -60%;
+  background: radial-gradient(circle, var(--c3) 0, transparent 62%);
+  animation: cs-aur-c calc(31s / var(--speed)) ease-in-out infinite alternate;
+}
+@keyframes cs-aur-a {
+  to {
+    transform: translate3d(34cqw, 22cqh, 0) scale(1.18);
+  }
+}
+@keyframes cs-aur-b {
+  to {
+    transform: translate3d(-30cqw, 30cqh, 0) scale(0.9);
+  }
+}
+@keyframes cs-aur-c {
+  to {
+    transform: translate3d(26cqw, -28cqh, 0) scale(1.2);
+  }
+}
+
+.bg-drift::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 240cqmax;
+  height: 240cqmax;
+  margin: -120cqmax 0 0 -120cqmax;
+  background: conic-gradient(from 0deg, var(--c1), var(--c2), var(--c3), var(--c1));
+  opacity: 0.75;
+  animation: cs-spin calc(80s / var(--speed)) linear infinite;
+  will-change: transform;
+}
+@keyframes cs-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bg-bokeh i {
+  position: absolute;
+  bottom: -14cqh;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--bc) 0, transparent 70%);
+  opacity: 0;
+  animation-name: cs-rise;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+@keyframes cs-rise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  15% {
+    opacity: 0.6;
+  }
+  85% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(4cqw, -125cqh, 0);
+  }
+}
+
+.bg-rays i {
+  position: absolute;
+  left: 50%;
+  top: -45%;
+  width: 190cqh;
+  height: 190cqh;
+  margin-left: -95cqh;
+  opacity: 0.4;
+  will-change: transform;
+}
+.bg-rays i:nth-child(1) {
+  background: conic-gradient(from 0deg, transparent 0 8%, var(--c1) 12%, transparent 18% 52%, var(--c2) 57%, transparent 63%);
+  animation: cs-spin calc(70s / var(--speed)) linear infinite;
+}
+.bg-rays i:nth-child(2) {
+  background: conic-gradient(from 90deg, transparent 0 20%, var(--c3) 25%, transparent 31% 70%, var(--c1) 75%, transparent 82%);
+  animation: cs-spin calc(110s / var(--speed)) linear infinite reverse;
+  opacity: 0.28;
+}
+
+.bg-waves .wave {
+  position: absolute;
+  left: 0;
+  width: 200%;
+  opacity: 0.5;
+  will-change: transform;
+}
+.bg-waves .w0 {
+  bottom: -4%;
+  height: 46%;
+  animation: cs-wave calc(30s / var(--speed)) linear infinite;
+}
+.bg-waves .w1 {
+  bottom: -8%;
+  height: 38%;
+  opacity: 0.4;
+  animation: cs-wave calc(22s / var(--speed)) linear infinite reverse;
+}
+.bg-waves .w2 {
+  bottom: -12%;
+  height: 30%;
+  opacity: 0.35;
+  animation: cs-wave calc(16s / var(--speed)) linear infinite;
+}
+@keyframes cs-wave {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* miniatura */
+.thumb {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #000;
+  border-radius: var(--r-xs);
+}
+.thumb .stage {
+  position: absolute;
+  inset: 0;
+}
+
+.fitbox {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+}
+.fitbox-inner {
+  position: relative;
+}

@@ -1,0 +1,568 @@
+import { applyPreset } from '../core/anim/presets';
+import { newLayer, newSlide, normalizeProject, resolveAnimation, resolveBackground } from '../core/defaults';
+import { uid } from '../core/ids';
+import { splitLyrics } from '../core/split';
+import { getProject, saveProject, writeSnapshot } from '../core/storage/projects';
+import type {
+  AnimationConfig,
+  Aspect,
+  Background,
+  DeepPartial,
+  LayerRole,
+  Project,
+  Slide,
+  SplitMode,
+  TextLayer,
+  TextStyle,
+  Theme,
+} from '../core/types';
+import { clone, deepMerge, move } from '../core/util';
+import { createStore, useStore } from './createStore';
+
+export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
+export type EditScope = 'slide' | 'all';
+
+export interface EditorState {
+  project: Project | null;
+  loading: boolean;
+  loadError: string | null;
+  slideId: string | null;
+  layerId: string | null;
+  scope: EditScope;
+  past: Project[];
+  future: Project[];
+  status: SaveStatus;
+  saveError: string | null;
+  lastSaved: number | null;
+  /** Incrementado para reexecutar a animação na prévia. */
+  replayKey: number;
+}
+
+const initial: EditorState = {
+  project: null,
+  loading: false,
+  loadError: null,
+  slideId: null,
+  layerId: null,
+  scope: 'slide',
+  past: [],
+  future: [],
+  status: 'idle',
+  saveError: null,
+  lastSaved: null,
+  replayKey: 0,
+};
+
+export const editorStore = createStore<EditorState>(initial);
+export const useEditor = <T>(selector: (s: EditorState) => T, isEqual?: (a: T, b: T) => boolean): T => useStore(editorStore, selector, isEqual);
+
+const HISTORY_LIMIT = 100;
+const SAVE_DELAY = 400;
+const BACKUP_EVERY = 2 * 60 * 1000;
+
+let lastCoalesce: { key: string; at: number } | null = null;
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+let saveChain: Promise<void> = Promise.resolve();
+let lastBackup = 0;
+
+/* ------------------------------ persistência ------------------------------ */
+
+function scheduleSave() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => void flushSave(), SAVE_DELAY);
+}
+
+export function flushSave(): Promise<void> {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = undefined;
+  }
+  saveChain = saveChain.then(async () => {
+    const s = editorStore.get();
+    const snapshot = s.project;
+    if (!snapshot || (s.status !== 'dirty' && s.status !== 'saving' && s.status !== 'error')) return;
+    editorStore.set({ status: 'saving' });
+    try {
+      const saved = await saveProject(snapshot);
+      const now = Date.now();
+      if (now - lastBackup > BACKUP_EVERY) {
+        lastBackup = now;
+        void writeSnapshot(snapshot).catch(() => undefined);
+      }
+      const stillSame = editorStore.get().project === snapshot;
+      editorStore.set({ status: stillSame ? 'saved' : 'dirty', lastSaved: saved.updatedAt, saveError: null });
+      if (!stillSame) scheduleSave();
+    } catch (err) {
+      console.error('[save] falha', err);
+      editorStore.set({ status: 'error', saveError: err instanceof Error ? err.message : 'Falha ao salvar' });
+    }
+  });
+  return saveChain;
+}
+
+if (typeof window !== 'undefined') {
+  const flushNow = () => void flushSave();
+  window.addEventListener('pagehide', flushNow);
+  window.addEventListener('beforeunload', (e) => {
+    const st = editorStore.get().status;
+    if (st === 'error') {
+      e.preventDefault();
+      e.returnValue = '';
+    } else flushNow();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushNow();
+  });
+}
+
+/* --------------------------------- núcleo --------------------------------- */
+
+function fixSelection(project: Project, slideId: string | null, layerId: string | null) {
+  const slide = project.slides.find((s) => s.id === slideId) ?? project.slides[0] ?? null;
+  const layer = slide?.layers.find((l) => l.id === layerId) ?? slide?.layers[0] ?? null;
+  return { slideId: slide?.id ?? null, layerId: layer?.id ?? null };
+}
+
+/**
+ * Reaproveita as referências de trechos/tema que não mudaram. Assim miniaturas
+ * e painéis memoizados não re-renderizam quando só um trecho foi alterado.
+ */
+function shareUnchanged(prev: Project, next: Project) {
+  const prevSlides = new Map(prev.slides.map((s) => [s.id, s]));
+  next.slides = next.slides.map((s) => {
+    const p = prevSlides.get(s.id);
+    return p && JSON.stringify(p) === JSON.stringify(s) ? p : s;
+  });
+  if (JSON.stringify(prev.theme) === JSON.stringify(next.theme)) next.theme = prev.theme;
+}
+
+function mutate(fn: (draft: Project) => void, opts: { coalesce?: string; select?: (draft: Project) => { slideId?: string; layerId?: string } } = {}) {
+  const s = editorStore.get();
+  if (!s.project) return;
+  const draft = clone(s.project);
+  fn(draft);
+  shareUnchanged(s.project, draft);
+  const now = Date.now();
+  const merge = !!opts.coalesce && !!lastCoalesce && lastCoalesce.key === opts.coalesce && now - lastCoalesce.at < 800;
+  lastCoalesce = opts.coalesce ? { key: opts.coalesce, at: now } : null;
+  const past = merge ? s.past : [...s.past.slice(-(HISTORY_LIMIT - 1)), s.project];
+  const picked = opts.select?.(draft);
+  const sel = fixSelection(draft, picked?.slideId ?? s.slideId, picked?.layerId ?? s.layerId);
+  editorStore.set({ project: draft, past, future: [], status: 'dirty', ...sel });
+  scheduleSave();
+}
+
+function currentSlide(draft: Project): Slide | undefined {
+  const id = editorStore.get().slideId;
+  return draft.slides.find((s) => s.id === id);
+}
+
+function currentLayer(draft: Project): TextLayer | undefined {
+  const slide = currentSlide(draft);
+  const lid = editorStore.get().layerId;
+  return slide?.layers.find((l) => l.id === lid) ?? slide?.layers[0];
+}
+
+/* ---------------------------------- ações --------------------------------- */
+
+export const editor = {
+  async open(id: string) {
+    await flushSave();
+    lastCoalesce = null;
+    editorStore.set({ ...initial, loading: true, scope: editorStore.get().scope });
+    try {
+      const project = await getProject(id);
+      if (!project) {
+        editorStore.set({ loading: false, loadError: 'Projeto não encontrado. Ele pode ter sido excluído.' });
+        return;
+      }
+      lastBackup = Date.now();
+      void writeSnapshot(project).catch(() => undefined);
+      const sel = fixSelection(project, null, null);
+      editorStore.set({ project, loading: false, loadError: null, status: 'saved', lastSaved: project.updatedAt, ...sel });
+    } catch (err) {
+      editorStore.set({ loading: false, loadError: err instanceof Error ? err.message : 'Não foi possível abrir o projeto.' });
+    }
+  },
+
+  async close() {
+    await flushSave();
+    editorStore.set({ ...initial });
+  },
+
+  /** Substitui o projeto aberto (ex.: após restaurar um backup). */
+  replaceProject(project: Project) {
+    lastCoalesce = null;
+    editorStore.set({ project: normalizeProject(project), past: [], future: [], status: 'dirty', ...fixSelection(project, null, null) });
+    scheduleSave();
+  },
+
+  undo() {
+    const s = editorStore.get();
+    if (!s.project || !s.past.length) return;
+    const prev = s.past[s.past.length - 1];
+    lastCoalesce = null;
+    editorStore.set({
+      project: prev,
+      past: s.past.slice(0, -1),
+      future: [s.project, ...s.future].slice(0, HISTORY_LIMIT),
+      status: 'dirty',
+      ...fixSelection(prev, s.slideId, s.layerId),
+    });
+    scheduleSave();
+  },
+
+  redo() {
+    const s = editorStore.get();
+    if (!s.project || !s.future.length) return;
+    const next = s.future[0];
+    lastCoalesce = null;
+    editorStore.set({
+      project: next,
+      past: [...s.past, s.project].slice(-HISTORY_LIMIT),
+      future: s.future.slice(1),
+      status: 'dirty',
+      ...fixSelection(next, s.slideId, s.layerId),
+    });
+    scheduleSave();
+  },
+
+  setScope(scope: EditScope) {
+    editorStore.set({ scope });
+  },
+
+  selectSlide(id: string) {
+    const { project, slideId, layerId } = editorStore.get();
+    if (!project) return;
+    const slide = project.slides.find((s) => s.id === id);
+    if (!slide) return;
+    // mantém o mesmo tipo de camada selecionado (ex.: continuar editando o "Título")
+    const curRole = project.slides.find((s) => s.id === slideId)?.layers.find((l) => l.id === layerId)?.role;
+    const layer = slide.layers.find((l) => l.role === curRole) ?? slide.layers[0];
+    editorStore.set({ slideId: id, layerId: layer.id });
+  },
+
+  selectLayer(id: string) {
+    editorStore.set({ layerId: id });
+  },
+
+  replay() {
+    editorStore.set((s) => ({ replayKey: s.replayKey + 1 }));
+  },
+
+  /* ---- trechos ---- */
+
+  setLayerText(slideId: string, layerId: string, text: string) {
+    mutate(
+      (d) => {
+        const layer = d.slides.find((s) => s.id === slideId)?.layers.find((l) => l.id === layerId);
+        if (layer) layer.text = text;
+      },
+      { coalesce: `text:${layerId}` },
+    );
+  },
+
+  addSlide(afterId?: string | null, text = '') {
+    const id = uid('s');
+    mutate(
+      (d) => {
+        const slide = { ...newSlide(text, d.theme), id };
+        const idx = d.slides.findIndex((s) => s.id === (afterId ?? editorStore.get().slideId));
+        d.slides.splice(idx >= 0 ? idx + 1 : d.slides.length, 0, slide);
+      },
+      { select: () => ({ slideId: id }) },
+    );
+  },
+
+  duplicateSlide(id: string) {
+    const newId = uid('s');
+    mutate(
+      (d) => {
+        const idx = d.slides.findIndex((s) => s.id === id);
+        if (idx < 0) return;
+        const copy = clone(d.slides[idx]);
+        copy.id = newId;
+        copy.layers = copy.layers.map((l) => ({ ...l, id: uid('l') }));
+        d.slides.splice(idx + 1, 0, copy);
+      },
+      { select: () => ({ slideId: newId }) },
+    );
+  },
+
+  deleteSlide(id: string) {
+    const project = editorStore.get().project;
+    if (!project) return;
+    const idx = project.slides.findIndex((s) => s.id === id);
+    if (idx < 0) return;
+    const nextId = project.slides[idx + 1]?.id ?? project.slides[idx - 1]?.id;
+    mutate(
+      (d) => {
+        // mantém sempre ao menos um trecho: se for o último, apenas o esvazia
+        if (d.slides.length <= 1) d.slides = [newSlide('', d.theme)];
+        else d.slides.splice(idx, 1);
+      },
+      { select: (d) => ({ slideId: nextId ?? d.slides[0]?.id }) },
+    );
+  },
+
+  moveSlide(from: number, to: number) {
+    mutate((d) => {
+      d.slides = move(d.slides, from, to);
+    });
+  },
+
+  /**
+   * Divide o texto da camada em `pos` (posição do cursor): o que vem depois vira um novo trecho
+   * logo abaixo, com o mesmo estilo/fundo/animação. Retorna false se não houver o que dividir.
+   */
+  splitSlideAt(slideId: string, layerId: string, pos: number): boolean {
+    const project = editorStore.get().project;
+    const slide = project?.slides.find((s) => s.id === slideId);
+    const layer = slide?.layers.find((l) => l.id === layerId);
+    if (!project || !slide || !layer) return false;
+    const before = layer.text.slice(0, pos).replace(/\s+$/, '');
+    const after = layer.text.slice(pos).replace(/^\s+/, '');
+    if (!before || !after) return false;
+    const newId = uid('s');
+    mutate(
+      (d) => {
+        const idx = d.slides.findIndex((s) => s.id === slideId);
+        if (idx < 0) return;
+        const src = d.slides[idx];
+        const copy = clone(src);
+        copy.id = newId;
+        copy.label = '';
+        copy.layers = copy.layers.map((l) => ({ ...l, id: uid('l') }));
+        const srcLayer = src.layers.find((l) => l.id === layerId);
+        const copyLayer = copy.layers[src.layers.findIndex((l) => l.id === layerId)];
+        if (srcLayer) srcLayer.text = before;
+        if (copyLayer) copyLayer.text = after;
+        // camadas que não são a letra (título, crédito) ficam só no trecho original
+        copy.layers = copy.layers.filter((l) => l === copyLayer || l.role === 'free');
+        d.slides.splice(idx + 1, 0, copy);
+      },
+      { select: () => ({ slideId: newId }) },
+    );
+    return true;
+  },
+
+  /** Junta o trecho com o seguinte (o texto do seguinte vai para baixo, em novas linhas). */
+  mergeWithNext(slideId: string): boolean {
+    const project = editorStore.get().project;
+    const idx = project?.slides.findIndex((s) => s.id === slideId) ?? -1;
+    if (!project || idx < 0 || idx >= project.slides.length - 1) return false;
+    mutate(
+      (d) => {
+        const a = d.slides[idx];
+        const b = d.slides[idx + 1];
+        const la = a.layers.find((l) => l.role === 'lyrics') ?? a.layers[0];
+        const lb = b.layers.find((l) => l.role === 'lyrics') ?? b.layers[0];
+        if (la && lb) la.text = [la.text.trimEnd(), lb.text.trimStart()].filter(Boolean).join('\n');
+        d.slides.splice(idx + 1, 1);
+      },
+      { select: () => ({ slideId }) },
+    );
+    return true;
+  },
+
+  setSlideMeta(id: string, patch: Partial<Pick<Slide, 'label' | 'duration' | 'notes'>>) {
+    mutate(
+      (d) => {
+        const s = d.slides.find((x) => x.id === id);
+        if (s) Object.assign(s, patch);
+      },
+      { coalesce: `meta:${id}:${Object.keys(patch).join(',')}` },
+    );
+  },
+
+  /* ---- camadas ---- */
+
+  addLayer(role: LayerRole, text = '') {
+    const id = uid('l');
+    mutate(
+      (d) => {
+        const slide = currentSlide(d);
+        if (!slide) return;
+        const layer = newLayer(role, text, d.theme.text);
+        layer.id = id;
+        slide.layers.push(layer);
+      },
+      { select: () => ({ layerId: id }) },
+    );
+  },
+
+  removeLayer(id: string) {
+    mutate((d) => {
+      const slide = currentSlide(d);
+      if (!slide || slide.layers.length <= 1) return;
+      slide.layers = slide.layers.filter((l) => l.id !== id);
+    });
+  },
+
+  toggleLayer(id: string) {
+    mutate((d) => {
+      const layer = currentSlide(d)?.layers.find((l) => l.id === id);
+      if (layer) layer.visible = !layer.visible;
+    });
+  },
+
+  /* ---- estilo (respeita o escopo "este trecho" / "todos") ---- */
+
+  patchStyle(patch: DeepPartial<TextStyle>) {
+    const scope = editorStore.get().scope;
+    mutate(
+      (d) => {
+        const layer = currentLayer(d);
+        if (!layer) return;
+        if (scope === 'slide') {
+          layer.style = deepMerge(layer.style, patch);
+          return;
+        }
+        const role = layer.role;
+        for (const s of d.slides) for (const l of s.layers) if (l.role === role) l.style = deepMerge(l.style, patch);
+        if (role === 'lyrics') d.theme.text = deepMerge(d.theme.text, patch);
+      },
+      { coalesce: `style:${scope}:${editorStore.get().layerId}:${Object.keys(patch).join(',')}` },
+    );
+  },
+
+  /** Volta o estilo de texto da camada ao padrão do tema (ou de todas as do mesmo tipo, no escopo "todos"). */
+  resetStyle() {
+    const scope = editorStore.get().scope;
+    mutate((d) => {
+      const layer = currentLayer(d);
+      if (!layer) return;
+      const base = clone(d.theme.text);
+      const apply = (l: TextLayer) => {
+        const fresh = newLayer(l.role, l.text, base);
+        l.style = fresh.style;
+      };
+      if (scope === 'slide') apply(layer);
+      else for (const s of d.slides) for (const l of s.layers) if (l.role === layer.role) apply(l);
+    });
+  },
+
+  patchBackground(patch: DeepPartial<Background>) {
+    const scope = editorStore.get().scope;
+    mutate(
+      (d) => {
+        if (scope === 'all') {
+          d.theme.background = deepMerge(d.theme.background, patch);
+          d.slides.forEach((s) => (s.background = null));
+          return;
+        }
+        const slide = currentSlide(d);
+        if (slide) slide.background = deepMerge(resolveBackground(slide, d.theme), patch);
+      },
+      { coalesce: `bg:${scope}:${editorStore.get().slideId}:${Object.keys(patch).join(',')}` },
+    );
+  },
+
+  /** Substitui o fundo inteiro (usado pelos presets da biblioteca). */
+  setBackground(bg: Background) {
+    const scope = editorStore.get().scope;
+    mutate((d) => {
+      if (scope === 'all') {
+        d.theme.background = clone(bg);
+        d.slides.forEach((s) => (s.background = null));
+      } else {
+        const slide = currentSlide(d);
+        if (slide) slide.background = clone(bg);
+      }
+    });
+  },
+
+  patchAnimation(patch: DeepPartial<AnimationConfig>) {
+    const scope = editorStore.get().scope;
+    mutate(
+      (d) => {
+        if (scope === 'all') {
+          d.theme.animation = deepMerge(d.theme.animation, patch);
+          d.slides.forEach((s) => (s.animation = null));
+          return;
+        }
+        const slide = currentSlide(d);
+        if (slide) slide.animation = deepMerge(resolveAnimation(slide, d.theme), patch);
+      },
+      { coalesce: `anim:${scope}:${editorStore.get().slideId}:${Object.keys(patch).join(',')}` },
+    );
+  },
+
+  setAnimationPreset(presetId: string) {
+    const scope = editorStore.get().scope;
+    mutate((d) => {
+      if (scope === 'all') {
+        d.theme.animation = applyPreset(presetId, d.theme.animation);
+        d.slides.forEach((s) => (s.animation = null));
+      } else {
+        const slide = currentSlide(d);
+        if (slide) slide.animation = applyPreset(presetId, resolveAnimation(slide, d.theme));
+      }
+    });
+    editor.replay();
+  },
+
+  /** Faz o trecho voltar a usar o fundo/animação do tema. */
+  clearOverride(kind: 'background' | 'animation') {
+    mutate((d) => {
+      const slide = currentSlide(d);
+      if (slide) slide[kind] = null;
+    });
+  },
+
+  /* ---- projeto ---- */
+
+  setProjectMeta(patch: Partial<Pick<Project, 'name' | 'artist' | 'category'>> & { aspect?: Aspect }) {
+    mutate(
+      (d) => {
+        Object.assign(d, patch);
+      },
+      { coalesce: `pmeta:${Object.keys(patch).join(',')}` },
+    );
+  },
+
+  applyLyrics(text: string, mode: SplitMode, how: 'replace' | 'append', maxLines = 4) {
+    mutate(
+      (d) => {
+        const parts = splitLyrics(text, { mode, maxLines });
+        const slides = parts.map((p) => newSlide(p.text, d.theme, p.label));
+        if (how === 'replace') {
+          d.slides = slides.length ? slides : [newSlide('', d.theme)];
+          d.lyrics = text;
+        } else if (slides.length) {
+          // se o projeto só tem o trecho vazio inicial, substitui
+          const onlyEmpty = d.slides.length === 1 && d.slides[0].layers.every((l) => !l.text.trim());
+          d.slides = onlyEmpty ? slides : [...d.slides, ...slides];
+          d.lyrics = d.lyrics ? `${d.lyrics}\n\n${text}` : text;
+        }
+        d.splitMode = mode;
+      },
+      { select: (d) => ({ slideId: d.slides[0]?.id }) },
+    );
+  },
+
+  applyTheme(theme: Theme) {
+    mutate((d) => {
+      d.theme = clone(theme);
+      for (const s of d.slides) {
+        s.background = null;
+        s.animation = null;
+        for (const l of s.layers) {
+          if (l.role === 'lyrics') l.style = clone(theme.text);
+          else l.style = { ...l.style, fontFamily: theme.text.fontFamily, color: theme.text.color, shadow: clone(theme.text.shadow), glow: clone(theme.text.glow) };
+        }
+      }
+    });
+  },
+};
+
+export function useActiveSlide(): Slide | null {
+  return useEditor((s) => s.project?.slides.find((x) => x.id === s.slideId) ?? null);
+}
+
+export function useActiveLayer(): TextLayer | null {
+  return useEditor((s) => {
+    const slide = s.project?.slides.find((x) => x.id === s.slideId);
+    return slide?.layers.find((l) => l.id === s.layerId) ?? slide?.layers[0] ?? null;
+  });
+}

@@ -1,0 +1,144 @@
+import { useRef } from 'react';
+import { LuAlignCenter, LuAlignLeft, LuAlignRight, LuBold, LuCaseUpper, LuItalic, LuRotateCcw, LuUpload } from 'react-icons/lu';
+import { SYSTEM_SANS } from '../../../core/defaults';
+import { getFontOptions } from '../../../core/fonts';
+import type { Align } from '../../../core/types';
+import { editor, useActiveLayer } from '../../../store/editor';
+import { Button, IconButton } from '../../../ui/Button';
+import { ColorField, Row, Section, Segmented, Select, Slider } from '../../../ui/Controls';
+import { toast } from '../../../ui/toast';
+import { useCustomFonts } from '../hooks';
+import { uploadFiles } from '../MediaGrid';
+import { bumpMedia } from '../hooks';
+
+export function TextPanel() {
+  const layer = useActiveLayer();
+  const fonts = useCustomFonts();
+  const file = useRef<HTMLInputElement>(null);
+  if (!layer) return <p className="panel-empty">Nenhuma camada selecionada.</p>;
+  const s = layer.style;
+  const set = editor.patchStyle;
+
+  const options = getFontOptions(fonts);
+  const known = options.some((o) => o.value === s.fontFamily);
+  const groups = [...new Set(options.map((o) => o.group))];
+
+  const onFont = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const recs = await uploadFiles(files, ['font']);
+    if (file.current) file.current.value = '';
+    const first = recs[0];
+    if (first?.family) {
+      set({ fontFamily: `"${first.family}", ${SYSTEM_SANS}` });
+      toast(`Fonte “${first.name}” adicionada`);
+      bumpMedia();
+    }
+  };
+
+  return (
+    <div className="props">
+      <Section title="Fonte">
+        <Row label="Família">
+          <Select value={s.fontFamily} onChange={(v) => set({ fontFamily: v })} label="Fonte">
+            {!known && <option value={s.fontFamily}>Personalizada</option>}
+            {groups.map((g) => (
+              <optgroup key={g} label={g}>
+                {options
+                  .filter((o) => o.group === g)
+                  .map((o) => (
+                    <option key={o.value + o.label} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+              </optgroup>
+            ))}
+          </Select>
+        </Row>
+        <input ref={file} type="file" accept=".ttf,.otf,.woff,.woff2,font/*" multiple hidden onChange={(e) => void onFont(e.currentTarget.files)} />
+        <Button size="sm" variant="ghost" icon={<LuUpload />} className="props-upload" onClick={() => file.current?.click()}>
+          Enviar fonte (.ttf, .otf, .woff)
+        </Button>
+        <Slider label="Tamanho" value={s.fontSize} min={2} max={24} step={0.1} unit="%" reset={8} onChange={(v) => set({ fontSize: v })} />
+        <Row label="Cor">
+          <ColorField label="Cor do texto" value={s.color} onChange={(v) => set({ color: v })} />
+        </Row>
+        <Row label="Estilo">
+          <div className="tgl">
+            <IconButton label="Negrito" icon={<LuBold />} size="sm" active={s.bold} onClick={() => set({ bold: !s.bold })} />
+            <IconButton label="Itálico" icon={<LuItalic />} size="sm" active={s.italic} onClick={() => set({ italic: !s.italic })} />
+            <IconButton label="Tudo em maiúsculas" icon={<LuCaseUpper />} size="sm" active={s.uppercase} onClick={() => set({ uppercase: !s.uppercase })} />
+          </div>
+        </Row>
+        <Row label="Alinhamento">
+          <Segmented<Align>
+            size="sm"
+            label="Alinhamento do texto"
+            value={s.align}
+            onChange={(v) => set({ align: v })}
+            options={[
+              { value: 'left', icon: <LuAlignLeft />, title: 'À esquerda' },
+              { value: 'center', icon: <LuAlignCenter />, title: 'Centralizado' },
+              { value: 'right', icon: <LuAlignRight />, title: 'À direita' },
+            ]}
+          />
+        </Row>
+        <Slider label="Espaço entre letras" value={s.letterSpacing} min={-5} max={60} step={0.5} reset={1} onChange={(v) => set({ letterSpacing: v })} />
+        <Slider label="Espaço entre linhas" value={s.lineHeight} min={0.8} max={2.4} step={0.05} reset={1.25} onChange={(v) => set({ lineHeight: v })} />
+      </Section>
+
+      <Section title="Posição e tamanho do bloco">
+        <Slider label="Horizontal" value={s.x} min={0} max={100} step={0.5} unit="%" reset={50} onChange={(v) => set({ x: v })} />
+        <Slider label="Vertical" value={s.y} min={0} max={100} step={0.5} unit="%" reset={50} onChange={(v) => set({ y: v })} />
+        <Slider label="Largura" value={s.width} min={20} max={100} step={1} unit="%" reset={84} onChange={(v) => set({ width: v })} />
+        <div className="props-pair">
+          <Button size="sm" onClick={() => set({ x: 50 })}>
+            Centralizar na horizontal
+          </Button>
+          <Button size="sm" onClick={() => set({ y: 50 })}>
+            Centralizar na vertical
+          </Button>
+        </div>
+        <p className="props-note">Dica: arraste o texto direto na pré-visualização. Segure Alt para não grudar nas guias.</p>
+      </Section>
+
+      <Section title="Aparência" defaultOpen={false}>
+        <Slider label="Opacidade" value={s.opacity} min={0} max={100} unit="%" reset={100} onChange={(v) => set({ opacity: v })} />
+        <Slider label="Desfoque" value={s.blur} min={0} max={40} step={0.5} reset={0} onChange={(v) => set({ blur: v })} />
+        <Row label="Reduzir fonte se não couber" hint="Evita letra cortada no telão">
+          <button type="button" role="switch" aria-checked={s.autoFit} className="switch" data-on={s.autoFit ? '1' : '0'} aria-label="Ajuste automático do tamanho" onClick={() => set({ autoFit: !s.autoFit })}>
+            <i />
+          </button>
+        </Row>
+      </Section>
+
+      <Section title="Sombra" defaultOpen={s.shadow.enabled} toggle={{ checked: s.shadow.enabled, onChange: (v) => set({ shadow: { enabled: v } }) }}>
+        <Row label="Cor">
+          <ColorField label="Cor da sombra" value={s.shadow.color} onChange={(v) => set({ shadow: { color: v } })} />
+        </Row>
+        <Slider label="Deslocamento X" value={s.shadow.x} min={-30} max={30} step={0.5} reset={0} onChange={(v) => set({ shadow: { x: v } })} />
+        <Slider label="Deslocamento Y" value={s.shadow.y} min={-30} max={30} step={0.5} reset={3} onChange={(v) => set({ shadow: { y: v } })} />
+        <Slider label="Desfoque" value={s.shadow.blur} min={0} max={60} step={0.5} reset={12} onChange={(v) => set({ shadow: { blur: v } })} />
+      </Section>
+
+      <Section title="Contorno" defaultOpen={s.stroke.enabled} toggle={{ checked: s.stroke.enabled, onChange: (v) => set({ stroke: { enabled: v } }) }}>
+        <Row label="Cor">
+          <ColorField label="Cor do contorno" value={s.stroke.color} onChange={(v) => set({ stroke: { color: v } })} />
+        </Row>
+        <Slider label="Espessura" value={s.stroke.width} min={0.5} max={30} step={0.5} reset={6} onChange={(v) => set({ stroke: { width: v } })} />
+      </Section>
+
+      <Section title="Brilho" defaultOpen={s.glow.enabled} toggle={{ checked: s.glow.enabled, onChange: (v) => set({ glow: { enabled: v } }) }}>
+        <Row label="Cor">
+          <ColorField label="Cor do brilho" value={s.glow.color} onChange={(v) => set({ glow: { color: v } })} />
+        </Row>
+        <Slider label="Intensidade" value={s.glow.blur} min={2} max={100} step={1} reset={30} onChange={(v) => set({ glow: { blur: v } })} />
+      </Section>
+
+      <div className="props-foot">
+        <Button size="sm" variant="ghost" icon={<LuRotateCcw />} onClick={() => editor.resetStyle()}>
+          Restaurar estilo padrão do tema
+        </Button>
+      </div>
+    </div>
+  );
+}
