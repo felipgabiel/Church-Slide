@@ -334,7 +334,7 @@
   min-width: 0;
   min-height: 0;
   padding: 16px 18px 14px;
-  background: radial-gradient(1200px 500px at 50% -10%, rgb(232 184 74 / 0.04), transparent 60%), var(--bg-0);
+  background: radial-gradient(1200px 500px at 50% -10%, rgb(92 192 201 / 0.04), transparent 60%), var(--bg-0);
 }
 .op-monitors {
   flex: 1;
@@ -761,7 +761,7 @@
   border-bottom: 0;
 }
 .sce-row[data-capturing='1'] {
-  background: linear-gradient(90deg, rgb(232 185 74 / 0.08), transparent);
+  background: linear-gradient(90deg, rgb(92 192 201 / 0.08), transparent);
   box-shadow: inset 2px 0 0 var(--accent);
   padding-left: 10px;
   margin-left: -10px;

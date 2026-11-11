@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef, useState, type CSSProperties, type SyntheticEvent } from 'react';
+import { BOKEH } from '../core/bokeh';
 import type { Background } from '../core/types';
 import { adjustFilter, gradientCss } from './css';
 import { useMediaUrl } from './useMedia';
@@ -11,13 +12,6 @@ interface Props {
   onMediaError?: () => void;
 }
 
-const BOKEH = Array.from({ length: 14 }, (_, i) => {
-  const r = (n: number) => {
-    const x = Math.sin((i + 1) * 12.9898 * n) * 43758.5453;
-    return x - Math.floor(x);
-  };
-  return { left: r(1) * 100, size: 8 + r(2) * 22, delay: -r(3) * 24, dur: 16 + r(4) * 18, hue: Math.floor(r(5) * 3) };
-});
 
 function AnimatedBg({ bg }: { bg: Background }) {
   const stops = bg.gradient.stops;

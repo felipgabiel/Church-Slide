@@ -1,5 +1,6 @@
 import { applyPreset } from './anim/presets';
 import { defaultTheme } from './defaults';
+import { POPPINS_STACK } from './fonts';
 import type { DeepPartial, Theme } from './types';
 import { deepMerge } from './util';
 
@@ -8,6 +9,8 @@ export interface ThemePreset {
   name: string;
   description: string;
   theme: Theme;
+  /** Se definido, o layout tipográfico é aplicado automaticamente aos trechos. */
+  autoLayout?: 'impact';
 }
 
 const GEORGIA = 'Georgia, "Palatino Linotype", "Book Antiqua", Palatino, serif';
@@ -20,7 +23,48 @@ function make(patch: DeepPartial<Theme>, preset: string, animPatch: Partial<Them
 }
 
 /** Modelos visuais prontos. Cada um é um tema completo (texto + fundo + animação). */
+const IMPACT_FONT = POPPINS_STACK;
+
 export const THEME_PRESETS: ThemePreset[] = [
+  {
+    id: 'impacto',
+    name: 'Impacto',
+    description: 'Palavra-chave gigante, resto pequeno, fundo em brasa — automático',
+    autoLayout: 'impact',
+    theme: make(
+      {
+        text: {
+          fontFamily: IMPACT_FONT,
+          fontSize: 21,
+          bold: true,
+          color: '#ffffff',
+          letterSpacing: -2,
+          lineHeight: 0.98,
+          width: 90,
+          autoFit: true,
+          equalize: true,
+          shadow: { enabled: false, color: '#000000', x: 0, y: 0, blur: 0 },
+          glow: { enabled: false, color: '#ffffff', blur: 0 },
+        },
+        background: {
+          kind: 'animated',
+          animated: 'aurora',
+          color: '#0a0204',
+          gradient: {
+            angle: 160,
+            stops: [
+              { color: '#ff5a1f', at: 0 },
+              { color: '#d4152b', at: 50 },
+              { color: '#5c0b1c', at: 100 },
+            ],
+          },
+          adjust: { brightness: 100, contrast: 110, saturate: 115, blur: 0, dim: 18 },
+        },
+      },
+      'by-word',
+      { stagger: 80, duration: 700, motionBlur: 50, intensity: 40 },
+    ),
+  },
   {
     id: 'aurora',
     name: 'Aurora',

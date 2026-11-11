@@ -5,7 +5,7 @@ import { getFontOptions } from '../../../core/fonts';
 import type { Align } from '../../../core/types';
 import { editor, useActiveLayer } from '../../../store/editor';
 import { Button, IconButton } from '../../../ui/Button';
-import { ColorField, Row, Section, Segmented, Select, Slider } from '../../../ui/Controls';
+import { ColorField, Row, Section, Segmented, Select, Slider, Switch } from '../../../ui/Controls';
 import { toast } from '../../../ui/toast';
 import { useCustomFonts } from '../hooks';
 import { uploadFiles } from '../MediaGrid';
@@ -83,13 +83,38 @@ export function TextPanel() {
           />
         </Row>
         <Slider label="Espaço entre letras" value={s.letterSpacing} min={-5} max={60} step={0.5} reset={1} onChange={(v) => set({ letterSpacing: v })} />
-        <Slider label="Espaço entre linhas" value={s.lineHeight} min={0.8} max={2.4} step={0.05} reset={1.25} onChange={(v) => set({ lineHeight: v })} />
+        <Slider label="Espaço entre linhas" value={s.lineHeight} min={0.4} max={2.4} step={0.05} reset={1.25} onChange={(v) => set({ lineHeight: v })} />
+      </Section>
+
+      <Section
+        title="Proporção entre linhas"
+        defaultOpen={s.equalize}
+        toggle={{ checked: s.equalize && !s.autoWidth, onChange: (v) => set(v ? { equalize: true, autoWidth: false } : { equalize: false }) }}
+      >
+        <p className="props-note">
+          Linhas com mais palavras ficam com letra menor para terminar no mesmo comprimento da linha de letra maior, como em “vem sobre mim” sobre “SENHOR”.
+        </p>
+        <Slider
+          label="Menor tamanho permitido"
+          value={s.equalizeMin ?? 30}
+          min={10}
+          max={100}
+          step={1}
+          unit="%"
+          reset={30}
+          disabled={!s.equalize || s.autoWidth}
+          onChange={(v) => set({ equalizeMin: v })}
+        />
+        <p className="props-note">Quanto menor o valor, mais a linha comprida pode encolher. Em 100% nada é reduzido.</p>
       </Section>
 
       <Section title="Posição e tamanho do bloco">
         <Slider label="Horizontal" value={s.x} min={0} max={100} step={0.5} unit="%" reset={50} onChange={(v) => set({ x: v })} />
         <Slider label="Vertical" value={s.y} min={0} max={100} step={0.5} unit="%" reset={50} onChange={(v) => set({ y: v })} />
-        <Slider label="Largura" value={s.width} min={20} max={100} step={1} unit="%" reset={84} onChange={(v) => set({ width: v })} />
+        <Row label="Caixa do tamanho do texto" hint="Para palavras soltas">
+          <Switch checked={!!s.autoWidth} onChange={(v) => set(v ? { autoWidth: true, equalize: false } : { autoWidth: false })} label="Caixa acompanha o texto" />
+        </Row>
+        <Slider label="Largura" value={s.width} min={20} max={100} step={1} unit="%" reset={84} disabled={!!s.autoWidth} onChange={(v) => set({ width: v })} />
         <div className="props-pair">
           <Button size="sm" onClick={() => set({ x: 50 })}>
             Centralizar na horizontal

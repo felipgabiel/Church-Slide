@@ -79,17 +79,31 @@
 .layer-inner {
   display: block;
 }
+/* Blindagem: as palavras do texto são <span>s. Regras de outras telas (ex.: ".card span")
+   já quebraram a letra das miniaturas; aqui o palco garante o próprio layout. */
+.stage .wd {
+  display: inline;
+}
 .u {
   display: block;
-  min-height: 1em;
 }
 .u.w {
   display: inline-block;
   white-space: pre;
 }
+/* Cada linha tem o próprio tamanho de fonte (ver TextLayerView). O piso é 1 LINHA (1lh), não 1em:
+   com 1em o espaço entre linhas nunca ficava abaixo do tamanho da fonte e o controle "não pegava". */
 .ln {
   display: block;
-  min-height: 1em;
+  min-height: 1lh;
+  letter-spacing: calc(var(--tracking, 0) * 1em);
+}
+/* igualar largura: a linha nunca quebra, senão a medida natural não vale */
+.layer[data-eq='1'] .ln {
+  white-space: nowrap;
+}
+.ch {
+  display: inline;
 }
 .layer-inner.floating {
   animation: cs-float 7s ease-in-out infinite;

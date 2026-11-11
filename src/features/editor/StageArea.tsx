@@ -3,11 +3,15 @@ import { LuChevronLeft, LuChevronRight, LuClipboardPaste, LuGrid3X3, LuRotateCcw
 import { slideText } from '../../core/defaults';
 import { ASPECT_RATIOS } from '../../core/types';
 import { clamp } from '../../core/util';
-import { useSetting } from '../../core/settings';
+import { useSetting, writeSetting } from '../../core/settings';
+import { useWordSelection, wordKey, wordSelection } from '../../store/wordSelection';
 import { FitBox } from '../../render/FitBox';
 import { Stage } from '../../render/Stage';
 import { editor, editorStore, useActiveSlide, useEditor } from '../../store/editor';
 import { Button, IconButton } from '../../ui/Button';
+import { ContextMenu, type ContextItem } from '../../ui/ContextMenu';
+import { toast } from '../../ui/toast';
+import { buildStageMenu } from './stageMenu';
 
 interface Box {
   l: number;
@@ -27,6 +31,9 @@ function Surface({ guides }: { guides: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState<Box | null>(null);
   const [hover, setHover] = useState(false);
+  const selectedWords = useWordSelection();
+  const pendingWord = useRef<{ key: string | null; add: boolean; sx: number; sy: number } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; items: ContextItem[] } | null>(null);
   const [drag, setDrag] = useState<{ sx: number; sy: number; x0: number; y0: number; snapX: boolean; snapY: boolean } | null>(null);
 
   // mede a camada selecionada depois que o palco terminou de atualizar
@@ -61,10 +68,31 @@ function Surface({ guides }: { guides: boolean }) {
     return null;
   };
 
+  /** Palavra sob o ponteiro, no quadro de texto atual. */
+  const wordAt = (clientX: number, clientY: number): string | null => {
+    const root = ref.current;
+    if (!root) return null;
+    const frames = root.querySelectorAll('.text-frame');
+    const frame = frames[frames.length - 1];
+    if (!frame) return null;
+    for (const el of Array.from(frame.querySelectorAll<HTMLElement>('[data-w]'))) {
+      const r = el.getBoundingClientRect();
+      if (clientX >= r.left - 3 && clientX <= r.right + 3 && clientY >= r.top - 2 && clientY <= r.bottom + 2) return wordKey(el.dataset.lid ?? '', Number(el.dataset.w));
+    }
+    return null;
+  };
+
   const layer = slide?.layers.find((l) => l.id === layerId);
+  const highlight = selectedWords
+    .map((k) => {
+      const i = k.lastIndexOf(':');
+      return `.surface [data-lid="${CSS.escape(k.slice(0, i))}"][data-w="${Number(k.slice(i + 1))}"]`;
+    })
+    .join(',');
 
   return (
     <div ref={ref} className="surface">
+      {highlight && <style>{`${highlight}{outline:2px solid var(--accent);outline-offset:5px;border-radius:6px}`}</style>}
       <Stage theme={project.theme} slide={slide} mode="live" replayKey={replayKey} />
 
       {(guides || drag) && (
@@ -86,7 +114,9 @@ function Surface({ guides }: { guides: boolean }) {
         data-hover={hover && !drag ? '1' : '0'}
         data-drag={drag ? '1' : '0'}
         onPointerDown={(e) => {
-          if (e.button !== 0 || !layer) return;
+          if (e.button !== 0) return;
+          pendingWord.current = { key: wordAt(e.clientX, e.clientY), add: e.shiftKey || e.ctrlKey || e.metaKey, sx: e.clientX, sy: e.clientY };
+          if (!layer) return;
           const id = hit(e.clientX, e.clientY);
           if (!id) return;
           editor.selectLayer(id);
@@ -112,10 +142,38 @@ function Surface({ guides }: { guides: boolean }) {
           setDrag((d) => (d ? { ...d, snapX, snapY } : d));
           editor.patchStyle({ x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 });
         }}
-        onPointerUp={() => setDrag(null)}
-        onPointerCancel={() => setDrag(null)}
+        onPointerUp={(e) => {
+          setDrag(null);
+          const p = pendingWord.current;
+          pendingWord.current = null;
+          if (!p || Math.hypot(e.clientX - p.sx, e.clientY - p.sy) > 4) return; // foi um arraste, não um clique
+          if (p.key) {
+            wordSelection.click(p.key, p.add);
+            writeSetting('right-tab', 'words');
+          } else if (!p.add) wordSelection.clear();
+        }}
+        onPointerCancel={() => {
+          setDrag(null);
+          pendingWord.current = null;
+        }}
         onPointerLeave={() => setHover(false)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          const root = ref.current;
+          if (!root || !slide) return;
+          setDrag(null);
+          pendingWord.current = null;
+          const key = wordAt(e.clientX, e.clientY);
+          const i = key ? key.lastIndexOf(':') : -1;
+          const word = key ? { layerId: key.slice(0, i), index: Number(key.slice(i + 1)) } : null;
+          const id = word?.layerId ?? hit(e.clientX, e.clientY);
+          if (id) editor.selectLayer(id);
+          const r = root.getBoundingClientRect();
+          const at = { x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 };
+          setMenu({ x: e.clientX, y: e.clientY, items: buildStageMenu({ stage: root, slide, word, layerId: id, at, toast }) });
+        }}
       />
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
     </div>
   );
 }

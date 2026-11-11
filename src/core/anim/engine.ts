@@ -1,4 +1,4 @@
-import type { AnimationConfig, AnimPhase, Direction } from '../types';
+import type { AnimationConfig, AnimPhase, Direction, WordAnim } from '../types';
 import { easePeakSpeed, easeSpeed, getEase, type EaseFn } from './easing';
 
 /**
@@ -118,6 +118,46 @@ export function totalDuration(cfg: AnimationConfig, phase: 'enter' | 'exit', uni
 }
 
 /* ------------------------------------------------------------------ */
+/* Plano por unidade (permite uma animação própria por palavra)          */
+/* ------------------------------------------------------------------ */
+
+/** Animação própria de uma unidade (palavra). */
+export type UnitOverride = WordAnim;
+
+export interface UnitPlan {
+  /** configuração efetiva desta unidade */
+  cfg: AnimationConfig;
+  /** ms desde o início da fase */
+  start: number;
+  /** ms */
+  duration: number;
+}
+
+/**
+ * Calcula início, duração e efeitos de cada unidade. Sem `overrides` o resultado é
+ * exatamente o antigo (início = atraso + i × intervalo). Ajustes por palavra valem só na ENTRADA:
+ * a saída é sempre uniforme para não segurar a troca de trecho.
+ */
+export function planUnits(cfg: AnimationConfig, phase: 'enter' | 'exit', n: number, overrides?: (UnitOverride | undefined)[]): UnitPlan[] {
+  const t = phaseTiming(cfg, phase);
+  const speed = Math.max(0.1, cfg.speed || 1);
+  return Array.from({ length: n }, (_, i) => {
+    let ucfg = cfg;
+    let duration = t.duration;
+    let start = t.delay + i * t.stagger;
+    const ov = phase === 'enter' ? overrides?.[i] : undefined;
+    if (ov) {
+      ucfg = { ...cfg, enter: ov.enter, intensity: ov.intensity ?? cfg.intensity };
+      if (ov.duration) duration = Math.max(1, ov.duration / speed);
+      start += (ov.delay ?? 0) / speed;
+    }
+    return { cfg: ucfg, start, duration };
+  });
+}
+
+export const planTotal = (plans: UnitPlan[]): number => plans.reduce((m, p) => Math.max(m, p.start + p.duration), 0);
+
+/* ------------------------------------------------------------------ */
 /* Filtros SVG para o Motion Blur                                       */
 /* ------------------------------------------------------------------ */
 
@@ -173,11 +213,28 @@ export interface PlayHandle {
   /** Interrompe e limpa estilos (estado final visível). */
   settle(): void;
   readonly running: boolean;
+  /** duração (ms) da fase; a troca de cor começa depois do fim da entrada */
+  readonly total: number;
 }
 
 export interface PlayOptions {
   /** Opacidade inicial por unidade (entrada interrompida por uma saída). */
   startOpacity?: number[];
+  /** Animação própria por unidade (palavras com ajuste individual). */
+  overrides?: (UnitOverride | undefined)[];
+}
+
+/** Lê o ajuste de animação gravado em `data-anim` nas palavras. */
+export function collectOverrides(units: HTMLElement[]): (UnitOverride | undefined)[] {
+  return units.map((u) => {
+    const raw = u.dataset.anim;
+    if (!raw) return undefined;
+    try {
+      return JSON.parse(raw) as UnitOverride;
+    } catch {
+      return undefined;
+    }
+  });
 }
 
 function clearStyles(el: HTMLElement) {
@@ -202,14 +259,19 @@ export function play(
   pool: FilterPool | null,
   opts: PlayOptions = {},
 ): PlayHandle {
-  const fx = phase === 'enter' ? cfg.enter : cfg.exit;
   const ease = getEase(cfg.easing);
   const peak = easePeakSpeed(cfg.easing);
-  const timing = phaseTiming(cfg, phase);
   const n = units.length;
-  const total = totalDuration(cfg, phase, n);
-  const instant = !hasEffect(fx);
-  const wantsBlur = pool !== null && (fx.blur || (cfg.motionBlur > 0 && (fx.slide || fx.zoom !== 'none')));
+  const plans = planUnits(cfg, phase, n, opts.overrides);
+  const total = planTotal(plans);
+  const fxOf = (c: AnimationConfig) => (phase === 'enter' ? c.enter : c.exit);
+  const instant = plans.every((pl) => !hasEffect(fxOf(pl.cfg)));
+  const wantsBlur =
+    pool !== null &&
+    plans.some((pl) => {
+      const fx = fxOf(pl.cfg);
+      return fx.blur || (pl.cfg.motionBlur > 0 && (fx.slide || fx.zoom !== 'none'));
+    });
   const filters: (PooledFilter | null)[] = units.map(() => null);
 
   let raf = 0;
@@ -247,8 +309,9 @@ export function play(
   const apply = (t: number) => {
     for (let i = 0; i < n; i++) {
       const el = units[i];
-      const local = (t - timing.delay - i * timing.stagger) / timing.duration;
-      const s = unitState(cfg, phase, local, geo, ease, peak);
+      const plan = plans[i];
+      const local = (t - plan.start) / plan.duration;
+      const s = unitState(plan.cfg, phase, local, geo, ease, peak);
       const startOp = opts.startOpacity?.[i] ?? 1;
       el.style.opacity = String(s.opacity * (phase === 'exit' ? startOp : 1));
       el.style.transform =
@@ -277,7 +340,7 @@ export function play(
     else units.forEach(clearStyles);
     done = true;
     resolve();
-    return { finished, cancel() {}, settle() {}, running: false };
+    return { finished, cancel() {}, settle() {}, running: false, total: 0 };
   }
 
   units.forEach((el) => (el.style.willChange = 'transform, opacity, filter'));
@@ -303,5 +366,6 @@ export function play(
     get running() {
       return !done;
     },
+    total,
   };
 }

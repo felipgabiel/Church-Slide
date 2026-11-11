@@ -123,7 +123,7 @@
   color: var(--ok);
 }
 .save-bad {
-  color: #ffa095;
+  color: var(--live);
   background: rgb(255 92 77 / 0.13);
   border: 1px solid rgb(255 92 77 / 0.4);
   transition: background 0.14s;
@@ -166,7 +166,7 @@
 }
 .tabs button:hover {
   color: var(--text);
-  background: rgb(255 255 255 / 0.02);
+  background: var(--bg-2);
 }
 .tabs button[data-on='1'] {
   color: var(--text);
@@ -363,10 +363,8 @@
   border-radius: 3px;
   background: var(--accent-soft);
   color: var(--accent-hi);
-  font-size: 10px;
-  font-weight: 640;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
 }
 .si-blank {
   color: var(--text-4);
@@ -395,11 +393,9 @@
 }
 .lp-title {
   margin: 18px 0 8px;
-  color: var(--text-3);
-  font-size: 10.5px;
-  font-weight: 640;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
 }
 .lp-scroll > .lp-title:first-child,
 .lp-scroll > :first-child > .lp-title:first-child {
@@ -474,7 +470,16 @@
 .card .thumb {
   display: block;
   border-radius: var(--r-xs);
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.04);
+  box-shadow: 0 0 0 1px rgb(20 28 40 / 0.12);
+}
+/*
+ * A miniatura é só imagem: o clique tem de cair SEMPRE no botão do card. Ao passar o mouse a
+ * miniatura troca o palco estático pelo animado; se o elemento pressionado for substituído antes de
+ * soltar o botão, o navegador descarta o `click` e o efeito "não é aplicado" (clique rápido).
+ */
+.card .thumb,
+.card .thumb * {
+  pointer-events: none;
 }
 .card > span:not(.thumb),
 .card-title {
@@ -624,13 +629,13 @@
   position: relative;
   flex: 1;
   min-height: 0;
-  background: radial-gradient(ellipse 80% 70% at 50% 42%, #14171d 0%, var(--bg-0) 78%);
+  background: var(--stage-pad);
 }
 .surface {
   position: relative;
   width: 100%;
   height: 100%;
-  box-shadow: 0 28px 70px -20px rgb(0 0 0 / 0.85), 0 0 0 1px var(--line-2);
+  box-shadow: 0 10px 30px -10px rgb(0 0 0 / 0.5);
 }
 .hit {
   position: absolute;
@@ -653,7 +658,7 @@
 }
 .sel[data-drag='1'] {
   border-color: var(--accent-hi);
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35), 0 0 22px rgb(232 184 74 / 0.35);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35), 0 0 0 3px rgb(27 106 115 / 0.35);
 }
 .sel-tag {
   position: absolute;
@@ -866,11 +871,9 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 2px;
-  color: var(--text-3);
-  font-size: 10.5px;
-  font-weight: 640;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
 }
 .layers-head > span {
   display: inline-flex;
@@ -949,7 +952,7 @@
   min-width: 0;
 }
 .props-note {
-  margin-top: 10px;
+  margin: 8px 0 12px;
   color: var(--text-3);
   font-size: 11.5px;
   line-height: 1.5;
@@ -1107,11 +1110,9 @@
   border-radius: 3px;
   background: var(--accent-soft);
   color: var(--accent-hi);
-  font-size: 10px;
+  font-size: 11px;
   font-style: normal;
-  font-weight: 640;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 600;
 }
 .ly-prev li span {
   color: var(--text-2);
@@ -1136,11 +1137,9 @@
 .set h3,
 .sc-title {
   margin: 20px 0 6px;
-  color: var(--text-3);
-  font-size: 10.5px;
-  font-weight: 640;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
 }
 .set h3:first-child,
 .modal-body > .sc-title:first-child {
@@ -1224,4 +1223,67 @@
   .te-meta {
     margin-top: 6px;
   }
+}
+
+/* ===== Painel "Palavras" ===== */
+.wlist {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+}
+.wlist + .wlist {
+  border-top: 1px dashed var(--line);
+  margin-top: 4px;
+  padding-top: 8px;
+}
+.wlist-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.wchip {
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-3);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+.wchip:hover {
+  border-color: var(--line-3);
+}
+.wchip[data-edited='1'] {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.wchip[data-on='1'] {
+  border-color: var(--accent);
+  background: rgb(27 106 115 / 0.12);
+  color: var(--accent-hi);
+}
+.wchip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.wsel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 2px 0 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgb(27 106 115 / 0.08);
+  border: 1px solid rgb(27 106 115 / 0.35);
+  font-size: 12.5px;
+}
+.wsel b {
+  color: var(--accent-hi);
+}
+.props-note svg {
+  vertical-align: -2px;
+  margin-right: 4px;
 }

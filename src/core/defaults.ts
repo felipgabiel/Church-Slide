@@ -10,8 +10,11 @@ import {
   type TextLayer,
   type TextStyle,
   type Theme,
+  type AnimationConfig,
 } from './types';
 import { clone, deepMerge, fillDefaults } from './util';
+import { sanitizeColorFx } from './anim/colorfx';
+import { sanitizeWords } from './words';
 
 export const SYSTEM_SANS = 'Inter, "Segoe UI", "Helvetica Neue", Roboto, system-ui, sans-serif';
 
@@ -35,6 +38,9 @@ export function defaultTextStyle(): TextStyle {
     stroke: { enabled: false, color: '#000000', width: 6 },
     glow: { enabled: false, color: '#ffd27a', blur: 30 },
     autoFit: true,
+    equalize: false,
+    equalizeMin: 30,
+    autoWidth: false,
   };
 }
 
@@ -125,9 +131,19 @@ export function newProject(name: string, opts: { theme?: Theme; aspect?: Aspect;
  * Valida e completa um projeto vindo do armazenamento/importação.
  * Campos novos do modelo recebem valores padrão, então versões antigas continuam abrindo.
  */
+/** Completa uma animação lida do disco; a troca de cor vem de fora e é validada. */
+function cleanAnimation(raw: unknown): AnimationConfig {
+  const a = fillDefaults(baseAnimation(), raw);
+  const fx = sanitizeColorFx((raw as { colorFx?: unknown } | null | undefined)?.colorFx);
+  if (fx) a.colorFx = fx;
+  else delete a.colorFx;
+  return a;
+}
+
 export function normalizeProject(raw: unknown): Project {
   const r = (raw ?? {}) as Partial<Project>;
   const theme = fillDefaults(defaultTheme(), r.theme);
+  theme.animation = cleanAnimation(r.theme?.animation);
   const slides = (Array.isArray(r.slides) ? r.slides : []).map((s): Slide => {
     const slide = (s ?? {}) as Partial<Slide>;
     const layers = (Array.isArray(slide.layers) && slide.layers.length ? slide.layers : [newLayer('lyrics', '', theme.text)]).map(
@@ -140,6 +156,8 @@ export function normalizeProject(raw: unknown): Project {
           text: typeof layer.text === 'string' ? layer.text : '',
           visible: layer.visible !== false,
           style: fillDefaults(defaultTextStyle(), layer.style),
+          // sem isso, todo ajuste por palavra se perdia ao reabrir/importar o projeto
+          ...(sanitizeWords(layer.words) ? { words: sanitizeWords(layer.words) } : {}),
         };
       },
     );
@@ -148,7 +166,7 @@ export function normalizeProject(raw: unknown): Project {
       label: slide.label ?? '',
       layers,
       background: slide.background ? fillDefaults(defaultBackground(), slide.background) : null,
-      animation: slide.animation ? fillDefaults(baseAnimation(), slide.animation) : null,
+      animation: slide.animation ? cleanAnimation(slide.animation) : null,
       duration: typeof slide.duration === 'number' ? slide.duration : null,
       notes: slide.notes ?? '',
     };
@@ -169,6 +187,7 @@ export function normalizeProject(raw: unknown): Project {
     deletedAt: r.deletedAt ?? null,
     lyrics: r.lyrics ?? '',
     splitMode: r.splitMode ?? 'stanza',
+    ...(r.autoLayout === 'impact' ? { autoLayout: 'impact' as const } : {}),
   };
 }
 

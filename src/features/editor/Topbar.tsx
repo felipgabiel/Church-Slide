@@ -1,4 +1,4 @@
-import { LuCheck, LuChevronLeft, LuCloudOff, LuDownload, LuEllipsis, LuHistory, LuInfo, LuKeyboard, LuLayoutTemplate, LuLoaderCircle, LuMonitorPlay, LuPanelLeft, LuPanelRight, LuRedo2, LuSettings, LuUndo2, LuClipboardPaste } from 'react-icons/lu';
+import { LuCheck, LuChevronLeft, LuCloudOff, LuDownload, LuEllipsis, LuFilm, LuHistory, LuInfo, LuKeyboard, LuLayoutTemplate, LuLoaderCircle, LuMonitorPlay, LuPanelLeft, LuPanelRight, LuRedo2, LuSettings, LuUndo2, LuClipboardPaste } from 'react-icons/lu';
 import { navigate, paths } from '../../app/router';
 import { slideText } from '../../core/defaults';
 import { downloadBlob, exportFileName, exportProject } from '../../core/storage/exchange';
@@ -13,7 +13,7 @@ import { Menu } from '../../ui/Menu';
 import { confirmDialog, promptDialog, toast, toastError, useNow } from '../../ui/toast';
 import { startPresenting } from './useEditorShortcuts';
 
-export type DialogName = 'lyrics' | 'info' | 'settings' | 'shortcuts';
+export type DialogName = 'lyrics' | 'info' | 'settings' | 'shortcuts' | 'export';
 
 function SaveStatus() {
   const status = useEditor((s) => s.status);
@@ -150,6 +150,9 @@ export function Topbar({ left, right, onToggleLeft, onToggleRight, open }: Props
           ]}
           trigger={(isOpen, toggle) => <IconButton label="Mais opções" icon={<LuEllipsis />} active={isOpen} aria-haspopup="menu" aria-expanded={isOpen} onClick={toggle} />}
         />
+        <Button icon={<LuFilm />} onClick={() => open('export')} disabled={!hasText} title={hasText ? 'Gerar um vídeo MP4 por trecho (animação + letra parada)' : 'Adicione a letra para exportar'}>
+          Exportar vídeos
+        </Button>
         <Button variant="primary" icon={<LuMonitorPlay />} onClick={() => void startPresenting()} disabled={!hasText} title={hasText ? 'Abrir o modo de apresentação (Ctrl+Enter)' : 'Adicione a letra para apresentar'}>
           Apresentar
         </Button>

@@ -1,5 +1,5 @@
 import { LuArrowDown, LuArrowLeft, LuArrowRight, LuArrowUp, LuRotateCcw, LuUndo2 } from 'react-icons/lu';
-import { ANIMATION_PRESETS, DIRECTION_LABELS, type PresetGroup } from '../../../core/anim/presets';
+import { ANIMATION_PRESETS, PRESET_GROUPS, DEFAULT_STAGGER, DIRECTION_LABELS } from '../../../core/anim/presets';
 import { EASING_LABELS } from '../../../core/anim/easing';
 import { resolveAnimation } from '../../../core/defaults';
 import type { AnimPhase, AnimUnit, AnimationConfig, Direction, EasingName } from '../../../core/types';
@@ -7,8 +7,9 @@ import { editor, useActiveSlide, useEditor } from '../../../store/editor';
 import { Button } from '../../../ui/Button';
 import { Row, Section, Segmented, Select, Slider, Switch } from '../../../ui/Controls';
 import { useDebouncedReplay } from '../hooks';
+import { ColorFxControls } from './ColorFxControls';
 
-const GROUPS: PresetGroup[] = ['Básicas', 'Movimento', 'Combinadas', 'Por texto'];
+const GROUPS = PRESET_GROUPS;
 
 function PhaseControls({ title, value, onChange }: { title: string; value: AnimPhase; onChange: (p: Partial<AnimPhase>) => void }) {
   return (
@@ -30,8 +31,8 @@ function PhaseControls({ title, value, onChange }: { title: string; value: AnimP
           onChange={(v) => onChange({ zoom: v })}
           options={[
             { value: 'none', label: 'Nenhum' },
-            { value: 'in', label: 'In' },
-            { value: 'out', label: 'Out' },
+            { value: 'in', label: 'Crescer' },
+            { value: 'out', label: 'Encolher' },
           ]}
         />
       </Row>
@@ -100,7 +101,7 @@ export function AnimationPanel() {
           size="sm"
           label="Unidade da animação"
           value={cfg.unit}
-          onChange={(v) => set({ unit: v })}
+          onChange={(v) => set(v !== 'block' && cfg.stagger <= 0 ? { unit: v, stagger: DEFAULT_STAGGER[v] } : { unit: v })}
           options={[
             { value: 'block', label: 'Frase toda', title: 'O trecho inteiro entra de uma vez' },
             { value: 'line', label: 'Linha' },
@@ -141,6 +142,19 @@ export function AnimationPanel() {
             ))}
           </Select>
         </Row>
+      </Section>
+
+      <Section title="Troca de cor" defaultOpen={!!cfg.colorFx}>
+        <p className="props-note">A letra entra com a animação escolhida e, depois, a cor vai mudando (por exemplo, de branco para verde).</p>
+        <ColorFxControls
+          value={cfg.colorFx}
+          switchLabel="Trocar de cor depois de entrar"
+          current={theme.text.color}
+          onChange={(fx) => {
+            editor.setColorFx(fx);
+            replay();
+          }}
+        />
       </Section>
 
       <Section title="Motion Blur">

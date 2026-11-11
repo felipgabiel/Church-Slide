@@ -3,6 +3,7 @@ import { defaultTheme, newSlide } from '../../core/defaults';
 import { splitLyrics, SPLIT_MODE_LABELS } from '../../core/split';
 import { createProject, saveProject } from '../../core/storage/projects';
 import { THEME_PRESETS } from '../../core/themes';
+import { applyImpactToLayer, DEFAULT_IMPACT } from '../../core/impact';
 import type { Aspect, Project, SplitMode, Theme } from '../../core/types';
 import { SlideThumb } from '../../render/SlideThumb';
 import { Button } from '../../ui/Button';
@@ -28,6 +29,7 @@ interface ThemeChoice {
   theme: Theme;
   aspect?: Aspect;
   custom?: boolean;
+  autoLayout?: 'impact';
 }
 
 const ASPECTS: Aspect[] = ['16:9', '16:10', '4:3', '21:9'];
@@ -45,7 +47,7 @@ export function NewProjectDialog({ open, onClose, categories, templates, onCreat
   const choices = useMemo<ThemeChoice[]>(
     () => [
       { id: 'default', name: 'Simples', theme: defaultTheme() },
-      ...THEME_PRESETS.map((t) => ({ id: t.id, name: t.name, theme: t.theme })),
+      ...THEME_PRESETS.map((t) => ({ id: t.id, name: t.name, theme: t.theme, autoLayout: t.autoLayout })),
       ...templates.map((t) => ({ id: `tpl:${t.id}`, name: t.name, theme: t.theme, aspect: t.aspect, custom: true })),
     ],
     [templates],
@@ -60,7 +62,10 @@ export function NewProjectDialog({ open, onClose, categories, templates, onCreat
       let p = await createProject(name.trim() || 'Novo louvor', { theme: chosen.theme, aspect: chosen.aspect ?? aspect, category: category.trim(), artist: artist.trim() });
       if (lyrics.trim()) {
         const slides = splitLyrics(lyrics, { mode }).map((x) => newSlide(x.text, p.theme, x.label));
-        if (slides.length) p = await saveProject({ ...p, slides, lyrics, splitMode: mode });
+        if (chosen.autoLayout === 'impact') for (const sl of slides) for (const l of sl.layers) if (l.role === 'lyrics') applyImpactToLayer(l, DEFAULT_IMPACT);
+        if (slides.length) p = await saveProject({ ...p, slides, lyrics, splitMode: mode, autoLayout: chosen.autoLayout });
+      } else if (chosen.autoLayout) {
+        p = await saveProject({ ...p, autoLayout: chosen.autoLayout });
       }
       onCreated(p);
     } catch (err) {

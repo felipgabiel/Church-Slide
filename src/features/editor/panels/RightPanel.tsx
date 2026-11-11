@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { LuEye, LuEyeOff, LuLayers, LuPlus, LuSparkles, LuTrash2, LuType, LuImage } from 'react-icons/lu';
+import { LuALargeSmall, LuEye, LuEyeOff, LuLayers, LuPlus, LuClapperboard, LuTrash2, LuType, LuImage } from 'react-icons/lu';
 import { useSetting } from '../../../core/settings';
 import type { LayerRole } from '../../../core/types';
 import { editor, useActiveSlide, useEditor, type EditScope } from '../../../store/editor';
@@ -8,8 +8,9 @@ import { Menu } from '../../../ui/Menu';
 import { AnimationPanel } from './AnimationPanel';
 import { BackgroundPanel } from './BackgroundPanel';
 import { TextPanel } from './TextPanel';
+import { WordsPanel } from './WordsPanel';
 
-type Tab = 'text' | 'background' | 'animation';
+type Tab = 'text' | 'words' | 'background' | 'animation';
 
 const ROLE_ITEMS: { role: LayerRole; label: string }[] = [
   { role: 'title', label: 'Título da música' },
@@ -87,8 +88,9 @@ export function RightPanel() {
         {(
           [
             { id: 'text', label: 'Texto', icon: <LuType /> },
+            { id: 'words', label: 'Palavras', icon: <LuALargeSmall /> },
             { id: 'background', label: 'Fundo', icon: <LuImage /> },
-            { id: 'animation', label: 'Animação', icon: <LuSparkles /> },
+            { id: 'animation', label: 'Animação', icon: <LuClapperboard /> },
           ] as { id: Tab; label: string; icon: ReactNode }[]
         ).map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} data-on={tab === t.id ? '1' : '0'} onClick={() => setTab(t.id)}>
@@ -99,6 +101,7 @@ export function RightPanel() {
       </div>
       <div className="panel-body" role="tabpanel">
         {tab === 'text' && <TextPanel />}
+        {tab === 'words' && <WordsPanel />}
         {tab === 'background' && <BackgroundPanel />}
         {tab === 'animation' && <AnimationPanel />}
       </div>

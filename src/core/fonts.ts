@@ -9,7 +9,11 @@ export interface FontOption {
   probe?: string;
 }
 
+/** Poppins vem embutida no app (src/assets/fonts); as demais da lista são só fallback. */
+export const POPPINS_STACK = '"Poppins", "Montserrat", "Segoe UI Black", "Segoe UI", "Helvetica Neue", Arial, sans-serif';
+
 const CANDIDATES: FontOption[] = [
+  { label: 'Poppins (embutida)', value: POPPINS_STACK, group: 'Destaque' },
   { label: 'Padrão do sistema', value: SYSTEM_SANS, group: 'Sans-serif' },
   { label: 'Arial', value: 'Arial, Helvetica, sans-serif', group: 'Sans-serif', probe: 'Arial' },
   { label: 'Helvetica Neue', value: '"Helvetica Neue", Helvetica, Arial, sans-serif', group: 'Sans-serif', probe: 'Helvetica Neue' },

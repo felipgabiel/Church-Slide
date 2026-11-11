@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { Background, TextStyle } from '../core/types';
+import type { Background, TextStyle, WordStyle } from '../core/types';
 
 /** Décimos de % da altura do slide → unidade de container (`cqh`). */
 export const cq = (tenths: number) => `${(tenths * 0.1).toFixed(3)}cqh`;
@@ -13,14 +13,18 @@ export function layerCss(style: TextStyle): CSSProperties {
   const css: CSSProperties = {
     left: `${style.x}%`,
     top: `${style.y}%`,
-    width: `${style.width}%`,
+    // palavra solta: a caixa acompanha o texto (assim o clique/arraste pega só a palavra)
+    width: style.autoWidth ? 'max-content' : `${style.width}%`,
+    ...(style.autoWidth ? { whiteSpace: 'nowrap' as const } : {}),
     fontFamily: style.fontFamily,
     fontSize: `calc(${style.fontSize}cqh * var(--fit, 1))`,
     color: style.color,
-    fontWeight: style.bold ? 800 : 400,
+    fontWeight: style.weight ?? (style.bold ? 800 : 400),
     fontStyle: style.italic ? 'italic' : 'normal',
     textTransform: style.uppercase ? 'uppercase' : 'none',
     letterSpacing: `${style.letterSpacing / 100}em`,
+    // cada linha reaplica em `em` do próprio tamanho (senão a linha menor herdaria os px da maior)
+    ['--tracking' as string]: String(style.letterSpacing / 100),
     lineHeight: style.lineHeight,
     textAlign: style.align,
     opacity: style.opacity / 100,
@@ -32,6 +36,22 @@ export function layerCss(style: TextStyle): CSSProperties {
   }
   if (style.blur > 0) css.filter = `blur(${cq(style.blur)})`;
   return css;
+}
+
+/** Estilo CSS de uma palavra que sobrepõe o da camada (tamanho em `em` relativo à camada). */
+export function wordCss(w: WordStyle, base = 1): CSSProperties {
+  const c: CSSProperties = {};
+  if (w.fontFamily) c.fontFamily = w.fontFamily;
+  // `base` = escala da palavra maior da linha: o bloco da linha já tem esse tamanho
+  const rel = (w.scale ?? 1) / base;
+  if (rel !== 1) c.fontSize = `${rel}em`;
+  else if (w.scale !== undefined && base !== 1) c.fontSize = '1em';
+  if (w.weight !== undefined) c.fontWeight = w.weight;
+  if (w.color) c.color = w.color;
+  if (w.italic !== undefined) c.fontStyle = w.italic ? 'italic' : 'normal';
+  if (w.textCase) c.textTransform = w.textCase === 'upper' ? 'uppercase' : w.textCase === 'lower' ? 'lowercase' : 'none';
+  if (w.letterSpacing !== undefined) c.letterSpacing = `${w.letterSpacing / 100}em`;
+  return c;
 }
 
 export function adjustFilter(bg: Background): string | undefined {

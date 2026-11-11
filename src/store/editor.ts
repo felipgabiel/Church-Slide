@@ -6,6 +6,7 @@ import { getProject, saveProject, writeSnapshot } from '../core/storage/projects
 import type {
   AnimationConfig,
   Aspect,
+  ColorFx,
   Background,
   DeepPartial,
   LayerRole,
@@ -16,7 +17,23 @@ import type {
   TextStyle,
   Theme,
 } from '../core/types';
-import { clone, deepMerge, move } from '../core/util';
+import { applyImpactToLayer, DEFAULT_IMPACT } from '../core/impact';
+import { getThemePreset } from '../core/themes';
+import { clearWord, patchWord, pruneWords, type WordPatch, type WordTarget } from '../core/words';
+import {
+  copyLayer,
+  detachedLayer,
+  duplicateLine as duplicateLineIn,
+  duplicateWord as duplicateWordIn,
+  readLine,
+  readWord,
+  removeLine as removeLineIn,
+  removeWord as removeWordIn,
+  reorderLayers,
+  type LayerMove,
+} from '../core/layers';
+import { clamp, clone, deepMerge, move } from '../core/util';
+import { wordSelection } from './wordSelection';
 import { createStore, useStore } from './createStore';
 
 export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
@@ -256,10 +273,82 @@ export const editor = {
     mutate(
       (d) => {
         const layer = d.slides.find((s) => s.id === slideId)?.layers.find((l) => l.id === layerId);
-        if (layer) layer.text = text;
+        if (layer) {
+          layer.text = text;
+          pruneWords(layer);
+        }
       },
       { coalesce: `text:${layerId}` },
     );
+  },
+
+  /* ---- palavras ---- */
+
+  patchWords(targets: WordTarget[], patch: WordPatch) {
+    if (!targets.length) return;
+    mutate(
+      (d) => {
+        const slide = currentSlide(d);
+        for (const t of targets) {
+          const layer = slide?.layers.find((l) => l.id === t.layerId);
+          if (layer) patchWord(layer, t.index, patch);
+        }
+      },
+      { coalesce: `words:${targets.map((t) => `${t.layerId}.${t.index}`).join('|')}:${Object.keys(patch.style ?? {}).join(',')}:${patch.anim === undefined ? '' : 'a'}${patch.colorFx === undefined ? '' : 'c'}` },
+    );
+  },
+
+  clearWords(targets: WordTarget[]) {
+    mutate((d) => {
+      const slide = currentSlide(d);
+      for (const t of targets) {
+        const layer = slide?.layers.find((l) => l.id === t.layerId);
+        if (layer) clearWord(layer, t.index);
+      }
+    });
+  },
+
+  /** Layout "Impacto" só neste trecho (reescreve quebras de linha e ajustes por palavra da letra). */
+  applyImpactToSlide() {
+    mutate((d) => {
+      const layer = currentSlide(d)?.layers.find((l) => l.role === 'lyrics');
+      if (layer) applyImpactToLayer(layer, DEFAULT_IMPACT);
+    });
+  },
+
+  /** Layout "Impacto" em TODOS os trechos do louvor (uma só entrada no desfazer). */
+  applyImpactToAll() {
+    mutate((d) => {
+      for (const s of d.slides) for (const l of s.layers) if (l.role === 'lyrics') applyImpactToLayer(l, DEFAULT_IMPACT);
+    });
+  },
+
+  /** Remove todos os ajustes por palavra (do trecho ou do louvor inteiro). */
+  clearWordStyles(scope: 'slide' | 'all') {
+    mutate((d) => {
+      const slides = scope === 'all' ? d.slides : [currentSlide(d)].filter((x): x is Slide => !!x);
+      for (const s of slides) for (const l of s.layers) delete l.words;
+    });
+  },
+
+  /** Tema Impacto + layout automático em TODOS os trechos. */
+  applyImpactAll() {
+    const preset = getThemePreset('impacto');
+    if (!preset) return;
+    mutate((d) => {
+      d.theme = clone(preset.theme);
+      d.autoLayout = 'impact';
+      for (const s of d.slides) {
+        s.background = null;
+        s.animation = null;
+        for (const l of s.layers) {
+          if (l.role === 'lyrics') {
+            l.style = clone(preset.theme.text);
+            applyImpactToLayer(l, DEFAULT_IMPACT);
+          } else l.style = { ...l.style, fontFamily: preset.theme.text.fontFamily, color: preset.theme.text.color, shadow: clone(preset.theme.text.shadow), glow: clone(preset.theme.text.glow) };
+        }
+      }
+    });
   },
 
   addSlide(afterId?: string | null, text = '') {
@@ -377,7 +466,7 @@ export const editor = {
 
   /* ---- camadas ---- */
 
-  addLayer(role: LayerRole, text = '') {
+  addLayer(role: LayerRole, text = '', at?: { x: number; y: number }) {
     const id = uid('l');
     mutate(
       (d) => {
@@ -385,6 +474,10 @@ export const editor = {
         if (!slide) return;
         const layer = newLayer(role, text, d.theme.text);
         layer.id = id;
+        if (at) {
+          layer.style.x = Math.round(clamp(at.x, 0, 100) * 10) / 10;
+          layer.style.y = Math.round(clamp(at.y, 0, 100) * 10) / 10;
+        }
         slide.layers.push(layer);
       },
       { select: () => ({ layerId: id }) },
@@ -397,6 +490,98 @@ export const editor = {
       if (!slide || slide.layers.length <= 1) return;
       slide.layers = slide.layers.filter((l) => l.id !== id);
     });
+  },
+
+  /** Sobe/desce a camada na pilha (o último da lista fica na frente). */
+  moveLayer(id: string, how: LayerMove) {
+    mutate((d) => {
+      const slide = currentSlide(d);
+      if (slide) slide.layers = reorderLayers(slide.layers, id, how);
+    });
+  },
+
+  duplicateLayer(id: string) {
+    const nid = uid('l');
+    mutate(
+      (d) => {
+        const slide = currentSlide(d);
+        const i = slide?.layers.findIndex((l) => l.id === id) ?? -1;
+        if (!slide || i < 0) return;
+        slide.layers.splice(i + 1, 0, copyLayer(slide.layers[i], nid));
+      },
+      { select: () => ({ layerId: nid }) },
+    );
+  },
+
+  /** Desloca uma camada (em % do palco). `key` junta vários ajustes num único "desfazer". */
+  nudgeLayer(id: string, dx: number, dy: number, key?: string) {
+    mutate(
+      (d) => {
+        const layer = currentSlide(d)?.layers.find((l) => l.id === id);
+        if (!layer) return;
+        layer.style.x = Math.round(clamp(layer.style.x + dx, 0, 100) * 10) / 10;
+        layer.style.y = Math.round(clamp(layer.style.y + dy, 0, 100) * 10) / 10;
+      },
+      key ? { coalesce: key } : {},
+    );
+  },
+
+  /**
+   * Tira uma palavra ou linha do texto e a transforma numa camada própria, no mesmo lugar e com o mesmo
+   * tamanho (medidos na tela por quem chama). Depois é só arrastar. Devolve o id da camada nova.
+   */
+  detach(src: { layerId: string; kind: 'word' | 'line'; index: number }, geom: { x: number; y: number; fontSize: number }): string | null {
+    const nid = uid('l');
+    let ok = false;
+    mutate(
+      (d) => {
+        const slide = currentSlide(d);
+        const from = slide?.layers.find((l) => l.id === src.layerId);
+        if (!slide || !from) return;
+        const cut = src.kind === 'word' ? readWord(from, src.index) : readLine(from, src.index);
+        if (!cut) return;
+        const layer = detachedLayer(from, cut, geom, nid);
+        if (src.kind === 'word') removeWordIn(from, src.index);
+        else removeLineIn(from, src.index);
+        slide.layers.splice(slide.layers.findIndex((l) => l.id === from.id) + 1, 0, layer);
+        ok = true;
+      },
+      { select: () => ({ layerId: nid }), coalesce: `detach:${nid}` },
+    );
+    if (ok) wordSelection.clear();
+    return ok ? nid : null;
+  },
+
+  duplicateWord(layerId: string, index: number) {
+    mutate((d) => {
+      const layer = currentSlide(d)?.layers.find((l) => l.id === layerId);
+      if (layer) duplicateWordIn(layer, index);
+    });
+    wordSelection.clear();
+  },
+
+  duplicateLine(layerId: string, lineIdx: number) {
+    mutate((d) => {
+      const layer = currentSlide(d)?.layers.find((l) => l.id === layerId);
+      if (layer) duplicateLineIn(layer, lineIdx);
+    });
+    wordSelection.clear();
+  },
+
+  removeWord(layerId: string, index: number) {
+    mutate((d) => {
+      const layer = currentSlide(d)?.layers.find((l) => l.id === layerId);
+      if (layer) removeWordIn(layer, index);
+    });
+    wordSelection.clear();
+  },
+
+  removeLine(layerId: string, lineIdx: number) {
+    mutate((d) => {
+      const layer = currentSlide(d)?.layers.find((l) => l.id === layerId);
+      if (layer) removeLineIn(layer, lineIdx);
+    });
+    wordSelection.clear();
   },
 
   toggleLayer(id: string) {
@@ -488,6 +673,29 @@ export const editor = {
     );
   },
 
+  /** Liga, ajusta ou desliga a troca de cor do trecho (ou de todos, conforme o escopo). Substitui o efeito inteiro. */
+  setColorFx(fx: ColorFx | null) {
+    const scope = editorStore.get().scope;
+    mutate(
+      (d) => {
+        const put = (a: AnimationConfig) => {
+          if (fx) a.colorFx = fx;
+          else delete a.colorFx;
+        };
+        if (scope === 'all') {
+          put(d.theme.animation);
+          d.slides.forEach((s) => s.animation && put(s.animation));
+          return;
+        }
+        const slide = currentSlide(d);
+        if (!slide) return;
+        slide.animation = resolveAnimation(slide, d.theme) === d.theme.animation ? clone(d.theme.animation) : slide.animation;
+        if (slide.animation) put(slide.animation);
+      },
+      { coalesce: `cfx:${scope}:${editorStore.get().slideId}` },
+    );
+  },
+
   setAnimationPreset(presetId: string) {
     const scope = editorStore.get().scope;
     mutate((d) => {
@@ -526,6 +734,7 @@ export const editor = {
       (d) => {
         const parts = splitLyrics(text, { mode, maxLines });
         const slides = parts.map((p) => newSlide(p.text, d.theme, p.label));
+        if (d.autoLayout === 'impact') for (const sl of slides) for (const l of sl.layers) if (l.role === 'lyrics') applyImpactToLayer(l, DEFAULT_IMPACT);
         if (how === 'replace') {
           d.slides = slides.length ? slides : [newSlide('', d.theme)];
           d.lyrics = text;

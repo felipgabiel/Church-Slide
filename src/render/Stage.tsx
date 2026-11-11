@@ -1,8 +1,10 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState, type MutableRefObject } from 'react';
-import { captureOpacity, FilterPool, play, type Geometry, type PlayHandle } from '../core/anim/engine';
+import { captureOpacity, collectOverrides, FilterPool, play, type Geometry, type PlayHandle } from '../core/anim/engine';
 import { resolveAnimation, resolveBackground } from '../core/defaults';
 import type { Background, Slide, Theme } from '../core/types';
+import { hasWordAnim } from '../core/words';
 import { BackgroundView } from './Background';
+import { applyFinalColors, layerNeedsLetters, startColorRun, type ColorRun } from './colorRun';
 import { sameJson } from './css';
 import { collectUnits, TextLayerView } from './TextLayerView';
 
@@ -49,15 +51,25 @@ type Shared = {
 function TextFrame({ frame, theme, shared, onExited }: { frame: Frame; theme: Theme; shared: Shared; onExited: (key: number) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const handle = useRef<PlayHandle | null>(null);
+  const colorRun = useRef<ColorRun | null>(null);
   const exiting = useRef(false);
   const cfg = resolveAnimation(frame.slide, theme);
   const cfgRef = useRef(cfg);
   cfgRef.current = cfg;
+  // palavra com animação própria só faz sentido se cada palavra for uma unidade
+  const wordAnim = hasWordAnim(frame.slide.layers);
 
   // Entrada: roda uma vez, antes da primeira pintura.
   useLayoutEffect(() => {
-    handle.current = play(collectUnits(ref.current), cfgRef.current, 'enter', shared.geoRef.current, shared.poolRef.current);
-    return () => handle.current?.cancel();
+    const units = collectUnits(ref.current);
+    const h = play(units, cfgRef.current, 'enter', shared.geoRef.current, shared.poolRef.current, { overrides: collectOverrides(units) });
+    handle.current = h;
+    // troca de cor: começa quando a entrada termina
+    colorRun.current = startColorRun(ref.current, frame.slide.layers, cfgRef.current.colorFx, h.total);
+    return () => {
+      h.cancel();
+      colorRun.current?.cancel();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -68,6 +80,7 @@ function TextFrame({ frame, theme, shared, onExited }: { frame: Frame; theme: Th
     const units = collectUnits(ref.current);
     const startOpacity = captureOpacity(units);
     handle.current?.cancel();
+    colorRun.current?.cancel();
     units.forEach((u) => {
       u.style.transform = '';
       u.style.filter = '';
@@ -83,7 +96,25 @@ function TextFrame({ frame, theme, shared, onExited }: { frame: Frame; theme: Th
       {frame.slide.layers
         .filter((l) => l.visible)
         .map((l) => (
-          <TextLayerView key={l.id} layer={l} unit={cfg.unit} float={cfg.float} />
+          <TextLayerView key={l.id} layer={l} unit={wordAnim ? 'word' : cfg.unit} float={cfg.float} letters={layerNeedsLetters(l, cfg.colorFx)} />
+        ))}
+    </div>
+  );
+}
+
+/** Estado final do trecho (miniaturas): sem animação, já na cor de chegada da troca de cor. */
+function StaticFrame({ slide, theme }: { slide: Slide; theme: Theme }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const fx = resolveAnimation(slide, theme).colorFx;
+  useLayoutEffect(() => {
+    applyFinalColors(ref.current, slide.layers, fx);
+  });
+  return (
+    <div ref={ref} className="text-frame">
+      {slide.layers
+        .filter((l) => l.visible)
+        .map((l) => (
+          <TextLayerView key={l.id} layer={l} unit="block" letters={layerNeedsLetters(l, fx)} />
         ))}
     </div>
   );
@@ -168,13 +199,7 @@ export const Stage = memo(function Stage({ theme, slide, mode, replayKey = 0, bl
             <div className="bg-layer">
               <BackgroundView bg={resolveBackground(slide, theme)} mode="static" />
             </div>
-            <div className="text-frame">
-              {slide.layers
-                .filter((l) => l.visible)
-                .map((l) => (
-                  <TextLayerView key={l.id} layer={l} unit="block" />
-                ))}
-            </div>
+            <StaticFrame slide={slide} theme={theme} />
           </>
         )
       ) : (

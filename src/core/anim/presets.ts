@@ -21,7 +21,15 @@ export function baseAnimation(): AnimationConfig {
   };
 }
 
-export type PresetGroup = 'Básicas' | 'Movimento' | 'Combinadas' | 'Por texto';
+/*
+ * Regra: presets de EFEITO (fade, zoom, slide, blur, combinadas) NÃO definem `unit` nem `stagger`.
+ * A granularidade (frase / linha / palavra) é uma escolha separada do usuário e precisa sobreviver
+ * à troca de efeito. Só os presets "Por texto" e "Sem animação" definem a granularidade.
+ * Antes, todo efeito forçava `unit: 'block'` e `stagger: 0`, desligando "Palavra" ao escolher um efeito.
+ */
+export type PresetGroup = 'Básicas' | 'Movimento' | 'Combinadas' | 'Por texto' | 'Troca de cor';
+
+export const PRESET_GROUPS: PresetGroup[] = ['Básicas', 'Movimento', 'Combinadas', 'Por texto', 'Troca de cor'];
 
 export interface AnimPreset {
   id: string;
@@ -40,7 +48,7 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
     label: 'Sem animação',
     group: 'Básicas',
     hint: 'Troca instantânea',
-    config: { enter: OFF, exit: OFF, motionBlur: 0, duration: 1, stagger: 0, float: 0, unit: 'block' },
+    config: { enter: OFF, exit: OFF, motionBlur: 0, duration: 1, float: 0, colorFx: null },
   },
   {
     id: 'fade',
@@ -50,8 +58,6 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
     config: {
       enter: phase({ fade: true }),
       exit: phase({ fade: true }),
-      unit: 'block',
-      stagger: 0,
       motionBlur: 0,
       duration: 700,
       easing: 'smooth',
@@ -65,8 +71,6 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
     config: {
       enter: phase({ fade: true, blur: true }),
       exit: phase({ fade: true, blur: true }),
-      unit: 'block',
-      stagger: 0,
       motionBlur: 0,
       duration: 900,
       easing: 'smooth',
@@ -80,8 +84,6 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
     config: {
       enter: phase({ fade: true, zoom: 'in' }),
       exit: phase({ fade: true, zoom: 'in' }),
-      unit: 'block',
-      stagger: 0,
       motionBlur: 20,
       duration: 800,
       easing: 'ease-out',
@@ -95,8 +97,6 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
     config: {
       enter: phase({ fade: true, zoom: 'out' }),
       exit: phase({ fade: true, zoom: 'out' }),
-      unit: 'block',
-      stagger: 0,
       motionBlur: 20,
       duration: 800,
       easing: 'ease-out',
@@ -111,8 +111,6 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
       enter: phase({ fade: true, slide: true }),
       exit: phase({ fade: true, slide: true }),
       direction: dir(d),
-      unit: 'block',
-      stagger: 0,
       motionBlur: 35,
       duration: 800,
       easing: 'ease-out',
@@ -127,8 +125,6 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
       enter: phase({ fade: true, slide: true }),
       exit: phase({ fade: true }),
       direction: 'up',
-      unit: 'block',
-      stagger: 0,
       intensity: 25,
       duration: 1400,
       easing: 'smooth',
@@ -145,8 +141,6 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
       enter: phase({ fade: true, slide: true, blur: true }),
       exit: phase({ fade: true, blur: true }),
       direction: 'up',
-      unit: 'block',
-      stagger: 0,
       motionBlur: 40,
       duration: 1000,
       easing: 'ease-out',
@@ -160,8 +154,6 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
     config: {
       enter: phase({ fade: true, zoom: 'out', blur: true }),
       exit: phase({ fade: true, zoom: 'out', blur: true }),
-      unit: 'block',
-      stagger: 0,
       intensity: 35,
       motionBlur: 55,
       duration: 1300,
@@ -176,8 +168,6 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
     config: {
       enter: phase({ fade: true, zoom: 'in', blur: true }),
       exit: phase({ fade: true, zoom: 'in', blur: true }),
-      unit: 'block',
-      stagger: 0,
       intensity: 40,
       motionBlur: 30,
       duration: 900,
@@ -233,7 +223,86 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
       easing: 'ease-out',
     },
   },
+  /*
+   * "Troca de cor": a letra ENTRA com uma animação simples e, depois que ela termina, a cor vai mudando.
+   * Não mexem em `unit`/`stagger` do usuário. A cor de partida é a que o texto já tem (ex.: branco).
+   */
+  {
+    id: 'color-green',
+    label: 'Branco → verde',
+    group: 'Troca de cor',
+    hint: 'Aparece e vai ficando verde',
+    config: {
+      enter: phase({ fade: true, slide: true }),
+      exit: phase({ fade: true }),
+      direction: 'up',
+      motionBlur: 25,
+      duration: 800,
+      easing: 'ease-out',
+      colorFx: { to: '#4ade80', mode: 'all', delay: 300, duration: 1800, stagger: 0 },
+    },
+  },
+  {
+    id: 'color-gold',
+    label: 'Branco → dourado',
+    group: 'Troca de cor',
+    hint: 'Aparece e esquenta para dourado',
+    config: {
+      enter: phase({ fade: true, zoom: 'out' }),
+      exit: phase({ fade: true }),
+      motionBlur: 0,
+      duration: 900,
+      easing: 'smooth',
+      colorFx: { to: '#fbbf24', mode: 'all', delay: 300, duration: 1800, stagger: 0 },
+    },
+  },
+  {
+    id: 'color-words',
+    label: 'Cor palavra por palavra',
+    group: 'Troca de cor',
+    hint: 'Uma palavra de cada vez muda de cor',
+    config: {
+      enter: phase({ fade: true }),
+      exit: phase({ fade: true }),
+      motionBlur: 0,
+      duration: 700,
+      easing: 'smooth',
+      colorFx: { to: '#4ade80', mode: 'word', delay: 200, duration: 700, stagger: 260 },
+    },
+  },
+  {
+    id: 'color-letters',
+    label: 'Cor letra por letra',
+    group: 'Troca de cor',
+    hint: 'A cor corre pelas letras',
+    config: {
+      enter: phase({ fade: true, slide: true }),
+      exit: phase({ fade: true }),
+      direction: 'up',
+      motionBlur: 20,
+      duration: 800,
+      easing: 'ease-out',
+      colorFx: { to: '#4ade80', mode: 'letter', delay: 200, duration: 500, stagger: 55 },
+    },
+  },
+  {
+    id: 'color-pulse',
+    label: 'Brilho que passa',
+    group: 'Troca de cor',
+    hint: 'Uma onda de cor passa e volta ao normal',
+    config: {
+      enter: phase({ fade: true }),
+      exit: phase({ fade: true }),
+      motionBlur: 0,
+      duration: 700,
+      easing: 'smooth',
+      colorFx: { to: '#fde047', mode: 'letter', delay: 250, duration: 700, stagger: 60, back: true },
+    },
+  },
 ];
+
+/** Intervalo padrão entre unidades quando a granularidade muda e o intervalo estava zerado. */
+export const DEFAULT_STAGGER: Record<'line' | 'word', number> = { line: 140, word: 70 };
 
 export function getPreset(id: string): AnimPreset | undefined {
   return ANIMATION_PRESETS.find((p) => p.id === id);

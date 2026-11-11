@@ -6,6 +6,7 @@ import { listProjects, collectCategories } from '../../core/storage/projects';
 import { editor, useEditor } from '../../store/editor';
 import { Button } from '../../ui/Button';
 import { InfoDialog, SettingsDialog, ShortcutsDialog } from './Dialogs';
+import { ExportDialog } from './ExportDialog';
 import { LeftPanel } from './LeftPanel';
 import { LyricsDialog } from './LyricsDialog';
 import { RightPanel } from './panels/RightPanel';
@@ -85,6 +86,7 @@ function Workspace() {
       <InfoDialog open={dialog === 'info'} onClose={close} categories={categories} />
       <SettingsDialog open={dialog === 'settings'} onClose={close} />
       <ShortcutsDialog open={dialog === 'shortcuts'} onClose={close} />
+      <ExportDialog open={dialog === 'export'} onClose={close} />
     </div>
   );
 }

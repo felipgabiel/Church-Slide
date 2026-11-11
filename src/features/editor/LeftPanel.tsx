@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { LuImage, LuListOrdered, LuPlus, LuShapes, LuSparkles } from 'react-icons/lu';
-import { applyPreset, ANIMATION_PRESETS, type AnimPreset, type PresetGroup } from '../../core/anim/presets';
+import { LuImage, LuListOrdered, LuPlus, LuShapes, LuClapperboard } from 'react-icons/lu';
+import { applyPreset, ANIMATION_PRESETS, PRESET_GROUPS, type AnimPreset } from '../../core/anim/presets';
 import { totalDuration } from '../../core/anim/engine';
 import { BACKGROUND_GROUPS, BACKGROUND_PRESETS, type BackgroundPreset } from '../../core/backgrounds';
 import { newSlide, resolveAnimation, resolveBackground, slideText } from '../../core/defaults';
@@ -95,7 +95,7 @@ const AnimCard = memo(function AnimCard({ preset, theme, aspect, sample, selecte
   );
 });
 
-const ANIM_GROUPS: PresetGroup[] = ['Básicas', 'Movimento', 'Combinadas', 'Por texto'];
+const ANIM_GROUPS = PRESET_GROUPS;
 
 function AnimationLibrary() {
   const slide = useActiveSlide();
@@ -178,7 +178,7 @@ function Elements() {
 const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: 'slides', label: 'Trechos', icon: <LuListOrdered /> },
   { id: 'backgrounds', label: 'Fundos', icon: <LuImage /> },
-  { id: 'animations', label: 'Animações', icon: <LuSparkles /> },
+  { id: 'animations', label: 'Animações', icon: <LuClapperboard /> },
   { id: 'elements', label: 'Elementos', icon: <LuShapes /> },
 ];
 

@@ -1,0 +1,198 @@
+/* ===== Exportar vídeos ===== */
+.xd {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.xd-opts {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.xd-opts:disabled {
+  opacity: 0.55;
+}
+.xd-list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: var(--text-2);
+  margin-top: 4px;
+}
+.xd-list-head strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.xd-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent-hi);
+  cursor: pointer;
+  font: inherit;
+}
+.xd-link:disabled {
+  color: var(--text-3);
+  cursor: default;
+}
+.xd-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 210px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm, 8px);
+  background: var(--bg-2, rgb(255 255 255 / 0.02));
+}
+.xd-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  min-height: 34px;
+}
+.xd-list li[data-state='now'] {
+  background: rgb(27 106 115 / 0.08);
+}
+.xd-list label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.xd-list input[type='checkbox'] {
+  accent-color: var(--accent);
+}
+.xd-n {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+.xd-t {
+  font-size: 13px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xd-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.xd-size {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-right: 4px;
+}
+.xd-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.xd-icon:hover {
+  background: var(--bg-3);
+  color: var(--accent-hi);
+}
+.xd-icon:focus-visible,
+.xd-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.xd-ok {
+  color: var(--accent-hi);
+  flex: none;
+}
+.xd-now {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent-hi);
+}
+.xd-preview {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+.xd-preview video {
+  width: 100%;
+  max-height: 260px;
+  border-radius: 8px;
+  background: #000;
+}
+.xd-preview small {
+  color: var(--text-3);
+}
+.xd-progress {
+  display: grid;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.xd-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-3);
+  overflow: hidden;
+}
+.xd-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+  transition: width 0.15s linear;
+}
+.xd-warn {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgb(255 90 70 / 0.1);
+  color: var(--live);
+  font-size: 13px;
+}
+.xd-warn svg {
+  flex: none;
+  margin-top: 2px;
+}
+.xd-empty {
+  color: var(--text-2);
+}
+.xd-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+.xd-est {
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.xd-dl {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .xd-bar i {
+    transition: none;
+  }
+}

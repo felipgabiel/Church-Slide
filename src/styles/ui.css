@@ -61,7 +61,7 @@
 }
 .btn-danger {
   background: rgb(255 92 77 / 0.12);
-  color: #ff8d82;
+  color: var(--live);
   border-color: rgb(255 92 77 / 0.3);
 }
 .btn-danger:hover:not(:disabled) {
@@ -296,7 +296,7 @@
   border-radius: 50%;
   background: var(--text);
   border: 0;
-  box-shadow: 0 0 0 3px var(--bg-2), 0 1px 4px rgb(0 0 0 / 0.5);
+  box-shadow: 0 0 0 3px var(--bg-2), 0 1px 3px rgb(20 28 40 / 0.35);
   transition: transform 0.12s, background 0.12s;
 }
 .range::-moz-range-thumb {
@@ -489,7 +489,7 @@
 .chip[data-tone='live'] {
   background: rgb(255 92 77 / 0.14);
   border-color: rgb(255 92 77 / 0.4);
-  color: #ff9a90;
+  color: var(--live);
 }
 .chip[data-tone='ok'] {
   background: rgb(98 211 148 / 0.12);
@@ -527,7 +527,7 @@
   animation: cs-modal-in 0.22s var(--ease);
 }
 .modal::backdrop {
-  background: rgb(4 5 8 / 0.68);
+  background: rgb(20 26 36 / 0.5);
   backdrop-filter: blur(3px);
   animation: cs-fade 0.2s ease;
 }
@@ -631,7 +631,7 @@
   opacity: 0.4;
 }
 .menu button.danger {
-  color: #ff8d82;
+  color: var(--live);
 }
 .menu-ico {
   width: 16px;
@@ -766,4 +766,21 @@
   font-size: 11px;
   white-space: pre-wrap;
   margin: 0 0 16px;
+}
+
+/* Menu de clique direito */
+.ctx-menu {
+  width: 252px;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+}
+.ctx-heading {
+  padding: 7px 9px 3px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

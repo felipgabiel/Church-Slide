@@ -48,7 +48,7 @@ export function Library() {
   const [filter, setFilter] = useState<Filter>({ kind: 'all' });
   const [sort, setSort] = useState<Sort>('recent');
   const [newOpen, setNewOpen] = useState(false);
-  const [newTheme, setNewTheme] = useState('default');
+  const [newTheme, setNewTheme] = useState('impacto');
   const [trashOpen, setTrashOpen] = useState(false);
   const [info, setInfo] = useState<Project | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -179,7 +179,7 @@ export function Library() {
             variant="primary"
             icon={<LuPlus />}
             onClick={() => {
-              setNewTheme('default');
+              setNewTheme('impacto');
               setNewOpen(true);
             }}
           >

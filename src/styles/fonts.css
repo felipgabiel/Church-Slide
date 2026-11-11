@@ -1,0 +1,27 @@
+/*
+ * Fontes embutidas no app (funcionam offline e saem iguais em qualquer computador — importante
+ * porque o vídeo exportado grava a fonte que o navegador usou).
+ * Poppins © The Poppins Project Authors (https://github.com/itfoundry/Poppins), SIL Open Font License 1.1.
+ * Recortada para caracteres latinos (inclui todos os acentos do português).
+ */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/poppins-400.woff') format('woff');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../assets/fonts/poppins-500.woff') format('woff');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/poppins-700.woff') format('woff');
+}
