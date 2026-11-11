@@ -1,10 +1,10 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { LuArrowDown, LuArrowUp, LuClipboardPaste, LuCopy, LuEllipsis, LuGripVertical, LuMerge, LuPlus, LuTrash2 } from 'react-icons/lu';
+import { LuArrowDown, LuArrowUp, LuClipboardPaste, LuCopy, LuEllipsis, LuMerge, LuPlus, LuTrash2 } from 'react-icons/lu';
 import { slideText } from '../../core/defaults';
 import type { Aspect, Slide, Theme } from '../../core/types';
 import { SlideThumb } from '../../render/SlideThumb';
 import { editor, useEditor } from '../../store/editor';
-import { Button } from '../../ui/Button';
+import { Button, IconButton } from '../../ui/Button';
 import { LazyMount } from '../../ui/LazyMount';
 import { Menu, type MenuItem } from '../../ui/Menu';
 
@@ -25,7 +25,8 @@ interface ItemProps {
 
 const SlideItem = memo(function SlideItem({ slide, index, count, theme, aspect, selected, drop, dragging, onDragStart, onDragOver, onDrop, onDragEnd }: ItemProps) {
   const text = slideText(slide).trim();
-  const lines = text ? text.split('\n').slice(0, 3) : [];
+  // legenda curta: o rótulo (ex.: Refrão) ou a primeira linha; a miniatura já mostra o resto
+  const caption = slide.label || text.split('\n')[0] || '';
   const ref = useRef<HTMLLIElement>(null);
 
   useEffect(() => {
@@ -66,19 +67,17 @@ const SlideItem = memo(function SlideItem({ slide, index, count, theme, aspect, 
       }}
       onDragEnd={onDragEnd}
     >
-      <span className="si-grip" aria-hidden>
-        <LuGripVertical />
+      <span className="si-num" aria-hidden>
+        {index + 1}
       </span>
-      <button type="button" className="si-main" onClick={() => editor.selectSlide(slide.id)} aria-current={selected ? 'true' : undefined} aria-label={`Trecho ${index + 1}${slide.label ? `, ${slide.label}` : ''}`}>
-        <span className="si-num">{index + 1}</span>
+      <button type="button" className="si-main" onClick={() => editor.selectSlide(slide.id)} aria-current={selected ? 'true' : undefined} aria-label={`Trecho ${index + 1}${slide.label ? `, ${slide.label}` : ''}`} title={text || 'Trecho vazio'}>
         <span className="si-thumb">
           <LazyMount>
             <SlideThumb slide={slide} theme={theme} aspect={aspect} />
           </LazyMount>
         </span>
-        <span className="si-text">
-          {slide.label && <span className="si-label">{slide.label}</span>}
-          {lines.length ? lines.map((l, i) => <span key={i}>{l}</span>) : <span className="si-blank">Trecho vazio</span>}
+        <span className="si-cap" data-label={slide.label ? '1' : undefined} data-blank={caption ? undefined : '1'}>
+          {caption || 'Trecho vazio'}
         </span>
       </button>
       <span className="si-actions">
@@ -136,14 +135,21 @@ export function SlideList({ onLyrics }: { onLyrics: () => void }) {
   return (
     <div className="sl">
       <div className="sl-head">
-        <Button size="sm" icon={<LuClipboardPaste />} onClick={onLyrics} variant={empty ? 'primary' : 'soft'}>
-          Letra completa…
-        </Button>
-        <Button size="sm" icon={<LuPlus />} onClick={() => editor.addSlide()}>
-          Trecho
-        </Button>
+        <span className="sl-title">
+          Trechos <em>{slides.length}</em>
+        </span>
+        <IconButton label="Colar a letra completa" icon={<LuClipboardPaste />} size="sm" onClick={onLyrics} />
+        <IconButton label="Novo trecho" icon={<LuPlus />} size="sm" onClick={() => editor.addSlide()} />
       </div>
-      <ol className="sl-list" aria-label="Trechos do louvor">
+      {empty && (
+        <div className="sl-empty">
+          <Button size="sm" variant="primary" icon={<LuClipboardPaste />} onClick={onLyrics}>
+            Colar a letra completa
+          </Button>
+          <p>Cole a letra e ela é dividida em trechos automaticamente.</p>
+        </div>
+      )}
+      <ol className="sl-list" aria-label="Trechos do louvor" title="Arraste um trecho para mudar a ordem">
         {slides.map((s, i) => (
           <SlideItem
             key={s.id}
@@ -162,9 +168,6 @@ export function SlideList({ onLyrics }: { onLyrics: () => void }) {
           />
         ))}
       </ol>
-      <p className="sl-foot">
-        {slides.length} {slides.length === 1 ? 'trecho' : 'trechos'} · arraste para reordenar
-      </p>
     </div>
   );
 }

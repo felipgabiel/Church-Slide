@@ -225,55 +225,66 @@
   display: flex;
   flex-direction: column;
 }
+/* Lista de trechos: como o painel de slides de um editor de apresentação.
+   Só a miniatura e uma legenda curta; número discreto; ações aparecem ao passar o mouse. */
 .sl-head {
   flex: none;
   display: flex;
-  gap: 6px;
-  padding: 10px 10px 8px;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 8px 6px 14px;
 }
-.sl-head .btn {
+.sl-title {
   flex: 1;
-  min-width: 0;
-  padding: 0 8px;
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-weight: 600;
 }
-.sl-head .btn:first-child {
-  flex: 1.7;
+.sl-title em {
+  margin-left: 4px;
+  color: var(--text-4);
+  font-style: normal;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.sl-empty {
+  flex: none;
+  display: grid;
+  gap: 8px;
+  margin: 4px 12px 10px;
+  padding: 14px 12px;
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r-md);
+  text-align: center;
+}
+.sl-empty p {
+  margin: 0;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.45;
 }
 .sl-list {
   flex: 1;
   min-height: 0;
   margin: 0;
-  padding: 2px 8px 10px;
+  padding: 2px 12px 16px 6px;
   list-style: none;
   overflow: auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-.sl-foot {
-  flex: none;
-  padding: 8px 12px 10px;
-  border-top: 1px solid var(--line);
-  color: var(--text-3);
-  font-size: 11.5px;
-  text-align: center;
+  gap: 10px;
 }
 .si {
   position: relative;
   flex: none;
   display: flex;
-  align-items: stretch;
-  border: 1px solid transparent;
-  border-radius: var(--r-md);
-  background: transparent;
-  transition: background 0.14s, border-color 0.14s, opacity 0.14s;
+  align-items: flex-start;
+  gap: 6px;
+  cursor: grab;
+  transition: opacity 0.14s;
 }
-.si:hover {
-  background: var(--bg-2);
-}
-.si[data-selected='1'] {
-  background: var(--accent-soft);
-  border-color: var(--accent-line);
+.si:active {
+  cursor: grabbing;
 }
 .si[data-dragging='1'] {
   opacity: 0.35;
@@ -282,111 +293,96 @@
 .si[data-drop]::before {
   content: '';
   position: absolute;
-  left: 4px;
-  right: 4px;
+  left: 24px;
+  right: 0;
   height: 2px;
   border-radius: 2px;
   background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
   z-index: 2;
 }
 .si[data-drop='before']::before {
-  top: -4px;
+  top: -6px;
 }
 .si[data-drop='after']::before {
-  bottom: -4px;
-}
-.si-grip {
-  display: grid;
-  place-items: center;
-  width: 16px;
-  flex: none;
-  color: var(--text-4);
-  font-size: 14px;
-  cursor: grab;
-  opacity: 0;
-  transition: opacity 0.14s;
-}
-.si:hover .si-grip,
-.si[data-selected='1'] .si-grip {
-  opacity: 1;
-}
-.si:active .si-grip {
-  cursor: grabbing;
-}
-.si-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 4px 6px 0;
-  text-align: left;
-  border-radius: var(--r-md);
+  bottom: -6px;
 }
 .si-num {
   flex: none;
-  width: 16px;
-  color: var(--text-3);
+  width: 18px;
+  padding-top: 3px;
+  color: var(--text-4);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 .si[data-selected='1'] .si-num {
-  color: var(--accent-hi);
+  color: var(--accent);
+  font-weight: 700;
 }
-.si-thumb {
-  flex: none;
-  width: clamp(80px, 34%, 118px);
-  min-height: 40px;
-  display: block;
-  border-radius: var(--r-xs);
-  box-shadow: 0 0 0 1px var(--line-2);
-  overflow: hidden;
-  background: #000;
-}
-.si[data-selected='1'] .si-thumb {
-  box-shadow: 0 0 0 1px var(--accent-line);
-}
-.si-text {
+.si-main {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  color: var(--text-2);
-  font-size: 11.5px;
-  line-height: 1.35;
+  display: grid;
+  gap: 5px;
+  text-align: left;
+  border-radius: var(--r-sm);
 }
-.si-text > span {
+.si-main:focus-visible {
+  outline: none;
+}
+.si-main:focus-visible .si-thumb {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.si-thumb {
+  display: block;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--line);
+  transition: box-shadow 0.14s;
+}
+.si:hover .si-thumb {
+  box-shadow: 0 0 0 1px var(--line-3);
+}
+.si[data-selected='1'] .si-thumb {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.si-cap {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--text-3);
+  font-size: 11.5px;
+  line-height: 1.3;
 }
-.si-label {
-  align-self: flex-start;
-  max-width: 100%;
-  margin-bottom: 2px;
-  padding: 0 6px;
-  border-radius: 3px;
-  background: var(--accent-soft);
+.si[data-selected='1'] .si-cap {
+  color: var(--text);
+}
+.si-cap[data-label='1'] {
   color: var(--accent-hi);
-  font-size: 11px;
   font-weight: 600;
 }
-.si-blank {
+.si-cap[data-blank='1'] {
   color: var(--text-4);
   font-style: italic;
 }
+/* ações: botão "…" sobre a miniatura, só ao passar o mouse (ou com o menu aberto) */
 .si-actions {
-  display: flex;
-  align-items: flex-start;
-  padding: 6px 4px 0 0;
+  position: absolute;
+  top: 5px;
+  right: 5px;
   opacity: 0;
   transition: opacity 0.14s;
 }
+.si-actions .ibtn {
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+.si-actions .ibtn:hover {
+  background: rgb(0 0 0 / 0.75);
+}
 .si:hover .si-actions,
-.si[data-selected='1'] .si-actions,
 .si-actions:focus-within,
 .si-actions:has([data-active='1']) {
   opacity: 1;

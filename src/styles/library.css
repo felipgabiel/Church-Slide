@@ -428,3 +428,39 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Botão de apoio (canto inferior direito) ===== */
+.support-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--bg-1);
+  border: 1px solid var(--line-2);
+  color: var(--accent);
+  font-size: 21px;
+  box-shadow: 0 6px 18px -8px rgb(0 0 0 / 0.35);
+  transition:
+    transform 0.18s var(--ease),
+    background-color 0.18s,
+    color 0.18s,
+    border-color 0.18s;
+}
+.support-fab:hover {
+  transform: scale(1.06);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.support-fab:active {
+  transform: scale(0.96);
+}
+.support-fab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}

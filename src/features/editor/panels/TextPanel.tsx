@@ -39,7 +39,7 @@ export function TextPanel() {
     <div className="props">
       <Section title="Fonte">
         <Row label="Família">
-          <Select value={s.fontFamily} onChange={(v) => set({ fontFamily: v })} label="Fonte">
+          <Select value={s.fontFamily} onChange={(v) => set({ fontFamily: v })} label="Fonte" optionStyle={(v) => ({ fontFamily: v })}>
             {!known && <option value={s.fontFamily}>Personalizada</option>}
             {groups.map((g) => (
               <optgroup key={g} label={g}>

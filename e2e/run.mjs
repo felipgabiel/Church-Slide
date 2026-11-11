@@ -478,7 +478,8 @@ await step('troca de cor (branco → verde): aparece branca, termina verde na te
   await pg.getByRole('button', { name: /Criar e abrir/i }).click();
   await pg.waitForURL(/#\/edit\//);
   await pg.getByRole('tab', { name: /^Animação$/ }).click();
-  await pg.getByLabel('Predefinição de animação').selectOption({ label: 'Branco → verde' });
+  await pg.getByRole('combobox', { name: 'Predefinição de animação' }).click();
+  await pg.getByRole('option', { name: 'Branco → verde' }).click();
   const colorOf = () =>
     pg.evaluate(() => {
       const w = document.querySelector('.surface [data-w]');
@@ -852,6 +853,30 @@ await step('apoio via Pix: convite opcional depois de gerar, QR lido como o cód
   await pg.keyboard.press('Escape');
   await gen();
   assert(!(await pg.locator('dialog[open] .support').count()), 'convite voltou logo depois de "Agora não"');
+  await pg.keyboard.press('Escape');
+  await pg.close();
+});
+
+await step('menus suspensos: abrem e escolhem pelo teclado, Esc fecha só o menu (não o diálogo)', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'menus');
+  await pg.goto(BASE);
+  const sort = pg.getByRole('combobox', { name: 'Ordenar' });
+  await sort.focus();
+  await pg.keyboard.press('ArrowDown');
+  await pg.getByRole('listbox', { name: 'Ordenar' }).waitFor();
+  await pg.keyboard.press('End');
+  const last = await pg.getByRole('option').last().textContent();
+  await pg.keyboard.press('Enter');
+  assert((await sort.textContent()).includes(last), `não escolheu a última opção (${last})`);
+  // dentro de um diálogo
+  await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+  const mode = pg.getByRole('combobox', { name: 'Como dividir a letra' });
+  await mode.click();
+  await pg.getByRole('listbox').waitFor();
+  await pg.keyboard.press('Escape');
+  assert(!(await pg.getByRole('listbox').count()), 'Esc não fechou o menu');
+  assert(await pg.locator('dialog[open]').count(), 'Esc fechou o diálogo junto');
   await pg.keyboard.press('Escape');
   await pg.close();
 });

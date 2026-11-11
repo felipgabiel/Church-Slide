@@ -131,16 +131,7 @@ export function Segmented<T extends string>({ value, options, onChange, size = '
 
 /* ----------------------------- Select ----------------------------- */
 
-export function Select({ value, onChange, children, label, className = '' }: { value: string; onChange: (v: string) => void; children: ReactNode; label?: string; className?: string }) {
-  return (
-    <span className={`select ${className}`}>
-      <select value={value} aria-label={label} onChange={(e) => onChange(e.currentTarget.value)}>
-        {children}
-      </select>
-      <LuChevronDown aria-hidden />
-    </span>
-  );
-}
+export { Select } from './Select';
 
 /* ------------------------------ Color ------------------------------ */
 

@@ -7,9 +7,9 @@
  *  - Demais GET da mesma origem: cache primeiro, atualiza em segundo plano.
  *  - Projetos, letras e mídia ficam no IndexedDB do navegador — não dependem deste cache.
  */
-const VERSION = '72f4269790';
+const VERSION = 'a8f048771c';
 const CACHE = `church-slide-${VERSION}`;
-const PRECACHE = ["./","./assets/app-OO7VTFFD.js","./assets/app-SONQEOZF.css","./assets/asset-5T6GPYQK.woff","./assets/asset-7M45XVOL.woff","./assets/asset-F74Z34KW.woff","./icon-192.png","./icon-512.png","./icon.svg","./manifest.webmanifest","./index.html"];
+const PRECACHE = ["./","./assets/app-A3USPPUJ.css","./assets/app-HSZ4YPIB.js","./assets/asset-5T6GPYQK.woff","./assets/asset-7M45XVOL.woff","./assets/asset-F74Z34KW.woff","./icon-192.png","./icon-512.png","./icon.svg","./manifest.webmanifest","./index.html"];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

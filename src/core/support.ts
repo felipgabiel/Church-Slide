@@ -23,4 +23,4 @@ export function pixCrc(payload: string): string {
 }
 
 /** Quanto tempo o convite some depois de "Agora não". */
-export const SUPPORT_SNOOZE_DAYS = 21;
+export const SUPPORT_SNOOZE_DAYS = 3;

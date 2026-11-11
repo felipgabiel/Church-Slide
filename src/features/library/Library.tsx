@@ -29,7 +29,7 @@ import { collectCategories, duplicateProject, readSnapshot, restoreFromSnapshot,
 import type { Project } from '../../core/types';
 import { timeAgo } from '../../core/util';
 import { SlideThumb } from '../../render/SlideThumb';
-import { Button, IconButton } from '../../ui/Button';
+import { Button } from '../../ui/Button';
 import { Modal } from '../../ui/Modal';
 import { Select } from '../../ui/Controls';
 import { LazyMount } from '../../ui/LazyMount';
@@ -177,7 +177,6 @@ export function Library() {
         </label>
         <div className="lib-top-actions">
           <input ref={fileRef} type="file" accept=".json,application/json" multiple hidden onChange={(e) => void doImport(e.currentTarget.files)} />
-          <IconButton label="Apoiar o projeto" icon={<LuHeart />} onClick={() => setSupportOpen(true)} />
           <ThemeToggle />
           <Button icon={<LuUpload />} onClick={() => fileRef.current?.click()}>
             Importar
@@ -303,6 +302,10 @@ export function Library() {
       />
       <TrashDialog open={trashOpen} onClose={() => setTrashOpen(false)} items={trashed} onChanged={() => void reload()} />
       <InfoDialog project={info} categories={categories} onClose={() => setInfo(null)} onSaved={() => void reload()} />
+      {/* apoio: botão redondo fixo no canto, longe das ações do dia a dia */}
+      <button type="button" className="support-fab" aria-label="Apoiar o projeto" title="Apoiar o projeto" onClick={() => setSupportOpen(true)}>
+        <LuHeart aria-hidden />
+      </button>
       <Modal open={supportOpen} onClose={() => setSupportOpen(false)} title="Apoiar o projeto" width={560}>
         <SupportCard />
       </Modal>

@@ -120,7 +120,7 @@ export function WordsPanel() {
 
           <Section title="Fonte da palavra">
             <Row label="Família">
-              <Select value={st.fontFamily ?? ''} onChange={(v) => setStyle({ fontFamily: v === '' ? null : v })} label="Fonte da palavra">
+              <Select value={st.fontFamily ?? ''} onChange={(v) => setStyle({ fontFamily: v === '' ? null : v })} label="Fonte da palavra" optionStyle={(v) => (v ? { fontFamily: v } : undefined)}>
                 <option value="">Igual ao texto</option>
                 {groups.map((g) => (
                   <optgroup key={g} label={g}>
