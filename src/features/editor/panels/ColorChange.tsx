@@ -189,7 +189,7 @@ export function ColorChange() {
             }}
           />
           <p className="props-note">
-            Contado do momento em que o trecho aparece. A entrada termina em {fmtSec(enterEnd)}
+            Contado de quando o trecho aparece. A entrada termina em {fmtSec(enterEnd)}
             {colorStart(fx, enterEnd) > (fx.start ?? 0) && fx.start !== undefined ? `; antes disso a cor espera, então começa em ${fmtSec(colorStart(fx, enterEnd))}.` : '.'}
           </p>
           <Slider label="Tempo da troca" value={fx.duration / 1000} min={0.1} max={10} step={0.1} unit="s" reset={DEFAULT_COLOR_FX.duration / 1000} onChange={(v) => set({ duration: Math.round(v * 1000) })} />

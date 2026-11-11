@@ -38,7 +38,7 @@ export function TextPanel() {
   return (
     <div className="props">
       <Section title="Fonte">
-        <Row label="Família">
+        <div className="font-row">
           <Select value={s.fontFamily} onChange={(v) => set({ fontFamily: v })} label="Fonte" optionStyle={(v) => ({ fontFamily: v })}>
             {!known && <option value={s.fontFamily}>Personalizada</option>}
             {groups.map((g) => (
@@ -53,11 +53,9 @@ export function TextPanel() {
               </optgroup>
             ))}
           </Select>
-        </Row>
+          <IconButton label="Enviar fonte do computador (.ttf, .otf, .woff)" icon={<LuUpload />} size="sm" onClick={() => file.current?.click()} />
+        </div>
         <input ref={file} type="file" accept=".ttf,.otf,.woff,.woff2,font/*" multiple hidden onChange={(e) => void onFont(e.currentTarget.files)} />
-        <Button size="sm" variant="ghost" icon={<LuUpload />} className="props-upload" onClick={() => file.current?.click()}>
-          Enviar fonte (.ttf, .otf, .woff)
-        </Button>
         <Slider label="Tamanho" value={s.fontSize} min={2} max={24} step={0.1} unit="%" reset={8} onChange={(v) => set({ fontSize: v })} />
         <Row label="Cor">
           <ColorField label="Cor do texto" value={s.color} onChange={(v) => set({ color: v })} />
@@ -88,12 +86,10 @@ export function TextPanel() {
 
       <Section
         title="Proporção entre linhas"
-        defaultOpen={s.equalize}
+        defaultOpen={false}
+        hint="Linhas com mais palavras ficam com letra menor e terminam no mesmo comprimento da linha de letra maior, como “vem sobre mim” sobre “SENHOR”."
         toggle={{ checked: s.equalize && !s.autoWidth, onChange: (v) => set(v ? { equalize: true, autoWidth: false } : { equalize: false }) }}
       >
-        <p className="props-note">
-          Linhas com mais palavras ficam com letra menor para terminar no mesmo comprimento da linha de letra maior, como em “vem sobre mim” sobre “SENHOR”.
-        </p>
         <Slider
           label="Menor tamanho permitido"
           value={s.equalizeMin ?? 30}
@@ -105,10 +101,13 @@ export function TextPanel() {
           disabled={!s.equalize || s.autoWidth}
           onChange={(v) => set({ equalizeMin: v })}
         />
-        <p className="props-note">Quanto menor o valor, mais a linha comprida pode encolher. Em 100% nada é reduzido.</p>
       </Section>
 
-      <Section title="Legibilidade no telão">
+      <Section
+        title="Legibilidade no telão"
+        defaultOpen={false}
+        hint={`Os ajustes automáticos nunca deixam a letra menor que a “Letra mínima”: a linha quebra em vez de encolher. Em % da altura do slide (${MIN_FONT}% ≈ ${Math.round(1080 * (MIN_FONT / 100))} px em Full HD).`}
+      >
         <Row label="Ajustar se não couber" hint="Alarga a caixa e, se precisar, reduz">
           <Switch checked={s.autoFit} onChange={(v) => set({ autoFit: v })} label="Ajuste automático do tamanho" />
         </Row>
@@ -122,12 +121,9 @@ export function TextPanel() {
           reset={MIN_FONT}
           onChange={(v) => set({ minFont: v })}
         />
-        <p className="props-note">
-          Os ajustes automáticos (proporção entre linhas e “ajustar se não couber”) nunca deixam a letra menor que isso: a linha quebra em duas em vez de encolher. Em % da altura do slide; {MIN_FONT}% ≈ {Math.round(1080 * (MIN_FONT / 100))} px em Full HD.
-        </p>
       </Section>
 
-      <Section title="Posição e tamanho do bloco">
+      <Section title="Posição e tamanho" defaultOpen={false} hint="Dica: arraste o texto direto no slide. Segure Alt para não grudar nas guias.">
         <Slider label="Horizontal" value={s.x} min={0} max={100} step={0.5} unit="%" reset={50} onChange={(v) => set({ x: v })} />
         <Slider label="Vertical" value={s.y} min={0} max={100} step={0.5} unit="%" reset={50} onChange={(v) => set({ y: v })} />
         <Row label="Caixa do tamanho do texto" hint="Para palavras soltas">
@@ -135,14 +131,13 @@ export function TextPanel() {
         </Row>
         <Slider label="Largura" value={s.width} min={20} max={100} step={1} unit="%" reset={84} disabled={!!s.autoWidth} onChange={(v) => set({ width: v })} />
         <div className="props-pair">
-          <Button size="sm" onClick={() => set({ x: 50 })}>
-            Centralizar na horizontal
+          <Button size="sm" variant="ghost" onClick={() => set({ x: 50 })}>
+            Centralizar ↔
           </Button>
-          <Button size="sm" onClick={() => set({ y: 50 })}>
-            Centralizar na vertical
+          <Button size="sm" variant="ghost" onClick={() => set({ y: 50 })}>
+            Centralizar ↕
           </Button>
         </div>
-        <p className="props-note">Dica: arraste o texto direto na pré-visualização. Segure Alt para não grudar nas guias.</p>
       </Section>
 
       <Section title="Aparência" defaultOpen={false}>
@@ -150,7 +145,7 @@ export function TextPanel() {
         <Slider label="Desfoque" value={s.blur} min={0} max={40} step={0.5} reset={0} onChange={(v) => set({ blur: v })} />
       </Section>
 
-      <Section title="Sombra" defaultOpen={s.shadow.enabled} toggle={{ checked: s.shadow.enabled, onChange: (v) => set({ shadow: { enabled: v } }) }}>
+      <Section title="Sombra" defaultOpen={false} toggle={{ checked: s.shadow.enabled, onChange: (v) => set({ shadow: { enabled: v } }) }}>
         <Row label="Cor">
           <ColorField label="Cor da sombra" value={s.shadow.color} onChange={(v) => set({ shadow: { color: v } })} />
         </Row>
@@ -159,14 +154,14 @@ export function TextPanel() {
         <Slider label="Desfoque" value={s.shadow.blur} min={0} max={60} step={0.5} reset={12} onChange={(v) => set({ shadow: { blur: v } })} />
       </Section>
 
-      <Section title="Contorno" defaultOpen={s.stroke.enabled} toggle={{ checked: s.stroke.enabled, onChange: (v) => set({ stroke: { enabled: v } }) }}>
+      <Section title="Contorno" defaultOpen={false} toggle={{ checked: s.stroke.enabled, onChange: (v) => set({ stroke: { enabled: v } }) }}>
         <Row label="Cor">
           <ColorField label="Cor do contorno" value={s.stroke.color} onChange={(v) => set({ stroke: { color: v } })} />
         </Row>
         <Slider label="Espessura" value={s.stroke.width} min={0.5} max={30} step={0.5} reset={6} onChange={(v) => set({ stroke: { width: v } })} />
       </Section>
 
-      <Section title="Brilho" defaultOpen={s.glow.enabled} toggle={{ checked: s.glow.enabled, onChange: (v) => set({ glow: { enabled: v } }) }}>
+      <Section title="Brilho" defaultOpen={false} toggle={{ checked: s.glow.enabled, onChange: (v) => set({ glow: { enabled: v } }) }}>
         <Row label="Cor">
           <ColorField label="Cor do brilho" value={s.glow.color} onChange={(v) => set({ glow: { color: v } })} />
         </Row>

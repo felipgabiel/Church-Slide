@@ -56,10 +56,7 @@ export function WordsPanel() {
 
   return (
     <div className="props">
-      <Section title="Estilo automático">
-        <p className="props-note">
-          “Impacto”: uma palavra-chave grande em MAIÚSCULAS e o resto menor em minúsculas, como nos lyric videos. Reescreve as quebras de linha do texto.
-        </p>
+      <Section title="Estilo automático" hint="“Impacto”: uma palavra-chave grande em MAIÚSCULAS e o resto menor em minúsculas, como nos lyric videos. Reescreve as quebras de linha do texto.">
         <Button size="sm" icon={<LuLayoutTemplate />} className="props-upload" onClick={() => editor.applyImpactToSlide()}>
           Aplicar neste trecho
         </Button>
@@ -193,7 +190,7 @@ export function WordsPanel() {
 
           <Section title="Animação própria" toggle={{ checked: !!anim, onChange: (on) => setAnim(on ? DEFAULT_ANIM : null) }}>
             {!anim ? (
-              <p className="props-note">Desligada: a palavra segue a animação do trecho. Ligue para dar a ela uma entrada diferente.</p>
+              <p className="props-note">Desligada: segue a animação do trecho.</p>
             ) : (
               <>
                 <Row label="Preparada">

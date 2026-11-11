@@ -14,7 +14,7 @@ const GROUPS = PRESET_GROUPS;
 
 function PhaseControls({ title, value, onChange }: { title: string; value: AnimPhase; onChange: (p: Partial<AnimPhase>) => void }) {
   return (
-    <Section title={title}>
+    <Section title={title} defaultOpen={false}>
       <Row label="Desvanecer (fade)">
         <Switch checked={value.fade} onChange={(v) => onChange({ fade: v })} label={`${title}: fade`} />
       </Row>
@@ -101,7 +101,7 @@ export function AnimationPanel() {
         <ColorChange />
       </Section>
 
-      <Section title="Aplicar em">
+      <Section title="Animar por">
         <Segmented<AnimUnit>
           size="sm"
           label="Unidade da animação"
@@ -132,7 +132,7 @@ export function AnimationPanel() {
       <PhaseControls title="Entrada" value={cfg.enter} onChange={setPhase('enter')} />
       <PhaseControls title="Saída" value={cfg.exit} onChange={setPhase('exit')} />
 
-      <Section title="Tempo e curva">
+      <Section title="Tempo e curva" defaultOpen={false}>
         <Slider label="Duração" value={cfg.duration} min={100} max={3000} step={50} unit="ms" reset={800} onChange={(v) => set({ duration: v })} />
         <Slider label="Velocidade" value={cfg.speed} min={0.25} max={3} step={0.05} unit="×" reset={1} onChange={(v) => set({ speed: v })} />
         <Slider label="Atraso" value={cfg.delay} min={0} max={3000} step={50} unit="ms" reset={0} onChange={(v) => set({ delay: v })} />
@@ -149,11 +149,8 @@ export function AnimationPanel() {
         </Row>
       </Section>
 
-      <Section title="Motion Blur">
+      <Section title="Motion Blur" defaultOpen={false} hint="O borrão acompanha a velocidade real do movimento: mais forte quando o texto corre, some quando ele para. Vale para deslizes e zooms.">
         <Slider label="Intensidade do Motion Blur" value={cfg.motionBlur} min={0} max={100} unit="%" reset={35} onChange={(v) => set({ motionBlur: v })} />
-        <p className="props-note">
-          O borrão acompanha a velocidade real do movimento: é mais forte quando o texto corre e some quando ele para. Vale para deslizes e zooms de entrada e saída.
-        </p>
         <Slider label="Flutuação contínua" value={cfg.float} min={0} max={100} unit="%" reset={0} onChange={(v) => set({ float: v })} />
       </Section>
     </div>

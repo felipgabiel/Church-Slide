@@ -142,13 +142,12 @@ export function BackgroundPanel() {
         )}
       </Section>
 
-      <Section title="Ajustes de imagem">
+      <Section title="Ajustes de imagem" defaultOpen={false} hint="Escurecer ajuda a destacar a letra sobre imagens claras ou vídeos movimentados.">
         <Slider label="Brilho" value={a.brightness} min={0} max={200} unit="%" reset={100} onChange={(v) => set({ adjust: { brightness: v } })} />
         <Slider label="Contraste" value={a.contrast} min={0} max={200} unit="%" reset={100} onChange={(v) => set({ adjust: { contrast: v } })} />
         <Slider label="Saturação" value={a.saturate} min={0} max={200} unit="%" reset={100} onChange={(v) => set({ adjust: { saturate: v } })} />
         <Slider label="Desfoque" value={a.blur} min={0} max={60} step={0.5} reset={0} onChange={(v) => set({ adjust: { blur: v } })} />
         <Slider label="Escurecer (transparência)" value={a.dim} min={0} max={90} unit="%" reset={0} onChange={(v) => set({ adjust: { dim: v } })} />
-        <p className="props-note">Escurecer ajuda a destacar a letra sobre imagens claras ou vídeos movimentados.</p>
       </Section>
     </div>
   );

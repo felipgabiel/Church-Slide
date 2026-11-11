@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { LuChevronDown } from 'react-icons/lu';
+import { LuChevronRight } from 'react-icons/lu';
+import { useSetting } from '../core/settings';
 import { clamp } from '../core/util';
 import { SwatchButton } from './ColorPicker';
 
@@ -174,17 +175,50 @@ export function Row({ label, children, hint }: { label: string; children: ReactN
 
 /* ----------------------------- Section ----------------------------- */
 
-export function Section({ title, children, defaultOpen = true, toggle, actions }: { title: string; children: ReactNode; defaultOpen?: boolean; toggle?: { checked: boolean; onChange: (v: boolean) => void }; actions?: ReactNode }) {
-  const [open, setOpen] = useState(defaultOpen);
+/**
+ * Grupo recolhível do painel. Abrir/fechar fica lembrado por grupo (quem nunca usa "Sombra" não a vê aberta
+ * toda vez). `hint`: explicação curta num "?" ao lado do título, em vez de um parágrafo ocupando o painel.
+ */
+export function Section({
+  title,
+  children,
+  defaultOpen = true,
+  toggle,
+  actions,
+  hint,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  toggle?: { checked: boolean; onChange: (v: boolean) => void };
+  actions?: ReactNode;
+  hint?: string;
+}) {
+  const [saved, setSaved] = useSetting<boolean | null>(`sect:${title}`, null);
+  const open = saved ?? defaultOpen;
   return (
     <section className="sect" data-open={open ? '1' : '0'}>
       <header className="sect-head">
-        <button type="button" className="sect-title" aria-expanded={open} onClick={() => setOpen(!open)}>
-          <LuChevronDown aria-hidden />
+        <button type="button" className="sect-title" aria-expanded={open} onClick={() => setSaved(!open)}>
+          <LuChevronRight aria-hidden />
           {title}
         </button>
+        {hint && (
+          <span className="sect-hint" tabIndex={0} role="note" aria-label={hint}>
+            ?
+          </span>
+        )}
         {actions}
-        {toggle && <Switch checked={toggle.checked} onChange={toggle.onChange} label={`Ativar ${title}`} />}
+        {toggle && (
+          <Switch
+            checked={toggle.checked}
+            onChange={(v) => {
+              toggle.onChange(v);
+              if (v && !open) setSaved(true); // ligou: mostra os controles
+            }}
+            label={`Ativar ${title}`}
+          />
+        )}
       </header>
       {open && <div className="sect-body">{children}</div>}
     </section>

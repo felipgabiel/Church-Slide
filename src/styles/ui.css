@@ -514,39 +514,65 @@
   border-color: var(--accent-line);
 }
 
-/* ===== Seção recolhível ===== */
-.sect {
-  border-bottom: 1px solid var(--line);
+/* ===== Seção recolhível =====
+   Fechada ela é só uma linha de texto; aberta, ganha respiro. Sem caixas: só uma linha fina separando. */
+.sect + .sect {
+  border-top: 1px solid var(--line);
 }
 .sect-head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 0 14px 0 6px;
-  height: 38px;
+  height: 40px;
 }
 .sect-title {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   height: 100%;
-  padding: 0 8px;
-  color: var(--text);
-  font-weight: 620;
+  padding: 0 6px;
+  color: var(--text-2);
+  font-weight: 600;
   font-size: 12.5px;
   text-align: left;
 }
+.sect-title:hover,
+.sect[data-open='1'] .sect-title {
+  color: var(--text);
+}
 .sect-title svg {
-  font-size: 14px;
-  color: var(--text-3);
+  font-size: 13px;
+  color: var(--text-4);
   transition: transform 0.18s var(--ease);
 }
-.sect[data-open='0'] .sect-title svg {
-  transform: rotate(-90deg);
+.sect[data-open='1'] .sect-title svg {
+  transform: rotate(90deg);
+  color: var(--text-3);
 }
 .sect-body {
-  padding: 4px 14px 16px;
+  padding: 2px 14px 16px 26px;
+}
+/* explicação curta no "?" (passar o mouse ou focar com Tab) */
+.sect-hint {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--line-3);
+  color: var(--text-3);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: help;
+}
+.sect-hint:hover,
+.sect-hint:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: none;
 }
 
 /* ===== Chips / tags ===== */
@@ -992,4 +1018,26 @@
 }
 .link-danger {
   color: var(--live);
+}
+.sect-hint {
+  position: relative;
+}
+.sect-hint:hover::after,
+.sect-hint:focus-visible::after {
+  content: attr(aria-label);
+  position: absolute;
+  z-index: 20;
+  top: 22px;
+  right: -8px;
+  width: 240px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: var(--text);
+  color: var(--bg-1);
+  font-size: 11.5px;
+  font-weight: 450;
+  line-height: 1.45;
+  text-align: left;
+  box-shadow: var(--shadow-pop);
+  pointer-events: none;
 }
