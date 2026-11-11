@@ -746,7 +746,10 @@ await step('tema claro/escuro: botão troca, preferência fica salva e nada fica
       const lum = (c) => {
         const m = c.match(/[\d.]+/g);
         if (!m) return null;
-        const [r, g, b, a = 1] = m.map(Number);
+        // color-mix() volta como "color(srgb r g b / a)" com canais de 0 a 1
+        const unit = c.startsWith('color(') ? 255 : 1;
+        const [r, g, b] = m.slice(0, 3).map((x) => Number(x) * unit);
+        const a = m.length > 3 ? Number(m[3]) : 1;
         if (a < 0.6) return null;
         return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
       };
@@ -799,7 +802,8 @@ await step('tema claro/escuro: botão troca, preferência fica salva e nada fica
   assert(!darkBad.length, `fundos claros no tema escuro: ${darkBad.join(' | ')}`);
   await pg.getByRole('button', { name: 'Usar tema claro' }).click();
   assert((await theme()) === 'light', 'não voltou para o claro');
-  await pg.waitForTimeout(450); // fim da transição suave
+  await pg.waitForFunction(() => !document.documentElement.classList.contains('theme-switching'));
+  await pg.waitForTimeout(600); // fim da transição suave
   const lightBad = await tour(false);
   assert(!lightBad.length, `fundos escuros no tema claro: ${lightBad.join(' | ')}`);
   // outra janela aberta acompanha a troca
@@ -823,6 +827,7 @@ await step('apoio via Pix: convite opcional depois de gerar, QR lido como o cód
   const qr = pg.locator('dialog[open] .pix-qr');
   await qr.waitFor();
   const png = join(mkdtempSync(join(tmpdir(), 'cs-pix-')), 'qr.png');
+  await pg.waitForTimeout(400); // fim da animação de abertura do diálogo
   await qr.screenshot({ path: png, scale: 'device' });
   const dec = spawnSync('python3', ['-c', 'import cv2,sys; i=cv2.imread(sys.argv[1]); i=cv2.resize(i,None,fx=4,fy=4,interpolation=cv2.INTER_NEAREST); i=cv2.copyMakeBorder(i,40,40,40,40,cv2.BORDER_CONSTANT,value=(255,255,255)); print(cv2.QRCodeDetector().detectAndDecode(i)[0])', png], { encoding: 'utf8' });
   const expected = /PIX_CODE =\s*'([^']+)'/.exec(readFileSync(new URL('../src/core/support.ts', import.meta.url), 'utf8'))[1];

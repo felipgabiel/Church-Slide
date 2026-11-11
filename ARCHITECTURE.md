@@ -253,6 +253,16 @@ do site e recarrega — os louvores (IndexedDB) não são tocados.
 então o site funciona em `https://usuario.github.io/repositorio/`; o service worker registra com escopo da
 subpasta. Passo a passo para o usuário no `README.md`.
 
+### Biblioteca (tela inicial, `features/library/Library.tsx`, `styles/library.css`)
+
+Como um player de música de mesa: barra lateral discreta (Louvores, Modelos, categorias, lixeira e o estado do
+armazenamento com um ponto verde quando funciona offline); à direita, saudação pelo horário, "Continue de onde
+parou" com os 4 louvores editados por último (botão redondo "Apresentar" ao passar o mouse) e a lista completa em
+**tabela** (miniatura, título, artista, categoria, trechos, quando foi editado; ações ao passar o mouse; clique
+duplo abre) ou em **grade** — a escolha fica lembrada. A busca fica numa barra fixa translúcida (atalho `/` ou
+Ctrl+K). A luz suave do topo usa as cores do louvor recente mais colorido (clareadas para aparecer), com um grão
+leve por cima; no tema claro ela é mais fraca.
+
 ### Interface e temas (`src/styles/tokens.css`, `app/theme.ts`)
 
 Dois temas completos (claro e escuro) com os mesmos nomes de token, escolhidos por `data-theme` no `<html>`.
