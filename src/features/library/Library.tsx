@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { ThemeToggle } from '../../ui/ThemeToggle';
 import {
   LuArchive,
   LuCopy,
@@ -172,6 +173,7 @@ export function Library() {
         </label>
         <div className="lib-top-actions">
           <input ref={fileRef} type="file" accept=".json,application/json" multiple hidden onChange={(e) => void doImport(e.currentTarget.files)} />
+          <ThemeToggle />
           <Button icon={<LuUpload />} onClick={() => fileRef.current?.click()}>
             Importar
           </Button>

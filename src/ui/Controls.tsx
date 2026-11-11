@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { LuChevronDown } from 'react-icons/lu';
 import { clamp } from '../core/util';
+import { SwatchButton } from './ColorPicker';
 
 /* ----------------------------- Slider ----------------------------- */
 
@@ -148,12 +149,9 @@ const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 export function ColorField({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
   const [text, setText] = useState(value);
   useEffect(() => setText(value), [value]);
-  const safe = HEX.test(value) ? (value.length === 4 ? `#${[...value.slice(1)].map((c) => c + c).join('')}` : value) : '#000000';
   return (
     <span className="color">
-      <label className="color-swatch" style={{ background: value }} title={label}>
-        <input type="color" value={safe} aria-label={label} onChange={(e) => onChange(e.currentTarget.value)} />
-      </label>
+      <SwatchButton value={value} onChange={onChange} label={label} className="color-swatch" />
       <input
         className="color-text"
         value={text}

@@ -1,38 +1,40 @@
 /*
- * Tokens de design.
- * Editor e biblioteca: tema claro e neutro (como Canva ou um editor de documentos), com o palco escuro no centro
- * para o slide se destacar. Operador e telão ficam escuros (`.op`, `.out`): dentro do templo a luz da tela incomoda.
+ * Tokens de design — "estúdio": a interface é neutra e recua; quem aparece é o slide.
+ * Dois temas completos (claro e escuro) com os MESMOS nomes de token, escolhidos por `data-theme` no <html>.
  * Nomes: bg-0 = fundo do aplicativo, bg-1 = painéis, bg-2 = campos, bg-3 = ao passar o mouse, bg-4 = pressionado.
+ * O telão (`.out`) é sempre escuro: lá só existe o slide.
  */
 :root {
-  --bg-0: #e6e9ed;
-  --bg-1: #ffffff;
-  --bg-2: #f3f5f7;
-  --bg-3: #e9edf1;
-  --bg-4: #dce1e7;
-  --line: #e1e5ea;
-  --line-2: #cdd3db;
-  --line-3: #b3bbc6;
+  --bg-0: #e8eaed;
+  --bg-1: #fbfbfc;
+  --bg-2: #f1f2f4;
+  --bg-3: #e9ebee;
+  --bg-4: #dfe2e6;
+  --line: #e1e4e8;
+  --line-2: #d0d4da;
+  --line-3: #b4bbc4;
 
-  --text: #1b2027;
-  --text-2: #444c58;
-  --text-3: #646d7a;
-  --text-4: #8b94a1;
+  --text: #1a1d21;
+  --text-2: #444a53;
+  --text-3: #656d78;
+  --text-4: #8f97a2;
 
-  --accent: #1b6a73;
-  --accent-hi: #14545c;
-  --accent-lo: #165a62;
+  --accent: #186770;
+  --accent-hi: #11535b;
+  --accent-lo: #145a62;
   --accent-ink: #ffffff;
-  --accent-soft: rgb(27 106 115 / 0.1);
-  --accent-line: rgb(27 106 115 / 0.5);
+  --accent-soft: rgb(24 103 112 / 0.1);
+  --accent-line: rgb(24 103 112 / 0.5);
 
-  --live: #c4372d;
-  --ok: #1d7f52;
-  --warn: #a96a0c;
-  --info: #2a62c9;
+  --live: #c0392b;
+  --live-soft: rgb(192 57 43 / 0.1);
+  --ok: #1d7a4f;
+  --warn: #9a640c;
+  --info: #2a5fc0;
 
-  /* área escura atrás do slide */
-  --stage-pad: #25282d;
+  /* área escura atrás do slide (o slide sempre fica sobre um fundo escuro, como numa cabine de projeção) */
+  --stage-pad: #2a2d31;
+  --stage-pad-line: #3a3e44;
 
   --r-xs: 3px;
   --r-sm: 5px;
@@ -40,47 +42,70 @@
   --r-lg: 10px;
 
   --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Roboto, sans-serif;
-  --font-display: var(--font-ui);
+  /* títulos usam a mesma Poppins dos slides: a interface fala a mesma língua visual do que ela produz */
+  --font-display: 'Poppins', var(--font-ui);
   --font-mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-io: cubic-bezier(0.65, 0, 0.35, 1);
 
-  --shadow-pop: 0 10px 30px -8px rgb(20 28 40 / 0.28), 0 0 0 1px var(--line-2);
-  --shadow-card: 0 1px 2px rgb(20 28 40 / 0.08);
+  --shadow-pop: 0 12px 32px -10px rgb(16 22 30 / 0.3), 0 0 0 1px var(--line-2);
+  --shadow-card: 0 1px 2px rgb(16 22 30 / 0.07);
   --topbar-h: 48px;
   color-scheme: light;
 }
 
-/* Operador e telão: escuro, grafite neutro. */
-.op,
-.out {
-  --bg-0: #0b0c0e;
-  --bg-1: #121417;
-  --bg-2: #181b1f;
-  --bg-3: #20242a;
-  --bg-4: #2a2f37;
-  --line: #23272e;
-  --line-2: #30353e;
-  --line-3: #444b57;
+:root[data-theme='dark'] {
+  --bg-0: #121315;
+  --bg-1: #1a1b1e;
+  --bg-2: #222428;
+  --bg-3: #2a2c31;
+  --bg-4: #33363c;
+  --line: #2a2c31;
+  --line-2: #383b41;
+  --line-3: #4d5159;
 
-  --text: #eceef1;
-  --text-2: #aab0ba;
-  --text-3: #7c8390;
-  --text-4: #555c69;
+  --text: #e9eaec;
+  --text-2: #b4b8bf;
+  --text-3: #888d96;
+  --text-4: #60656e;
 
-  --accent: #5cc0c9;
-  --accent-hi: #8ad8df;
-  --accent-lo: #3b9aa3;
-  --accent-ink: #04191b;
-  --accent-soft: rgb(92 192 201 / 0.14);
-  --accent-line: rgb(92 192 201 / 0.5);
+  --accent: #5ab4bc;
+  --accent-hi: #8ad3d9;
+  --accent-lo: #3f97a0;
+  --accent-ink: #061f22;
+  --accent-soft: rgb(90 180 188 / 0.14);
+  --accent-line: rgb(90 180 188 / 0.55);
 
-  --live: #ff6659;
-  --ok: #62d394;
-  --warn: #f2b24c;
-  --info: #7aa7ff;
+  --live: #ff6b5e;
+  --live-soft: rgb(255 107 94 / 0.13);
+  --ok: #5fcf8e;
+  --warn: #f0b04a;
+  --info: #7ea8ff;
 
-  --shadow-pop: 0 18px 48px -12px rgb(0 0 0 / 0.7), 0 0 0 1px var(--line-2);
+  --stage-pad: #0d0e0f;
+  --stage-pad-line: #26282c;
+
+  --shadow-pop: 0 16px 40px -12px rgb(0 0 0 / 0.75), 0 0 0 1px var(--line-2);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4);
   color-scheme: dark;
+}
+
+/* Telão: sempre escuro (só mostra o slide). */
+.out {
+  --bg-0: #000;
+  --text: #e9eaec;
+  color-scheme: dark;
+}
+
+/* Troca de tema: transição curta só nas cores da interface, nunca dentro do slide. */
+.theme-switching *:not(.stage, .stage *),
+.theme-switching *:not(.stage, .stage *)::before,
+.theme-switching *:not(.stage, .stage *)::after {
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease,
+    fill 0.25s ease,
+    box-shadow 0.25s ease !important;
 }

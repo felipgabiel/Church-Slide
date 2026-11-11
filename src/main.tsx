@@ -1,9 +1,13 @@
 import { createRoot } from 'react-dom/client';
 import './styles/index.css';
 import { App } from './app/App';
+import { applyTheme, savedTheme } from './app/theme';
 import { registerServiceWorker } from './app/pwa';
 import { requestPersistence } from './core/storage/db';
 import { loadCustomFonts } from './core/storage/media';
+
+// tema antes do primeiro desenho (sem piscar o tema errado)
+applyTheme(savedTheme());
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Elemento #root não encontrado');

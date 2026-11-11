@@ -25,6 +25,8 @@ import { clamp } from './util';
  *  - Nunca abaixo de `minScale` (senão uma linha enorme viraria letra miúda ilegível) e nunca mais larga
  *    que a caixa da camada (`blockWidth`).
  *  - Se TODAS as linhas forem mais largas que a caixa, o alvo é a própria caixa.
+ *  - O alvo pode ter um piso (`minTarget`; no palco, 36% da caixa): com uma palavra-chave curta como "PAI",
+ *    as outras linhas ficam mais largas que ela em vez de virar letra miúda.
  *  - Linhas vazias (largura 0) ficam com escala 1.
  */
 /** Com hierarquia, a letra de uma linha menor nunca passa desta fração do tamanho da letra grande. */
@@ -37,7 +39,15 @@ export interface EqualizeOptions {
   minScale: number;
   /** tamanho de fonte relativo de cada linha (1 = o da camada); por padrão todas iguais */
   bases?: number[];
+  /**
+   * Comprimento mínimo do alvo, em px. Uma palavra-chave muito curta ("PAI") não pode obrigar uma frase
+   * longa a ficar do tamanho dela: o alvo nunca fica menor que isso. Ausente = sem piso.
+   */
+  minTarget?: number;
 }
+
+/** Fração da caixa usada como piso do alvo no palco (ver `minTarget`). */
+export const MIN_TARGET_RATIO = 0.36;
 
 /** Quais linhas definem o comprimento. Sem diferença de tamanho entre as linhas, todas são âncoras. */
 export function anchorLines(naturals: number[], bases?: number[]): boolean[] {
@@ -56,7 +66,9 @@ export function equalizeScales(naturals: number[], opts: EqualizeOptions): numbe
   const min = clamp(opts.minScale, 0.05, 1);
   const anchors = anchorLines(naturals, opts.bases);
   const anchorWidths = naturals.filter((w, i) => anchors[i] && Number.isFinite(w) && w > 0);
-  const target = Math.min(opts.blockWidth, Math.min(...(anchorWidths.length ? anchorWidths : filled)));
+  const narrowest = Math.min(...(anchorWidths.length ? anchorWidths : filled));
+  const floorTarget = Math.min(opts.minTarget ?? 0, Math.max(...filled));
+  const target = Math.min(opts.blockWidth, Math.max(narrowest, floorTarget));
   const bases = opts.bases && opts.bases.length === naturals.length ? opts.bases : undefined;
   const maxBase = bases ? Math.max(...bases.filter((_, i) => anchors[i])) : 1;
   const hierarchy = !!bases && anchors.some((a, i) => !a && Number.isFinite(naturals[i]) && naturals[i] > 0);

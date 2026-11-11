@@ -3,8 +3,9 @@
  * Os painéis laterais são opcionais (data-left / data-right = '0' recolhe a coluna).
  */
 .ed {
-  --ed-l: clamp(264px, 19vw, 360px);
-  --ed-r: clamp(292px, 21vw, 400px);
+  /* painéis acompanham o monitor: em notebook (1280–1366 px) sobra espaço para o slide; em 1920+ os controles respiram */
+  --ed-l: clamp(244px, 18vw, 340px);
+  --ed-r: clamp(316px, 23vw, 420px);
   height: 100%;
   min-height: 0;
   display: grid;
@@ -124,12 +125,12 @@
 }
 .save-bad {
   color: var(--live);
-  background: rgb(255 92 77 / 0.13);
-  border: 1px solid rgb(255 92 77 / 0.4);
+  background: var(--live-soft);
+  border: 1px solid color-mix(in srgb, var(--live) 40%, transparent);
   transition: background 0.14s;
 }
 .save-bad:hover {
-  background: rgb(255 92 77 / 0.22);
+  background: color-mix(in srgb, var(--live) 20%, transparent);
 }
 
 /* ===== Painel (abas + corpo) ===== */
@@ -163,6 +164,13 @@
 .tabs button svg {
   font-size: 15px;
   flex: none;
+}
+/* painel direito: só texto nas abas (com ícone, "Animação" cortava em telas de notebook) */
+.ed-right .tabs button {
+  font-size: 12.5px;
+}
+.ed-right .tabs button svg {
+  display: none;
 }
 .tabs button:hover {
   color: var(--text);
@@ -752,7 +760,8 @@
 .sa-pos {
   min-width: 64px;
   color: var(--text);
-  font-size: 12.5px;
+  font-family: var(--font-display);
+  font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: center;
@@ -1273,11 +1282,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin: 2px 0 6px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: rgb(27 106 115 / 0.08);
-  border: 1px solid rgb(27 106 115 / 0.35);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 6px 8px 6px 12px;
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 9%, var(--bg-1));
   font-size: 12.5px;
 }
 .wsel b {
@@ -1286,4 +1297,103 @@
 .props-note svg {
   vertical-align: -2px;
   margin-right: 4px;
+}
+
+/* ===== Troca de cor (palavras marcadas) ===== */
+.cfx {
+  display: grid;
+  gap: 10px;
+}
+.cfx-sel {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.cfx-sel[data-empty='1'] {
+  border-left-color: var(--line-3);
+  background: var(--bg-2);
+}
+.cfx-sel b {
+  display: block;
+  color: var(--text);
+  font-weight: 600;
+}
+.cfx-sel em {
+  font-style: normal;
+  color: var(--text-3);
+}
+.cfx-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+.cfx-colors {
+  display: grid;
+  gap: 6px;
+}
+.cfx-seq {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.cfx-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.cfx-arrow {
+  width: 10px;
+  height: 1px;
+  background: var(--line-3);
+  position: relative;
+}
+.cfx-arrow::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: -3px;
+  border: 3px solid transparent;
+  border-left: 4px solid var(--line-3);
+  border-right: 0;
+}
+.cfx-from.cfx-auto {
+  position: relative;
+}
+.cfx-from.cfx-auto::after {
+  content: 'A';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgb(0 0 0 / 0.45);
+}
+.cfx-add {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-left: 4px;
+  border: 1px dashed var(--line-3);
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+}
+.cfx-add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.cfx-path {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.1);
 }

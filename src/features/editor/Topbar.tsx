@@ -1,4 +1,5 @@
 import { LuCheck, LuChevronLeft, LuCloudOff, LuDownload, LuEllipsis, LuFilm, LuHistory, LuInfo, LuKeyboard, LuLayoutTemplate, LuLoaderCircle, LuMonitorPlay, LuPanelLeft, LuPanelRight, LuRedo2, LuSettings, LuUndo2, LuClipboardPaste } from 'react-icons/lu';
+import { ThemeToggle } from '../../ui/ThemeToggle';
 import { navigate, paths } from '../../app/router';
 import { slideText } from '../../core/defaults';
 import { downloadBlob, exportFileName, exportProject } from '../../core/storage/exchange';
@@ -92,6 +93,7 @@ export function Topbar({ left, right, onToggleLeft, onToggleRight, open }: Props
       </div>
 
       <div className="tb-right">
+        <ThemeToggle />
         <IconButton label={left ? 'Ocultar painel esquerdo' : 'Mostrar painel esquerdo'} icon={<LuPanelLeft />} active={left} onClick={onToggleLeft} />
         <IconButton label={right ? 'Ocultar painel direito' : 'Mostrar painel direito'} icon={<LuPanelRight />} active={right} onClick={onToggleRight} />
         <Menu

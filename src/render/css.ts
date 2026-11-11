@@ -14,7 +14,8 @@ export function layerCss(style: TextStyle): CSSProperties {
     left: `${style.x}%`,
     top: `${style.y}%`,
     // palavra solta: a caixa acompanha o texto (assim o clique/arraste pega só a palavra)
-    width: style.autoWidth ? 'max-content' : `${style.width}%`,
+    // --wfit: o ajuste automático pode alargar a caixa até 96% antes de reduzir a letra
+    width: style.autoWidth ? 'max-content' : `max(${style.width}%, var(--wfit, 0) * 96%)`,
     ...(style.autoWidth ? { whiteSpace: 'nowrap' as const } : {}),
     fontFamily: style.fontFamily,
     fontSize: `calc(${style.fontSize}cqh * var(--fit, 1))`,

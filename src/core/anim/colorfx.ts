@@ -46,18 +46,24 @@ export function mixColor(a: string, b: string, k: number): string {
 
 /* ----------------------------- tempo ----------------------------- */
 
-/** Começo (ms) e duração da parte `i` (0 = primeira palavra/letra). `enterEnd` = fim da animação de entrada. */
+/** Instante (ms desde o começo do trecho) em que a troca começa. Nunca antes do fim da entrada. */
+export function colorStart(fx: ColorFx, enterEnd: number): number {
+  if (fx.start !== undefined) return Math.max(fx.start, enterEnd);
+  return enterEnd + Math.max(0, fx.delay ?? 0); // formato antigo: contado depois da entrada
+}
+
+/** Começo (ms) e duração da parte `i` (0 = primeira palavra/letra do grupo). */
 export function colorTiming(fx: ColorFx, i: number, enterEnd: number): { start: number; duration: number } {
   const step = fx.mode === 'all' ? 0 : Math.max(0, fx.stagger);
-  return { start: enterEnd + Math.max(0, fx.delay) + i * step, duration: Math.max(1, fx.duration) };
+  return { start: colorStart(fx, enterEnd) + i * step, duration: Math.max(1, fx.duration) };
 }
 
 /** Suaviza o começo e o fim (smoothstep). */
 const smooth = (p: number) => p * p * (3 - 2 * p);
 
 /**
- * Quanto a parte `i` já está na cor final (0 = cor original, 1 = cor final).
- * Com `back`, a cor vai até o pico e volta: 0 → 1 → 0 (brilho que passa).
+ * Quanto a parte `i` já andou na sequência (0 = cor de partida, 1 = última cor).
+ * Com `back` vai até o fim e volta: 0 → 1 → 0 (brilho que passa).
  */
 export function colorAmount(fx: ColorFx, i: number, enterEnd: number, tMs: number): number {
   const { start, duration } = colorTiming(fx, i, enterEnd);
@@ -66,58 +72,108 @@ export function colorAmount(fx: ColorFx, i: number, enterEnd: number, tMs: numbe
   return smooth(p);
 }
 
-/** Instante (ms) em que a última parte termina de trocar. */
+/** Instante (ms) em que a última parte termina. */
 export function colorEnd(fx: ColorFx, parts: number, enterEnd: number): number {
   const last = Math.max(0, parts - 1);
   const t = colorTiming(fx, fx.mode === 'all' ? 0 : last, enterEnd);
   return t.start + t.duration;
 }
 
-/** Cor da parte `i` no instante `t`, ou null enquanto ainda não começou (usa a cor original). */
+/**
+ * Cor no ponto `k` (0–1) do caminho partida → cores[0] → cores[1] → … Cada trecho do caminho
+ * ocupa a mesma fração do tempo, então a ordem escolhida é sempre respeitada.
+ */
+export function colorAlong(fx: ColorFx, base: string, k: number): string {
+  const path = [fx.from ?? base, ...fx.colors];
+  const n = path.length - 1;
+  if (n <= 0) return path[0];
+  const pos = clamp(k, 0, 1) * n;
+  const seg = Math.min(n - 1, Math.floor(pos));
+  return mixColor(path[seg], path[seg + 1], pos - seg);
+}
+
+/** Cor da parte `i` no instante `t`, ou null enquanto ainda não começou (fica a cor original). */
 export function colorAt(fx: ColorFx, base: string, i: number, enterEnd: number, tMs: number): string | null {
   const k = colorAmount(fx, i, enterEnd, tMs);
-  if (k <= 0) return fx.from ?? null; // ainda não começou (ou voltou ao início): cor inicial
-  return mixColor(fx.from ?? base, fx.to, k);
+  if (k <= 0) return fx.from ?? null; // ainda não começou (ou voltou ao início): cor de partida
+  return colorAlong(fx, base, k);
 }
 
-/** Cor depois que tudo terminou (no modo "pulso" volta à original → null). */
+/** Cor depois que tudo terminou (no "brilho que passa" volta à original → null). */
 export function colorFinal(fx: ColorFx, base: string): string | null {
-  return fx.back ? (fx.from ?? null) : mixColor(fx.from ?? base, fx.to, 1);
+  return fx.back ? (fx.from ?? null) : colorAlong(fx, base, 1);
 }
 
-/** Quantas partes (palavras ou letras) o modo tem num texto com estas palavras. */
-export function colorPartCount(mode: ColorFx['mode'], words: string[]): number {
-  if (mode === 'all') return 1;
-  if (mode === 'word') return words.length;
-  return words.reduce((n, w) => n + Array.from(w).length, 0);
+/* ------------------------ grupos de palavras ------------------------ */
+
+/** Chave do grupo: palavras com a MESMA configuração andam juntas (contam a ordem entre si). */
+export const colorGroupKey = (fx: ColorFx): string => JSON.stringify(fx);
+
+export interface ColorWordPlan {
+  fx: ColorFx;
+  /** posição da palavra no grupo ("todas juntas" = 0) */
+  part: number;
+  /** "letra por letra": quantas letras do grupo vêm antes desta palavra */
+  letterBase: number;
+  /** quantas partes o grupo tem (para saber quando termina) */
+  parts: number;
 }
 
-/** Posição (0,1,2…) da palavra/letra dentro do efeito: junto = 0; por palavra = nº da palavra; por letra = nº da letra no texto. */
-export function colorPartIndex(mode: ColorFx['mode'], words: string[], wordIdx: number, letterIdx = 0): number {
-  if (mode === 'all') return 0;
-  if (mode === 'word') return wordIdx;
-  let before = 0;
-  for (let w = 0; w < wordIdx; w++) before += Array.from(words[w]).length;
-  return before + letterIdx;
+/**
+ * Plano da troca de cor de uma camada. Só entram palavras MARCADAS (com `fx`); as outras ficam com a cor
+ * original. `words` vem na ordem do texto. Devolve o plano por índice de palavra.
+ */
+export function planColors(words: { index: number; text: string; fx?: ColorFx }[]): Map<number, ColorWordPlan> {
+  const groups = new Map<string, { index: number; text: string; fx: ColorFx }[]>();
+  for (const w of words) {
+    if (!w.fx) continue;
+    const key = colorGroupKey(w.fx);
+    const g = groups.get(key) ?? [];
+    g.push({ index: w.index, text: w.text, fx: w.fx });
+    groups.set(key, g);
+  }
+  const out = new Map<number, ColorWordPlan>();
+  for (const g of groups.values()) {
+    const fx = g[0].fx;
+    const letters = g.reduce((n, w) => n + Array.from(w.text).length, 0);
+    const parts = fx.mode === 'all' ? 1 : fx.mode === 'word' ? g.length : letters;
+    let letterBase = 0;
+    g.forEach((w, rank) => {
+      out.set(w.index, { fx, part: fx.mode === 'word' ? rank : 0, letterBase, parts });
+      letterBase += Array.from(w.text).length;
+    });
+  }
+  return out;
 }
+
+/** Índice da parte de uma letra (modo "letra por letra") ou da palavra (demais modos). */
+export const partOf = (plan: ColorWordPlan, letter = 0): number => (plan.fx.mode === 'letter' ? plan.letterBase + letter : plan.part);
 
 /* ------------------------- validação / padrões ------------------------- */
 
-export const DEFAULT_COLOR_FX: ColorFx = { to: '#4ade80', mode: 'all', delay: 400, duration: 1400, stagger: 0 };
+/** Padrão para quem não quer configurar: começa 2 s depois de o trecho aparecer, 1,5 s para trocar. */
+export const DEFAULT_COLOR_FX: ColorFx = { colors: ['#4ade80'], mode: 'all', start: 2000, duration: 1500, stagger: 0 };
+
+/** Cores que uma sequência aceita no máximo (mais que isso vira pisca-pisca). */
+export const MAX_COLORS = 8;
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-/** Valida uma troca de cor vinda do armazenamento/arquivo importado. */
+/** Valida uma troca de cor vinda do armazenamento/arquivo importado (aceita o formato antigo com `to`). */
 export function sanitizeColorFx(raw: unknown): ColorFx | undefined {
-  if (!isObj(raw) || typeof raw.to !== 'string' || !parseColor(raw.to)) return undefined;
+  if (!isObj(raw)) return undefined;
+  const list = Array.isArray(raw.colors) ? raw.colors : typeof raw.to === 'string' ? [raw.to] : [];
+  const colors = list.filter((c): c is string => typeof c === 'string' && !!parseColor(c)).slice(0, MAX_COLORS);
+  if (!colors.length) return undefined;
   const num = (v: unknown, min: number, max: number, d: number) => (typeof v === 'number' && Number.isFinite(v) ? clamp(v, min, max) : d);
   const fx: ColorFx = {
-    to: raw.to,
+    colors,
     mode: raw.mode === 'word' || raw.mode === 'letter' ? raw.mode : 'all',
-    delay: num(raw.delay, 0, 20000, DEFAULT_COLOR_FX.delay),
     duration: num(raw.duration, 50, 20000, DEFAULT_COLOR_FX.duration),
     stagger: num(raw.stagger, 0, 3000, 0),
   };
+  if (typeof raw.start === 'number' && Number.isFinite(raw.start)) fx.start = clamp(raw.start, 0, 60000);
+  else fx.delay = num(raw.delay, 0, 20000, 400); // projeto antigo: continua contando depois da entrada
   if (typeof raw.from === 'string' && parseColor(raw.from)) fx.from = raw.from;
   if (raw.back === true) fx.back = true;
   return fx;

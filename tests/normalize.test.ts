@@ -36,15 +36,22 @@ test('projeto sem ajustes continua sem a chave words', () => {
   assert.equal('autoLayout' in p, false);
 });
 
-test('troca de cor inválida vinda de arquivo é descartada; válida é mantida', () => {
+test('projeto antigo com troca de cor no trecho: vira troca de cor em cada palavra (mesmo resultado)', () => {
   const base = normalizeProject({});
-  const mk = (colorFx: unknown) =>
-    normalizeProject({ ...base, slides: [{ ...base.slides[0], animation: { ...base.theme.animation, colorFx } }], theme: { ...base.theme, animation: { ...base.theme.animation, colorFx } } });
-  const bad = mk({ to: 'banana', mode: 'all' });
-  assert.equal(bad.slides[0].animation?.colorFx, undefined);
-  assert.equal(bad.theme.animation.colorFx, undefined);
-  const ok = mk({ to: '#00ff00', mode: 'letter', delay: -5, duration: 999999, stagger: 10 });
-  assert.equal(ok.slides[0].animation?.colorFx?.mode, 'letter');
-  assert.equal(ok.slides[0].animation?.colorFx?.delay, 0); // limitado à faixa
-  assert.equal(ok.theme.animation.colorFx?.duration, 20000);
+  const layer = { ...base.slides[0].layers[0], text: 'vem sobre\nSENHOR', words: { '2': { colorFx: { to: '#ff0000', mode: 'all', delay: 0, duration: 500, stagger: 0 } } } };
+  const old = { to: '#00ff00', mode: 'all', delay: 400, duration: 1400, stagger: 0 };
+  const p = normalizeProject({ ...base, slides: [{ ...base.slides[0], layers: [layer], animation: { ...base.theme.animation, colorFx: old } }] });
+  const l = p.slides[0].layers[0];
+  assert.equal(p.slides[0].animation?.colorFx, undefined, 'não fica mais no trecho');
+  assert.deepEqual(l.words?.['0']?.colorFx?.colors, ['#00ff00']);
+  assert.equal(l.words?.['0']?.colorFx?.delay, 400, 'mantém o tempo antigo (depois da entrada)');
+  assert.deepEqual(l.words?.['1']?.colorFx?.colors, ['#00ff00']);
+  assert.deepEqual(l.words?.['2']?.colorFx?.colors, ['#ff0000'], 'a palavra que já tinha a sua continua com a dela');
+  // tema com troca de cor vale para trechos que usam a animação do tema
+  const q = normalizeProject({ ...base, theme: { ...base.theme, animation: { ...base.theme.animation, colorFx: old } }, slides: [{ ...base.slides[0], layers: [{ ...layer, words: undefined }], animation: null }] });
+  assert.equal(q.theme.animation.colorFx, undefined);
+  assert.equal(Object.keys(q.slides[0].layers[0].words ?? {}).length, 3);
+  // troca de cor inválida é descartada
+  const bad = normalizeProject({ ...base, slides: [{ ...base.slides[0], layers: [layer], animation: { ...base.theme.animation, colorFx: { to: 'banana' } } }] });
+  assert.equal(bad.slides[0].layers[0].words?.['0'], undefined);
 });

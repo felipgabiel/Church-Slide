@@ -1,4 +1,4 @@
-import type { AnimPhase, AnimationConfig, Direction } from '../types';
+import type { AnimPhase, AnimationConfig, ColorFx, Direction } from '../types';
 
 const OFF: AnimPhase = { fade: false, slide: false, zoom: 'none', blur: false };
 const phase = (p: Partial<AnimPhase>): AnimPhase => ({ ...OFF, ...p });
@@ -38,6 +38,11 @@ export interface AnimPreset {
   /** Descrição curta mostrada na biblioteca. */
   hint: string;
   config: Partial<AnimationConfig>;
+  /**
+   * Troca de cor que o estilo coloca nas palavras MARCADAS (ou em todas do trecho, se nenhuma estiver marcada).
+   * Não fica no trecho: a cor é sempre por palavra.
+   */
+  color?: ColorFx;
 }
 
 const dir = (d: Direction) => d;
@@ -48,7 +53,7 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
     label: 'Sem animação',
     group: 'Básicas',
     hint: 'Troca instantânea',
-    config: { enter: OFF, exit: OFF, motionBlur: 0, duration: 1, float: 0, colorFx: null },
+    config: { enter: OFF, exit: OFF, motionBlur: 0, duration: 1, float: 0 },
   },
   {
     id: 'fade',
@@ -224,7 +229,7 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
     },
   },
   /*
-   * "Troca de cor": a letra ENTRA com uma animação simples e, depois que ela termina, a cor vai mudando.
+   * "Troca de cor": a letra ENTRA com uma animação simples e, depois, a cor das palavras marcadas vai mudando.
    * Não mexem em `unit`/`stagger` do usuário. A cor de partida é a que o texto já tem (ex.: branco).
    */
   {
@@ -239,8 +244,8 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
       motionBlur: 25,
       duration: 800,
       easing: 'ease-out',
-      colorFx: { to: '#4ade80', mode: 'all', delay: 300, duration: 1800, stagger: 0 },
     },
+    color: { colors: ['#4ade80'], mode: 'all', start: 1600, duration: 1800, stagger: 0 },
   },
   {
     id: 'color-gold',
@@ -253,8 +258,8 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
       motionBlur: 0,
       duration: 900,
       easing: 'smooth',
-      colorFx: { to: '#fbbf24', mode: 'all', delay: 300, duration: 1800, stagger: 0 },
     },
+    color: { colors: ['#fbbf24'], mode: 'all', start: 1600, duration: 1800, stagger: 0 },
   },
   {
     id: 'color-words',
@@ -267,8 +272,8 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
       motionBlur: 0,
       duration: 700,
       easing: 'smooth',
-      colorFx: { to: '#4ade80', mode: 'word', delay: 200, duration: 700, stagger: 260 },
     },
+    color: { colors: ['#4ade80'], mode: 'word', start: 1200, duration: 700, stagger: 260 },
   },
   {
     id: 'color-letters',
@@ -282,8 +287,8 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
       motionBlur: 20,
       duration: 800,
       easing: 'ease-out',
-      colorFx: { to: '#4ade80', mode: 'letter', delay: 200, duration: 500, stagger: 55 },
     },
+    color: { colors: ['#4ade80'], mode: 'letter', start: 1300, duration: 500, stagger: 55 },
   },
   {
     id: 'color-pulse',
@@ -296,8 +301,22 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
       motionBlur: 0,
       duration: 700,
       easing: 'smooth',
-      colorFx: { to: '#fde047', mode: 'letter', delay: 250, duration: 700, stagger: 60, back: true },
     },
+    color: { colors: ['#fde047'], mode: 'letter', start: 1200, duration: 700, stagger: 60, back: true },
+  },
+  {
+    id: 'color-sequence',
+    label: 'Sequência de cores',
+    group: 'Troca de cor',
+    hint: 'Passa por várias cores e para na última',
+    config: {
+      enter: phase({ fade: true }),
+      exit: phase({ fade: true }),
+      motionBlur: 0,
+      duration: 800,
+      easing: 'smooth',
+    },
+    color: { colors: ['#38bdf8', '#a78bfa', '#f472b6'], mode: 'all', start: 1400, duration: 2400, stagger: 0 },
   },
 ];
 

@@ -60,12 +60,12 @@
   background: var(--accent-hi);
 }
 .btn-danger {
-  background: rgb(255 92 77 / 0.12);
+  background: var(--live-soft);
   color: var(--live);
-  border-color: rgb(255 92 77 / 0.3);
+  border-color: color-mix(in srgb, var(--live) 40%, transparent);
 }
 .btn-danger:hover:not(:disabled) {
-  background: rgb(255 92 77 / 0.22);
+  background: color-mix(in srgb, var(--live) 20%, transparent);
 }
 
 .ibtn {
@@ -487,13 +487,13 @@
   color: var(--accent-hi);
 }
 .chip[data-tone='live'] {
-  background: rgb(255 92 77 / 0.14);
-  border-color: rgb(255 92 77 / 0.4);
+  background: var(--live-soft);
+  border-color: color-mix(in srgb, var(--live) 40%, transparent);
   color: var(--live);
 }
 .chip[data-tone='ok'] {
-  background: rgb(98 211 148 / 0.12);
-  border-color: rgb(98 211 148 / 0.35);
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
   color: var(--ok);
 }
 
@@ -783,4 +783,131 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ===== Seletor de cor ===== */
+.popover {
+  position: fixed;
+  z-index: 1200;
+  padding: 10px;
+  background: var(--bg-1);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop);
+}
+.cp {
+  display: grid;
+  gap: 8px;
+  width: 216px;
+}
+.cp-sv {
+  position: relative;
+  height: 132px;
+  border-radius: var(--r-sm);
+  cursor: crosshair;
+  touch-action: none;
+}
+.cp-sv i,
+.cp-hue i {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35), 0 1px 3px rgb(0 0 0 / 0.4);
+  pointer-events: none;
+}
+.cp-hue {
+  position: relative;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  cursor: ew-resize;
+  touch-action: none;
+}
+.cp-hue i {
+  top: 50%;
+}
+.cp-sv:focus-visible,
+.cp-hue:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.cp-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.cp-now {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.15);
+}
+.cp-hex {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--bg-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+.cp-hex:focus {
+  outline: none;
+  border-color: var(--accent-line);
+}
+.cp-swatches {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+}
+.cp-swatches button {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.14);
+}
+.cp-swatches button:hover {
+  transform: scale(1.12);
+}
+.cp > .link {
+  justify-self: start;
+}
+
+.swatch {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.18), 0 0 0 1px var(--line-2);
+  cursor: pointer;
+}
+.swatch[aria-expanded='true'] {
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.18), 0 0 0 2px var(--accent);
+}
+
+/* botão com cara de link (ação secundária, sem caixa) */
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent-hi);
+  font-size: 12px;
+  font-weight: 550;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+}
+.link:hover:not(:disabled) {
+  text-decoration-color: currentColor;
+}
+.link:disabled {
+  color: var(--text-4);
+}
+.link-danger {
+  color: var(--live);
 }

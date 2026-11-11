@@ -4,7 +4,7 @@ import { resolveAnimation, resolveBackground } from '../core/defaults';
 import type { Background, Slide, Theme } from '../core/types';
 import { hasWordAnim } from '../core/words';
 import { BackgroundView } from './Background';
-import { applyFinalColors, layerNeedsLetters, startColorRun, type ColorRun } from './colorRun';
+import { applyFinalColors, colorSignature, layerNeedsLetters, startColorRun, type ColorRun } from './colorRun';
 import { sameJson } from './css';
 import { collectUnits, TextLayerView } from './TextLayerView';
 
@@ -58,20 +58,36 @@ function TextFrame({ frame, theme, shared, onExited }: { frame: Frame; theme: Th
   cfgRef.current = cfg;
   // palavra com animação própria só faz sentido se cada palavra for uma unidade
   const wordAnim = hasWordAnim(frame.slide.layers);
+  const t0 = useRef(0);
+  const enterEnd = useRef(0);
+  // quais palavras trocam de cor e como: se mudar no meio (marcar/desmarcar), a troca é refeita na hora
+  const colorSig = colorSignature(frame.slide.layers);
 
   // Entrada: roda uma vez, antes da primeira pintura.
   useLayoutEffect(() => {
     const units = collectUnits(ref.current);
     const h = play(units, cfgRef.current, 'enter', shared.geoRef.current, shared.poolRef.current, { overrides: collectOverrides(units) });
     handle.current = h;
-    // troca de cor: começa quando a entrada termina
-    colorRun.current = startColorRun(ref.current, frame.slide.layers, cfgRef.current.colorFx, h.total);
+    t0.current = performance.now();
+    enterEnd.current = h.total;
+    colorRun.current = startColorRun(ref.current, frame.slide.layers, h.total);
     return () => {
       h.cancel();
       colorRun.current?.cancel();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Marcou/desmarcou palavras ou mudou as cores durante a edição: limpa e recalcula no ponto atual do relógio.
+  const prevSig = useRef(colorSig);
+  useLayoutEffect(() => {
+    if (colorSig === prevSig.current || exiting.current || !ref.current) return;
+    prevSig.current = colorSig;
+    colorRun.current?.cancel();
+    ref.current.querySelectorAll<HTMLElement>('[data-w], .ch').forEach((el) => el.style.removeProperty('color'));
+    colorRun.current = startColorRun(ref.current, frame.slide.layers, enterEnd.current, performance.now() - t0.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [colorSig]);
 
   // Saída: quando o quadro é marcado como "leaving".
   useLayoutEffect(() => {
@@ -96,25 +112,24 @@ function TextFrame({ frame, theme, shared, onExited }: { frame: Frame; theme: Th
       {frame.slide.layers
         .filter((l) => l.visible)
         .map((l) => (
-          <TextLayerView key={l.id} layer={l} unit={wordAnim ? 'word' : cfg.unit} float={cfg.float} letters={layerNeedsLetters(l, cfg.colorFx)} />
+          <TextLayerView key={l.id} layer={l} unit={wordAnim ? 'word' : cfg.unit} float={cfg.float} letters={layerNeedsLetters(l)} />
         ))}
     </div>
   );
 }
 
 /** Estado final do trecho (miniaturas): sem animação, já na cor de chegada da troca de cor. */
-function StaticFrame({ slide, theme }: { slide: Slide; theme: Theme }) {
+function StaticFrame({ slide }: { slide: Slide }) {
   const ref = useRef<HTMLDivElement>(null);
-  const fx = resolveAnimation(slide, theme).colorFx;
   useLayoutEffect(() => {
-    applyFinalColors(ref.current, slide.layers, fx);
+    applyFinalColors(ref.current, slide.layers);
   });
   return (
     <div ref={ref} className="text-frame">
       {slide.layers
         .filter((l) => l.visible)
         .map((l) => (
-          <TextLayerView key={l.id} layer={l} unit="block" letters={layerNeedsLetters(l, fx)} />
+          <TextLayerView key={l.id} layer={l} unit="block" letters={layerNeedsLetters(l)} />
         ))}
     </div>
   );
@@ -199,7 +214,7 @@ export const Stage = memo(function Stage({ theme, slide, mode, replayKey = 0, bl
             <div className="bg-layer">
               <BackgroundView bg={resolveBackground(slide, theme)} mode="static" />
             </div>
-            <StaticFrame slide={slide} theme={theme} />
+            <StaticFrame slide={slide} />
           </>
         )
       ) : (

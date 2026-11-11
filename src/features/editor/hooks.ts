@@ -3,7 +3,9 @@ import { editor } from '../../store/editor';
 import { createStore, useStore } from '../../store/createStore';
 import type { CustomFont } from '../../core/fonts';
 import { listMedia, loadCustomFonts } from '../../core/storage/media';
-import type { MediaRecord } from '../../core/types';
+import type { MediaRecord, Slide } from '../../core/types';
+import { wordCount, type WordTarget } from '../../core/words';
+import { parseKey } from '../../store/wordSelection';
 
 /** Contador que sobe sempre que a biblioteca de mídia muda (upload/remoção). */
 const mediaVersion = createStore<{ v: number }>({ v: 0 });
@@ -50,4 +52,16 @@ export function useDebouncedReplay(ms = 380) {
     clearTimeout(t.current);
     t.current = setTimeout(() => editor.replay(), ms);
   }, [ms]);
+}
+
+/** Palavras marcadas que ainda existem no trecho (a camada existe e a palavra ainda está no texto). */
+export function selectedTargets(slide: Slide | null, keys: string[]): WordTarget[] {
+  if (!slide) return [];
+  return keys
+    .map(parseKey)
+    .filter((t): t is WordTarget => !!t)
+    .filter((t) => {
+      const l = slide.layers.find((x) => x.id === t.layerId);
+      return !!l && t.index < wordCount(l.text);
+    });
 }

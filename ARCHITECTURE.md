@@ -172,13 +172,27 @@ exatamente onde a palavra estava e com o mesmo tamanho: o tamanho é medido no D
 passam a ser relativas à maior delas (`detachedLayer`). Tudo vira um único passo de desfazer. As funções puras
 (duplicar, remover, reindexar ajustes por palavra) estão cobertas por `tests/layers.test.ts`.
 
-### Troca de cor (`core/anim/colorfx.ts`, `render/colorRun.ts`)
+### Troca de cor (`core/anim/colorfx.ts`, `render/colorRun.ts`, `features/editor/panels/ColorChange.tsx`)
 
-`AnimationConfig.colorFx` (trecho) ou `WordOverride.colorFx` (palavra): depois que a entrada termina, a cor vai da
-cor do texto (ou de uma cor escolhida) até a cor final, tudo junto, palavra a palavra ou letra a letra, com
-espera, duração, intervalo e opção de voltar (brilho que passa). A conta da cor em cada instante é a mesma no
-palco (que pinta `style.color` a cada quadro) e no vídeo (o compositor desenha cada palavra ou letra com a cor
-do quadro); o vídeo dura entrada + troca de cor + tempo parado. Grupo de efeitos prontos *Troca de cor*.
+A troca de cor é **sempre por palavra** (`WordOverride.colorFx`): só as palavras marcadas mudam de cor, as outras
+nunca são tocadas. (Até a versão anterior ela também podia ficar na animação do trecho, `AnimationConfig.colorFx`,
+e então pegava todas as palavras mesmo quando só algumas estavam selecionadas — era a causa do bug. Ao abrir um
+projeto antigo, `normalizeProject` passa essa troca para cada palavra que não tinha a sua, então o resultado fica igual.)
+
+- **Seleção:** clique nas palavras do slide (Shift/Ctrl soma). O painel *Animação → Troca de cor* (e o mesmo
+  componente em *Palavras*) aplica a configuração a todas as marcadas; o menu do botão direito tem "Troca de cor…".
+  Os estilos prontos do grupo *Troca de cor* vão para as palavras marcadas (sem nenhuma marcada, para todas do trecho,
+  com um aviso dizendo isso).
+- **Sequência de cores:** `colors: string[]` (1 a 8), partindo da cor do texto ou de `from`. Cada passo do caminho
+  ocupa a mesma fração do tempo (`colorAlong`), então a ordem é sempre respeitada. Seletor de cor próprio
+  (`ui/ColorPicker.tsx`: saturação/brilho, matiz, hexadecimal, cores recentes) — também usado em todos os campos de cor.
+- **Começa em:** `start` em ms contados do momento em que o trecho aparece. Se cair antes do fim da entrada, a troca
+  espera a entrada terminar (`colorStart`), então Fade In e troca de cor nunca brigam. Projetos antigos usam `delay`
+  (depois da entrada), que continua valendo.
+- **Grupos:** palavras com exatamente a mesma configuração formam um grupo (`planColors`); "uma por vez" e "letra a
+  letra" contam a ordem dentro do grupo.
+- **Mesma conta em todo lugar:** palco do editor, operador, telão e vídeo usam as mesmas funções puras. No editor,
+  marcar/desmarcar refaz a troca na hora (`colorSignature`), sem precisar repetir a animação.
 
 ### Proporção automática
 
@@ -186,6 +200,20 @@ do quadro); o vídeo dura entrada + troca de cor + tempo parado. Grupo de efeito
 e a "igualar largura" (`core/layout.ts`) faz cada linha terminar no comprimento da palavra grande. Linhas curtas
 só crescem até 62% do tamanho da palavra grande, para ela continuar mandando. Não usa IA: as regras são
 determinísticas, rápidas e funcionam offline; o e2e mede as larguras reais no navegador.
+
+### Legibilidade (`render/TextLayerView.tsx`, `TextStyle.minFont`)
+
+Prioridade é a leitura no telão. Os ajustes automáticos nunca deixam a letra abaixo de `minFont` (padrão 4,5% da
+altura do slide ≈ 49 px em Full HD; ajustável em *Texto → Legibilidade no telão*):
+
+1. Na proporção entre linhas, uma linha que teria de ficar menor que o mínimo fica no mínimo e **quebra** em partes
+   equilibradas (`data-wrap`, `text-wrap: balance`).
+2. Uma palavra-chave muito curta ("PAI") não obriga as outras linhas a ficarem do tamanho dela: o comprimento-alvo
+   tem piso de 36% da caixa (`minTarget`).
+3. Se o texto não cabe, primeiro a caixa é alargada até 96% do slide (`--wfit`), depois a letra é reduzida até o
+   mínimo; só se ainda sair da tela é que desce abaixo do mínimo (texto cortado é pior).
+
+O tamanho que a pessoa escolhe à mão não é limitado. O vídeo mede o mesmo DOM, então sai igual.
 
 ## 9. Fontes embutidas
 
@@ -202,19 +230,22 @@ pesado (ex.: Montserrat ExtraBold/Black) envie o `.ttf` em *Texto → Família �
 então o site funciona em `https://usuario.github.io/repositorio/`; o service worker registra com escopo da
 subpasta. Passo a passo para o usuário no `README.md`.
 
-### Interface
+### Interface e temas (`src/styles/tokens.css`, `app/theme.ts`)
 
-Editor e biblioteca usam tema claro e neutro, com o slide sobre uma área escura no centro; operador e telão
-(`.op`, `.out`) redefinem os tokens para o tema escuro, porque o templo costuma estar com pouca luz.
-Tokens em `src/styles/tokens.css`. Fonte da interface: a do sistema (Segoe UI no Windows).
+Dois temas completos (claro e escuro) com os mesmos nomes de token, escolhidos por `data-theme` no `<html>`.
+O botão de sol/lua fica na biblioteca, no editor e no operador; a escolha é salva no navegador (`cs:theme`), vale
+para todas as janelas abertas (evento `storage`) e, sem escolha, segue o sistema. A troca tem uma transição curta
+só nas cores da interface (nunca dentro do slide). O slide fica sempre sobre uma área escura (`--stage-pad`) e o
+telão é sempre escuro. Títulos usam a Poppins embutida (a mesma dos slides); controles usam a fonte do sistema.
+Painéis laterais acompanham a largura do monitor (`clamp`), testados de 1280×720 a 1920×1080.
 
 ## 11. Qualidade e testes
 
 | Comando | O que faz |
 |---|---|
 | `npm run typecheck` | `tsc --noEmit` (ver limitação na seção 1) |
-| `npm test` | 93 testes unitários: easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor |
-| `npm run build && npm run e2e` | 22 etapas no navegador contra o build de produção (ver abaixo) |
+| `npm test` | 97 testes unitários: easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção |
+| `npm run build && npm run e2e` | 25 etapas no navegador contra o build de produção (ver abaixo) |
 | `npm run e2e:fidelity` | compara o desenho em canvas (vídeo) com o DOM do editor (PSNR; exige ffmpeg) |
 
 O e2e (`e2e/run.mjs`) cria um louvor pela interface, edita e confere a persistência após recarregar,
@@ -224,7 +255,10 @@ apertados na janela do telão), recarga **sem rede** via service worker, o fluxo
 ffprobe: H.264, 1920×1080, duração com a letra parada, decodifica sem erro), o menu do botão direito
 (soltar e arrastar a palavra, duplicar, excluir, camadas), miniaturas dos visuais sem quebra, espaço entre linhas
 que realmente aproxima, troca de cor (confere os pixels do vídeo com ffmpeg), proporção automática e o site
-servido numa subpasta como no GitHub Pages, inclusive offline. Termina conferindo que não houve erros de console.
+servido numa subpasta como no GitHub Pages, inclusive offline, troca de cor só nas palavras marcadas (quadro a quadro:
+ordem da sequência, início no tempo escolhido, telão e vídeo iguais), legibilidade de frases curtas a longas em
+1600×900 e 1280×720 e os dois temas (botão, preferência salva, varredura de cores que sobraram do outro tema em
+biblioteca, editor, menus, diálogos e operador). Termina conferindo que não houve erros de console.
 
 O build **falha** se `sw.js` sair com marcadores sem substituir — um bug anterior fazia o service
 worker não registrar e o modo offline nunca funcionava, sem nenhum aviso.

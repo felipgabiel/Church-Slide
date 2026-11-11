@@ -106,3 +106,15 @@ test('âncora: o piso e a caixa continuam valendo', () => {
   near(s[0], 0.5);
   near(s[1], 1);
 });
+
+test('piso do alvo: palavra-chave curta ("PAI") não obriga a frase longa a virar letra miúda', () => {
+  // PAI = 200px; frase pequena = 1400px; caixa 1600
+  const sem = equalizeScales([1400, 200], { blockWidth: 1600, minScale: 0.1, bases: [0.44, 1] });
+  const com = equalizeScales([1400, 200], { blockWidth: 1600, minScale: 0.1, bases: [0.44, 1], minTarget: 1600 * 0.36 });
+  assert.ok(Math.abs(1400 * sem[0] - 200) < 1, 'sem piso a frase encolhe até 200px');
+  assert.ok(Math.abs(1400 * com[0] - 576) < 1, 'com piso ela vai até 36% da caixa');
+  assert.equal(com[1], 1, 'a palavra grande não muda');
+  // palavra-chave já larga: o piso não interfere (mesmo comprimento, como na referência)
+  const larga = equalizeScales([1400, 700], { blockWidth: 1600, minScale: 0.1, bases: [0.44, 1], minTarget: 1600 * 0.36 });
+  assert.ok(Math.abs(1400 * larga[0] - 700) < 1);
+});

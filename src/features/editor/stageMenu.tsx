@@ -1,5 +1,6 @@
 import { flushSync } from 'react-dom';
 import {
+  LuPalette,
   LuAlignHorizontalJustifyCenter,
   LuAlignVerticalJustifyCenter,
   LuArrowDown,
@@ -18,7 +19,7 @@ import { canMoveLayer, lineOfWord, wordAt as textWordAt } from '../../core/layer
 import { tokenizeText } from '../../core/words';
 import type { Slide } from '../../core/types';
 import { editor } from '../../store/editor';
-import { wordKey, wordSelection } from '../../store/wordSelection';
+import { wordKey, wordSel, wordSelection } from '../../store/wordSelection';
 import { writeSetting } from '../../core/settings';
 import type { ContextItem } from '../../ui/ContextMenu';
 
@@ -142,6 +143,17 @@ export function buildStageMenu({ stage, slide, word, layerId, at, toast }: MenuA
       onClick: () => {
         wordSelection.set([wordKey(layer.id, word.index)]);
         writeSetting('right-tab', 'words');
+      },
+    });
+    items.push({
+      label: 'Troca de cor…',
+      icon: <LuPalette />,
+      hint: 'marcadas',
+      onClick: () => {
+        // clicou numa palavra que já está marcada: vale para todas as marcadas; senão, só para esta
+        const key = wordKey(layer.id, word.index);
+        if (!wordSel.get().keys.includes(key)) wordSelection.set([key]);
+        writeSetting('right-tab', 'animation');
       },
     });
     items.push({ label: 'Duplicar palavra', icon: <LuCopy />, onClick: () => editor.duplicateWord(layer.id, word.index) });

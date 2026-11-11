@@ -261,8 +261,12 @@ export class BackgroundPainter {
   async draw(ctx: CanvasRenderingContext2D, t: number): Promise<void> {
     const { bg, w, h, lctx } = this;
     lctx.clearRect(0, 0, w, h);
-    lctx.fillStyle = bg.kind === 'gradient' ? cssLinearGradient(lctx, bg, w, h) : bg.color;
-    lctx.fillRect(0, 0, w, h);
+    // Fundo animado: como no editor, a cor de base fica FORA do filtro (o filtro vale só para as luzes animadas).
+    // Antes a base também era filtrada e o vídeo saía diferente do editor com brilho/contraste ajustados.
+    const baseOutside = bg.kind === 'animated';
+    const baseCtx = baseOutside ? ctx : lctx;
+    baseCtx.fillStyle = bg.kind === 'gradient' ? cssLinearGradient(baseCtx, bg, w, h) : bg.color;
+    baseCtx.fillRect(0, 0, w, h);
 
     let isMedia = false;
     if (bg.kind === 'animated') {

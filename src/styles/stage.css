@@ -97,10 +97,17 @@
   display: block;
   min-height: 1lh;
   letter-spacing: calc(var(--tracking, 0) * 1em);
+  /* quando uma linha quebra, as partes ficam parecidas (nada de uma palavra sozinha embaixo) */
+  text-wrap: balance;
 }
 /* igualar largura: a linha nunca quebra, senão a medida natural não vale */
 .layer[data-eq='1'] .ln {
   white-space: nowrap;
+}
+/* …a não ser que, para caber, ela precisasse ficar menor que a letra mínima: aí ela quebra */
+.layer[data-eq='1'] .ln[data-wrap='1'] {
+  white-space: pre-wrap;
+  text-wrap: balance;
 }
 .ch {
   display: inline;

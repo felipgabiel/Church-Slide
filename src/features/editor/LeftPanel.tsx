@@ -2,6 +2,8 @@ import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { LuImage, LuListOrdered, LuPlus, LuShapes, LuClapperboard } from 'react-icons/lu';
 import { applyPreset, ANIMATION_PRESETS, PRESET_GROUPS, type AnimPreset } from '../../core/anim/presets';
 import { totalDuration } from '../../core/anim/engine';
+import { colorEnd } from '../../core/anim/colorfx';
+import { patchWord, wordCount } from '../../core/words';
 import { BACKGROUND_GROUPS, BACKGROUND_PRESETS, type BackgroundPreset } from '../../core/backgrounds';
 import { newSlide, resolveAnimation, resolveBackground, slideText } from '../../core/defaults';
 import { useSetting } from '../../core/settings';
@@ -13,6 +15,7 @@ import { SlideThumb } from '../../render/SlideThumb';
 import { Stage } from '../../render/Stage';
 import { editor, useActiveSlide, useEditor } from '../../store/editor';
 import { toast } from '../../ui/toast';
+import { applyAnimationPreset } from './applyPreset';
 import { MediaGrid } from './MediaGrid';
 import { SlideList } from './SlideList';
 
@@ -64,8 +67,14 @@ const AnimCard = memo(function AnimCard({ preset, theme, aspect, sample, selecte
   const [hover, setHover] = useState(false);
   const [tick, setTick] = useState(0);
   const cfg = useMemo(() => applyPreset(preset.id, theme.animation), [preset.id, theme.animation]);
-  const slide = useMemo<Slide>(() => ({ ...newSlide(sample, theme), animation: cfg }), [sample, theme, cfg]);
-  const loop = Math.max(1900, totalDuration(cfg, 'enter', 3) + 1100);
+  const slide = useMemo<Slide>(() => {
+    const s: Slide = { ...newSlide(sample, theme), animation: cfg };
+    // estilos de troca de cor: na prévia, todas as palavras trocam
+    if (preset.color) for (const l of s.layers) for (let i = 0; i < wordCount(l.text); i++) patchWord(l, i, { colorFx: preset.color });
+    return s;
+  }, [sample, theme, cfg, preset.color]);
+  const enter = totalDuration(cfg, 'enter', 3);
+  const loop = Math.max(1900, enter + 1100, preset.color ? colorEnd(preset.color, 12, enter) + 1200 : 0);
 
   useEffect(() => {
     if (!hover) return;
@@ -80,7 +89,7 @@ const AnimCard = memo(function AnimCard({ preset, theme, aspect, sample, selecte
       className="card card-anim"
       data-on={selected ? '1' : '0'}
       aria-pressed={selected}
-      onClick={() => editor.setAnimationPreset(preset.id)}
+      onClick={() => applyAnimationPreset(preset.id)}
       onPointerEnter={() => setHover(true)}
       onPointerLeave={() => setHover(false)}
       onFocus={() => setHover(true)}

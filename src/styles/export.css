@@ -163,7 +163,7 @@
   margin: 0;
   padding: 10px 12px;
   border-radius: 8px;
-  background: rgb(255 90 70 / 0.1);
+  background: var(--live-soft);
   color: var(--live);
   font-size: 13px;
 }

@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { LuAlignCenter, LuAlignLeft, LuAlignRight, LuBold, LuCaseUpper, LuItalic, LuRotateCcw, LuUpload } from 'react-icons/lu';
-import { SYSTEM_SANS } from '../../../core/defaults';
+import { MIN_FONT, SYSTEM_SANS } from '../../../core/defaults';
 import { getFontOptions } from '../../../core/fonts';
 import type { Align } from '../../../core/types';
 import { editor, useActiveLayer } from '../../../store/editor';
@@ -108,6 +108,25 @@ export function TextPanel() {
         <p className="props-note">Quanto menor o valor, mais a linha comprida pode encolher. Em 100% nada é reduzido.</p>
       </Section>
 
+      <Section title="Legibilidade no telão">
+        <Row label="Ajustar se não couber" hint="Alarga a caixa e, se precisar, reduz">
+          <Switch checked={s.autoFit} onChange={(v) => set({ autoFit: v })} label="Ajuste automático do tamanho" />
+        </Row>
+        <Slider
+          label="Letra mínima"
+          value={s.minFont ?? MIN_FONT}
+          min={2}
+          max={12}
+          step={0.1}
+          unit="%"
+          reset={MIN_FONT}
+          onChange={(v) => set({ minFont: v })}
+        />
+        <p className="props-note">
+          Os ajustes automáticos (proporção entre linhas e “ajustar se não couber”) nunca deixam a letra menor que isso: a linha quebra em duas em vez de encolher. Em % da altura do slide; {MIN_FONT}% ≈ {Math.round(1080 * (MIN_FONT / 100))} px em Full HD.
+        </p>
+      </Section>
+
       <Section title="Posição e tamanho do bloco">
         <Slider label="Horizontal" value={s.x} min={0} max={100} step={0.5} unit="%" reset={50} onChange={(v) => set({ x: v })} />
         <Slider label="Vertical" value={s.y} min={0} max={100} step={0.5} unit="%" reset={50} onChange={(v) => set({ y: v })} />
@@ -129,11 +148,6 @@ export function TextPanel() {
       <Section title="Aparência" defaultOpen={false}>
         <Slider label="Opacidade" value={s.opacity} min={0} max={100} unit="%" reset={100} onChange={(v) => set({ opacity: v })} />
         <Slider label="Desfoque" value={s.blur} min={0} max={40} step={0.5} reset={0} onChange={(v) => set({ blur: v })} />
-        <Row label="Reduzir fonte se não couber" hint="Evita letra cortada no telão">
-          <button type="button" role="switch" aria-checked={s.autoFit} className="switch" data-on={s.autoFit ? '1' : '0'} aria-label="Ajuste automático do tamanho" onClick={() => set({ autoFit: !s.autoFit })}>
-            <i />
-          </button>
-        </Row>
       </Section>
 
       <Section title="Sombra" defaultOpen={s.shadow.enabled} toggle={{ checked: s.shadow.enabled, onChange: (v) => set({ shadow: { enabled: v } }) }}>

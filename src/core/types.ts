@@ -55,6 +55,11 @@ export interface TextStyle {
   equalizeMin: number;
   /** A caixa acompanha o tamanho do texto (palavras soltas); a largura em % é ignorada. */
   autoWidth: boolean;
+  /**
+   * Menor letra que os ajustes AUTOMÁTICOS podem produzir, em % da altura do slide (legibilidade no telão).
+   * Em vez de encolher abaixo disso, a linha quebra em duas ou mais. Não limita o tamanho que a pessoa escolhe.
+   */
+  minFont: number;
 }
 
 export type TextCase = 'none' | 'upper' | 'lower';
@@ -86,25 +91,33 @@ export interface WordAnim {
 }
 
 /** Como a troca de cor percorre o texto. */
+/** Como a troca de cor anda pelas palavras marcadas: todas juntas, uma palavra por vez ou letra por letra. */
 export type ColorMode = 'all' | 'word' | 'letter';
 
 /**
- * Troca de cor ao longo do tempo: o texto entra com a animação normal e DEPOIS vai mudando de cor
- * aos poucos (ex.: de branco para verde). Pode ser tudo de uma vez, palavra por palavra ou letra por letra.
+ * Troca de cor das palavras MARCADAS (fica em `WordOverride.colorFx`, nunca no trecho inteiro).
+ * O texto entra com a animação normal e, a partir do instante `start`, passa pela sequência de cores
+ * (ex.: branco → verde → amarelo). Palavras com exatamente a mesma configuração formam um grupo: é dentro do
+ * grupo que "uma palavra por vez" e "letra por letra" contam a ordem.
  */
 export interface ColorFx {
-  /** cor final (hexadecimal) */
-  to: string;
-  /** cor inicial; ausente = a cor que o texto já tem */
+  /** sequência de cores, na ordem em que aparecem (1 ou mais; hexadecimal) */
+  colors: string[];
+  /** cor de partida; ausente = a cor que o texto já tem */
   from?: string;
   mode: ColorMode;
-  /** ms depois que a animação de entrada termina */
-  delay: number;
-  /** ms que cada parte (texto, palavra ou letra) leva para trocar de cor */
+  /**
+   * ms contados do começo do trecho até a troca começar. Se cair antes do fim da entrada,
+   * a troca espera a entrada terminar (as duas nunca brigam).
+   */
+  start?: number;
+  /** formato antigo: ms DEPOIS do fim da entrada (usado só quando `start` não existe) */
+  delay?: number;
+  /** ms que cada parte leva para percorrer a sequência inteira */
   duration: number;
-  /** ms entre uma palavra/letra e a seguinte (ignorado em "tudo junto") */
+  /** ms entre uma palavra/letra e a seguinte (ignorado em "todas juntas") */
   stagger: number;
-  /** a cor vai e volta (efeito de brilho que passa), em vez de ficar na cor final */
+  /** percorre a sequência e volta à cor original (brilho que passa) */
   back?: boolean;
 }
 
@@ -194,6 +207,7 @@ export interface AnimationConfig {
   /** 0–100: flutuação suave contínua enquanto o texto está na tela */
   float: number;
   /** troca de cor depois da entrada (opcional) */
+  /** formato antigo (troca de cor do trecho inteiro); convertido para as palavras ao abrir o projeto */
   colorFx?: ColorFx | null;
 }
 

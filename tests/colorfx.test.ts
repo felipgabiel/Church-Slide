@@ -3,7 +3,8 @@ import { test } from 'node:test';
 import { colorAmount, colorAt, colorEnd, colorTiming, mixColor, parseColor, sanitizeColorFx } from '../src/core/anim/colorfx';
 import type { ColorFx } from '../src/core/types';
 
-const fx = (p: Partial<ColorFx> = {}): ColorFx => ({ to: '#00ff00', mode: 'all', delay: 500, duration: 1000, stagger: 100, ...p });
+// formato antigo (delay contado depois da entrada) continua valendo; os testes novos usam `start`
+const fx = (p: Partial<ColorFx> = {}): ColorFx => ({ colors: ['#00ff00'], mode: 'all', delay: 500, duration: 1000, stagger: 100, ...p });
 
 test('cores: hex curto/longo/com alfa e rgb() são lidos', () => {
   assert.deepEqual(parseColor('#fff'), [255, 255, 255, 1]);
@@ -74,7 +75,8 @@ test('colorAt: null antes de começar (mantém a cor original) e usa "from" quan
 test('sanitizeColorFx: aceita válido, limita números, recusa lixo', () => {
   assert.equal(sanitizeColorFx(null), undefined);
   assert.equal(sanitizeColorFx({ to: 'nada' }), undefined);
-  const ok = sanitizeColorFx({ to: '#abc', mode: 'letter', delay: -5, duration: 9e9, stagger: 'x', back: true, from: 'rgb(1,2,3)' })!;
+  const ok = sanitizeColorFx({ to: '#abc', mode: 'letter', delay: -5, duration: 9e9, stagger: 'x', back: true, from: 'rgb(1,2,3)' })!; // formato antigo
+  assert.deepEqual(ok.colors, ['#abc']);
   assert.equal(ok.mode, 'letter');
   assert.equal(ok.delay, 0);
   assert.equal(ok.duration, 20000);
@@ -84,8 +86,10 @@ test('sanitizeColorFx: aceita válido, limita números, recusa lixo', () => {
   assert.equal(sanitizeColorFx({ to: '#abc', mode: 'x' })!.mode, 'all');
 });
 
-import { colorFinal, colorPartCount, colorPartIndex } from '../src/core/anim/colorfx';
+import { colorAlong, colorFinal, colorStart, DEFAULT_COLOR_FX, MAX_COLORS, partOf, planColors } from '../src/core/anim/colorfx';
 import { applyPreset, ANIMATION_PRESETS, PRESET_GROUPS } from '../src/core/anim/presets';
+
+const nfx = (p: Partial<ColorFx> = {}): ColorFx => ({ colors: ['#00ff00'], mode: 'all', start: 2000, duration: 1000, stagger: 100, ...p });
 
 test('colorAt: antes de começar usa a cor inicial escolhida (ou a do texto)', () => {
   assert.equal(colorAt(fx({ from: '#ff0000' }), '#ffffff', 0, 0, 0), '#ff0000');
@@ -93,20 +97,55 @@ test('colorAt: antes de começar usa a cor inicial escolhida (ou a do texto)', (
   assert.equal(colorAt(fx({ from: '#ff0000' }), '#ffffff', 0, 0, 99999), 'rgb(0, 255, 0)');
 });
 
-test('colorFinal: fica na cor final; no pulso volta à original', () => {
+test('colorFinal: fica na última cor; no pulso volta à original', () => {
   assert.equal(colorFinal(fx(), '#ffffff'), 'rgb(0, 255, 0)');
   assert.equal(colorFinal(fx({ back: true }), '#ffffff'), null);
   assert.equal(colorFinal(fx({ back: true, from: '#ff0000' }), '#ffffff'), '#ff0000');
+  assert.equal(colorFinal(nfx({ colors: ['#00ff00', '#0000ff'] }), '#ffffff'), 'rgb(0, 0, 255)');
 });
 
-test('partes: contagem e posição por modo (junto / palavra / letra)', () => {
-  const words = ['vem', 'sobre', 'mim'];
-  assert.equal(colorPartCount('all', words), 1);
-  assert.equal(colorPartCount('word', words), 3);
-  assert.equal(colorPartCount('letter', words), 11);
-  assert.equal(colorPartIndex('all', words, 2), 0);
-  assert.equal(colorPartIndex('word', words, 2), 2);
-  assert.equal(colorPartIndex('letter', words, 1, 2), 5); // "vem"=3 letras, depois a 3ª de "sobre"
+test('início: contado do começo do trecho, mas nunca antes de a entrada terminar', () => {
+  assert.equal(colorStart(nfx({ start: 2000 }), 800), 2000); // entrada terminou antes: vale o configurado
+  assert.equal(colorStart(nfx({ start: 300 }), 800), 800); // configurado cai dentro da entrada: espera ela terminar
+  assert.equal(colorStart(nfx({ start: 0 }), 0), 0);
+  assert.equal(colorStart(fx({ delay: 500 }), 800), 1300); // projeto antigo: depois da entrada
+  // o "Começa em" não mexe na entrada: com 2 s e entrada de 0,8 s, em 1,9 s nada mudou e em 2,5 s está no meio
+  assert.equal(colorAt(nfx(), '#ffffff', 0, 800, 1900), null);
+  const mid = colorAt(nfx(), '#ffffff', 0, 800, 2500)!;
+  assert.notEqual(mid, 'rgb(255, 255, 255)');
+  assert.notEqual(mid, 'rgb(0, 255, 0)');
+});
+
+test('sequência: respeita a ordem das cores (branco → vermelho → azul)', () => {
+  const f = nfx({ colors: ['#ff0000', '#0000ff'] });
+  assert.equal(colorAlong(f, '#ffffff', 0), 'rgb(255, 255, 255)');
+  assert.equal(colorAlong(f, '#ffffff', 0.5), 'rgb(255, 0, 0)'); // metade do caminho = 1ª cor
+  assert.equal(colorAlong(f, '#ffffff', 1), 'rgb(0, 0, 255)');
+  assert.equal(colorAlong(f, '#ffffff', 0.25), 'rgb(255, 128, 128)');
+  // três cores: cada uma ocupa um terço
+  const g = nfx({ colors: ['#ff0000', '#00ff00', '#0000ff'], from: '#000000' });
+  assert.equal(colorAlong(g, '#ffffff', 1 / 3), 'rgb(255, 0, 0)');
+  assert.equal(colorAlong(g, '#ffffff', 2 / 3), 'rgb(0, 255, 0)');
+});
+
+test('grupos: só palavras marcadas entram; ordem e letras contadas dentro do grupo', () => {
+  const a = nfx({ mode: 'word' });
+  const b = nfx({ mode: 'letter', colors: ['#ff0000'] });
+  const plan = planColors([
+    { index: 0, text: 'vem' },
+    { index: 1, text: 'sobre', fx: a },
+    { index: 2, text: 'mim' },
+    { index: 3, text: 'SENHOR', fx: a },
+    { index: 4, text: 'Deus', fx: b },
+    { index: 5, text: 'Pai', fx: b },
+  ]);
+  assert.equal(plan.has(0), false, 'palavra não marcada não troca de cor');
+  assert.equal(plan.has(2), false);
+  assert.equal(plan.get(1)!.part, 0);
+  assert.equal(plan.get(3)!.part, 1); // 2ª palavra DO GRUPO, não a 4ª do texto
+  assert.equal(plan.get(3)!.parts, 2);
+  assert.equal(partOf(plan.get(5)!, 1), 4 + 1); // "Deus" tem 4 letras, depois a 2ª letra de "Pai"
+  assert.equal(plan.get(4)!.parts, 7);
 });
 
 test('colorEnd por letra considera a última letra', () => {
@@ -114,13 +153,27 @@ test('colorEnd por letra considera a última letra', () => {
   assert.equal(colorEnd(f, 11, 1000), 1000 + 100 + 10 * 50 + 500);
 });
 
-test('presets: os de cor trazem a troca; "Sem animação" e escolher outro efeito se comportam como esperado', () => {
+test('sanitizeColorFx: sequência nova, limite de cores e cores inválidas descartadas', () => {
+  const ok = sanitizeColorFx({ colors: ['#f00', 'banana', '#00ff00'], mode: 'word', start: 1500, duration: 800, stagger: 200 })!;
+  assert.deepEqual(ok.colors, ['#f00', '#00ff00']);
+  assert.equal(ok.start, 1500);
+  assert.equal(ok.delay, undefined);
+  assert.equal(sanitizeColorFx({ colors: Array(20).fill('#fff') })!.colors.length, MAX_COLORS);
+  assert.equal(sanitizeColorFx({ colors: [] }), undefined);
+  assert.equal(sanitizeColorFx({ colors: ['#fff'], start: 999999 })!.start, 60000);
+  assert.equal(DEFAULT_COLOR_FX.start, 2000);
+});
+
+test('presets: os de cor trazem a troca para as palavras, não para o trecho', () => {
   const green = applyPreset('color-green');
-  assert.equal(green.colorFx?.to, '#4ade80');
-  assert.equal(green.colorFx?.mode, 'all');
+  assert.equal(green.colorFx, undefined, 'a troca de cor nunca vai para o trecho inteiro');
   assert.ok(green.enter.fade, 'entra com animação básica antes de trocar de cor');
-  assert.equal(applyPreset('none', green).colorFx, null); // sem animação limpa a troca
-  assert.deepEqual(applyPreset('fade', green).colorFx, green.colorFx); // outros efeitos mantêm a troca
-  for (const p of ANIMATION_PRESETS) assert.ok(PRESET_GROUPS.includes(p.group), p.id);
-  for (const p of ANIMATION_PRESETS.filter((x) => x.group === 'Troca de cor')) assert.ok(sanitizeColorFx(p.config.colorFx), `${p.id} válido`);
+  const p = ANIMATION_PRESETS.find((x) => x.id === 'color-green')!;
+  assert.deepEqual(p.color?.colors, ['#4ade80']);
+  for (const x of ANIMATION_PRESETS) assert.ok(PRESET_GROUPS.includes(x.group), x.id);
+  for (const x of ANIMATION_PRESETS.filter((y) => y.group === 'Troca de cor')) {
+    assert.ok(x.color && sanitizeColorFx(x.color), `${x.id} válido`);
+    assert.ok(x.color!.start! >= (x.config.duration ?? 0), `${x.id}: começa depois da entrada`);
+  }
+  assert.ok(ANIMATION_PRESETS.some((x) => (x.color?.colors.length ?? 0) >= 3), 'há um estilo com sequência de várias cores');
 });

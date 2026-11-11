@@ -2,13 +2,13 @@ import { LuEraser, LuMousePointerClick, LuLayoutTemplate } from 'react-icons/lu'
 import { getFontOptions } from '../../../core/fonts';
 import { IMPACT_ENTER } from '../../../core/impact';
 import type { AnimPhase, TextCase, WordAnim, WordStyle } from '../../../core/types';
-import { overrideOf, tokenizeText, wordCount, type WordTarget } from '../../../core/words';
+import { overrideOf, tokenizeText, type WordTarget } from '../../../core/words';
 import { editor, useActiveSlide } from '../../../store/editor';
-import { parseKey, useWordSelection, wordKey, wordSelection } from '../../../store/wordSelection';
+import { useWordSelection, wordKey, wordSelection } from '../../../store/wordSelection';
 import { Button } from '../../../ui/Button';
 import { ColorField, Row, Section, Segmented, Select, Slider, Switch } from '../../../ui/Controls';
-import { useCustomFonts, useDebouncedReplay } from '../hooks';
-import { ColorFxControls } from './ColorFxControls';
+import { selectedTargets, useCustomFonts, useDebouncedReplay } from '../hooks';
+import { ColorChange } from './ColorChange';
 
 const WEIGHTS: { v: string; label: string }[] = [
   { v: '', label: 'Igual ao texto' },
@@ -36,13 +36,7 @@ export function WordsPanel() {
   if (!slide) return <p className="panel-empty">Nenhum trecho selecionado.</p>;
 
   // seleção válida: a camada existe neste trecho e a palavra ainda existe no texto
-  const targets: WordTarget[] = keys
-    .map(parseKey)
-    .filter((t): t is WordTarget => !!t)
-    .filter((t) => {
-      const l = slide.layers.find((x) => x.id === t.layerId);
-      return !!l && t.index < wordCount(l.text);
-    });
+  const targets: WordTarget[] = selectedTargets(slide, keys);
   const first = targets[0];
   const layer = first ? slide.layers.find((l) => l.id === first.layerId) : undefined;
   const ov = layer && first ? overrideOf(layer, first.index) : undefined;
@@ -118,15 +112,7 @@ export function WordsPanel() {
       {targets.length > 0 && layer && (
         <>
           <p className="wsel" role="status">
-            {targets.length === 1 ? (
-              <>
-                Editando <b>“{word}”</b>
-              </>
-            ) : (
-              <>
-                Editando <b>{targets.length} palavras</b>
-              </>
-            )}
+            <span>{targets.length === 1 ? <>Editando <b>“{word}”</b></> : <>Editando <b>{targets.length} palavras</b></>}</span>
             <Button size="sm" variant="ghost" onClick={() => wordSelection.clear()}>
               Desmarcar
             </Button>
@@ -257,17 +243,7 @@ export function WordsPanel() {
           </Section>
 
           <Section title="Troca de cor" defaultOpen={!!ov?.colorFx}>
-            <p className="props-note">Só esta palavra muda de cor depois de entrar. Vale mais que a troca de cor do trecho.</p>
-            <ColorFxControls
-              single
-              value={ov?.colorFx}
-              switchLabel="Trocar a cor desta palavra"
-              current={st.color ?? layer.style.color}
-              onChange={(fx) => {
-                editor.patchWords(targets, { colorFx: fx });
-                replay();
-              }}
-            />
+            <ColorChange />
           </Section>
 
           <Button size="sm" variant="ghost" icon={<LuEraser />} className="props-upload" onClick={() => editor.clearWords(targets)}>

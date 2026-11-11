@@ -11,12 +11,16 @@ import {
   type TextStyle,
   type Theme,
   type AnimationConfig,
+  type ColorFx,
 } from './types';
 import { clone, deepMerge, fillDefaults } from './util';
 import { sanitizeColorFx } from './anim/colorfx';
-import { sanitizeWords } from './words';
+import { patchWord, sanitizeWords, tokenizeText } from './words';
 
 export const SYSTEM_SANS = 'Inter, "Segoe UI", "Helvetica Neue", Roboto, system-ui, sans-serif';
+
+/** Letra mínima dos ajustes automáticos: 4,5% da altura do slide (≈ 49 px em 1080p, legível no fundo do templo). */
+export const MIN_FONT = 4.5;
 
 export function defaultTextStyle(): TextStyle {
   return {
@@ -41,6 +45,7 @@ export function defaultTextStyle(): TextStyle {
     equalize: false,
     equalizeMin: 30,
     autoWidth: false,
+    minFont: MIN_FONT,
   };
 }
 
@@ -131,13 +136,26 @@ export function newProject(name: string, opts: { theme?: Theme; aspect?: Aspect;
  * Valida e completa um projeto vindo do armazenamento/importação.
  * Campos novos do modelo recebem valores padrão, então versões antigas continuam abrindo.
  */
-/** Completa uma animação lida do disco; a troca de cor vem de fora e é validada. */
+/** Completa uma animação lida do disco. A troca de cor NÃO fica mais na animação (ver `legacyColorFx`). */
 function cleanAnimation(raw: unknown): AnimationConfig {
   const a = fillDefaults(baseAnimation(), raw);
-  const fx = sanitizeColorFx((raw as { colorFx?: unknown } | null | undefined)?.colorFx);
-  if (fx) a.colorFx = fx;
-  else delete a.colorFx;
+  delete a.colorFx;
   return a;
+}
+
+/** Troca de cor do formato antigo, guardada na animação do trecho/tema (valia para TODAS as palavras). */
+const legacyColorFx = (raw: unknown) => sanitizeColorFx((raw as { colorFx?: unknown } | null | undefined)?.colorFx);
+
+/**
+ * Projetos antigos: a troca de cor ficava no trecho inteiro. Agora ela é por palavra; aqui ela vira a troca de
+ * cor de cada palavra que ainda não tinha a sua — o vídeo continua igual ao que a pessoa já tinha montado.
+ */
+function moveColorToWords(layers: TextLayer[], fx: ColorFx | undefined): void {
+  if (!fx) return;
+  for (const layer of layers) {
+    const n = tokenizeText(layer.text).reduce((c, l) => c + l.count, 0);
+    for (let i = 0; i < n; i++) if (!layer.words?.[String(i)]?.colorFx) patchWord(layer, i, { colorFx: { ...fx } });
+  }
 }
 
 export function normalizeProject(raw: unknown): Project {
@@ -161,6 +179,7 @@ export function normalizeProject(raw: unknown): Project {
         };
       },
     );
+    moveColorToWords(layers, slide.animation ? legacyColorFx(slide.animation) : legacyColorFx(r.theme?.animation));
     return {
       id: slide.id || uid('s'),
       label: slide.label ?? '',

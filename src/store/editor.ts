@@ -1,4 +1,4 @@
-import { applyPreset } from '../core/anim/presets';
+import { applyPreset, getPreset } from '../core/anim/presets';
 import { newLayer, newSlide, normalizeProject, resolveAnimation, resolveBackground } from '../core/defaults';
 import { uid } from '../core/ids';
 import { splitLyrics } from '../core/split';
@@ -6,7 +6,6 @@ import { getProject, saveProject, writeSnapshot } from '../core/storage/projects
 import type {
   AnimationConfig,
   Aspect,
-  ColorFx,
   Background,
   DeepPartial,
   LayerRole,
@@ -19,7 +18,7 @@ import type {
 } from '../core/types';
 import { applyImpactToLayer, DEFAULT_IMPACT } from '../core/impact';
 import { getThemePreset } from '../core/themes';
-import { clearWord, patchWord, pruneWords, type WordPatch, type WordTarget } from '../core/words';
+import { clearWord, patchWord, pruneWords, wordCount, type WordPatch, type WordTarget } from '../core/words';
 import {
   copyLayer,
   detachedLayer,
@@ -33,7 +32,7 @@ import {
   type LayerMove,
 } from '../core/layers';
 import { clamp, clone, deepMerge, move } from '../core/util';
-import { wordSelection } from './wordSelection';
+import { parseKey, wordSel, wordSelection } from './wordSelection';
 import { createStore, useStore } from './createStore';
 
 export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
@@ -673,31 +672,17 @@ export const editor = {
     );
   },
 
-  /** Liga, ajusta ou desliga a troca de cor do trecho (ou de todos, conforme o escopo). Substitui o efeito inteiro. */
-  setColorFx(fx: ColorFx | null) {
+  /**
+   * Aplica um estilo de animação. Se o estilo tem troca de cor, ela vai para as palavras MARCADAS do trecho;
+   * sem nenhuma marcada, para todas as palavras do trecho (ou de todos os trechos, no escopo "Todos").
+   * Devolve quantas palavras receberam a troca de cor (0 se o estilo não tem cor).
+   */
+  setAnimationPreset(presetId: string): { colored: number; onSelection: boolean } {
     const scope = editorStore.get().scope;
-    mutate(
-      (d) => {
-        const put = (a: AnimationConfig) => {
-          if (fx) a.colorFx = fx;
-          else delete a.colorFx;
-        };
-        if (scope === 'all') {
-          put(d.theme.animation);
-          d.slides.forEach((s) => s.animation && put(s.animation));
-          return;
-        }
-        const slide = currentSlide(d);
-        if (!slide) return;
-        slide.animation = resolveAnimation(slide, d.theme) === d.theme.animation ? clone(d.theme.animation) : slide.animation;
-        if (slide.animation) put(slide.animation);
-      },
-      { coalesce: `cfx:${scope}:${editorStore.get().slideId}` },
-    );
-  },
-
-  setAnimationPreset(presetId: string) {
-    const scope = editorStore.get().scope;
+    const color = getPreset(presetId)?.color;
+    const sel = wordSel.get().keys.map(parseKey).filter((t): t is WordTarget => !!t);
+    let colored = 0;
+    let onSelection = false;
     mutate((d) => {
       if (scope === 'all') {
         d.theme.animation = applyPreset(presetId, d.theme.animation);
@@ -706,8 +691,38 @@ export const editor = {
         const slide = currentSlide(d);
         if (slide) slide.animation = applyPreset(presetId, resolveAnimation(slide, d.theme));
       }
+      if (!color) return;
+      const slide = currentSlide(d);
+      const marked = slide ? sel.filter((t) => slide.layers.some((l) => l.id === t.layerId && t.index < wordCount(l.text))) : [];
+      if (marked.length && slide) {
+        onSelection = true;
+        for (const t of marked) {
+          const layer = slide.layers.find((l) => l.id === t.layerId)!;
+          patchWord(layer, t.index, { colorFx: clone(color) });
+          colored++;
+        }
+        return;
+      }
+      for (const s of scope === 'all' ? d.slides : slide ? [slide] : []) {
+        for (const layer of s.layers) {
+          const n = wordCount(layer.text);
+          for (let i = 0; i < n; i++) patchWord(layer, i, { colorFx: clone(color) });
+          colored += n;
+        }
+      }
     });
     editor.replay();
+    return { colored, onSelection };
+  },
+
+  /** Tira a troca de cor de TODAS as palavras do trecho atual (ou de todos, no escopo "Todos"). */
+  clearColorFx() {
+    const scope = editorStore.get().scope;
+    mutate((d) => {
+      const slide = currentSlide(d);
+      for (const s of scope === 'all' ? d.slides : slide ? [slide] : [])
+        for (const layer of s.layers) for (const k of Object.keys(layer.words ?? {})) patchWord(layer, Number(k), { colorFx: null });
+    });
   },
 
   /** Faz o trecho voltar a usar o fundo/animação do tema. */

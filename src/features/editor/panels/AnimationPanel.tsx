@@ -7,7 +7,8 @@ import { editor, useActiveSlide, useEditor } from '../../../store/editor';
 import { Button } from '../../../ui/Button';
 import { Row, Section, Segmented, Select, Slider, Switch } from '../../../ui/Controls';
 import { useDebouncedReplay } from '../hooks';
-import { ColorFxControls } from './ColorFxControls';
+import { ColorChange } from './ColorChange';
+import { applyAnimationPreset } from '../applyPreset';
 
 const GROUPS = PRESET_GROUPS;
 
@@ -75,7 +76,7 @@ export function AnimationPanel() {
           <Select
             value={knownPreset ? cfg.preset : 'custom'}
             onChange={(v) => {
-              if (v !== 'custom') editor.setAnimationPreset(v);
+              if (v !== 'custom') applyAnimationPreset(v);
             }}
             label="Predefinição de animação"
           >
@@ -94,6 +95,10 @@ export function AnimationPanel() {
         <Button size="sm" icon={<LuRotateCcw />} className="props-upload" onClick={() => editor.replay()}>
           Ver animação
         </Button>
+      </Section>
+
+      <Section title="Troca de cor">
+        <ColorChange />
       </Section>
 
       <Section title="Aplicar em">
@@ -142,19 +147,6 @@ export function AnimationPanel() {
             ))}
           </Select>
         </Row>
-      </Section>
-
-      <Section title="Troca de cor" defaultOpen={!!cfg.colorFx}>
-        <p className="props-note">A letra entra com a animação escolhida e, depois, a cor vai mudando (por exemplo, de branco para verde).</p>
-        <ColorFxControls
-          value={cfg.colorFx}
-          switchLabel="Trocar de cor depois de entrar"
-          current={theme.text.color}
-          onChange={(fx) => {
-            editor.setColorFx(fx);
-            replay();
-          }}
-        />
       </Section>
 
       <Section title="Motion Blur">

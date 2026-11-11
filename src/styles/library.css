@@ -172,8 +172,8 @@
   margin-bottom: 18px;
   padding: 10px 14px;
   border-radius: var(--r-md);
-  background: rgb(242 178 76 / 0.1);
-  border: 1px solid rgb(242 178 76 / 0.35);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
   color: var(--warn);
   line-height: 1.45;
 }

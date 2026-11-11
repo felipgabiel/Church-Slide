@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type CSSProperties, type MutableRefObject } from 'react';
+import { ThemeToggle } from '../../ui/ThemeToggle';
 import {
   LuArrowDown,
   LuArrowUp,
@@ -335,6 +336,7 @@ export function Operator({ id }: { id: string }) {
         <div className="op-top-r">
           <OutputControls bus={busRef} link={link} />
           <IconButton label="Atalhos de teclado" icon={<LuKeyboard />} onClick={() => setDialog('keys')} />
+          <ThemeToggle />
         </div>
       </header>
 
@@ -393,7 +395,7 @@ export function Operator({ id }: { id: string }) {
                 {blackout && <span className="op-tag op-tag-black">Tela preta</span>}
                 <span className="op-mon-label">{slide?.label}</span>
               </header>
-              <div className="op-mon-view">
+              <div className="op-mon-view" style={{ '--ratio': String(ratio) } as CSSProperties}>
                 <FitBox ratio={ratio}>{current && <Stage theme={current.theme} slide={slide} mode="live" replayKey={replay} blackout={blackout} />}</FitBox>
               </div>
               {auto && autoSecs > 0 && pos && nextP && nextP.songId === pos.songId && <i key={`${pos.songId}${pos.index}${replay}`} className="op-auto" style={{ animationDuration: `${autoSecs}s` }} />}
@@ -405,7 +407,7 @@ export function Operator({ id }: { id: string }) {
                 {nextIsOtherSong && nextSong && <span className="op-tag op-tag-song">Novo louvor · {nextSong.name}</span>}
                 {!nextIsOtherSong && nextSlide && <span className="op-mon-label">{nextSlide.label}</span>}
               </header>
-              <div className="op-mon-view">
+              <div className="op-mon-view" style={{ '--ratio': String(nextSong ? ASPECT_RATIOS[nextSong.aspect] : ratio) } as CSSProperties}>
                 {nextSong && nextSlide ? (
                   <FitBox ratio={ASPECT_RATIOS[nextSong.aspect]}>
                     <Stage theme={nextSong.theme} slide={nextSlide} mode="static" />

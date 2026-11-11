@@ -149,12 +149,12 @@
 }
 .op-conn[data-on='1'] {
   color: var(--ok);
-  border-color: rgb(98 211 148 / 0.35);
-  background: rgb(98 211 148 / 0.09);
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+  background: color-mix(in srgb, var(--ok) 10%, transparent);
 }
 .op-conn[data-on='1'] i {
   background: var(--ok);
-  box-shadow: 0 0 0 3px rgb(98 211 148 / 0.18);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 20%, transparent);
 }
 .op-split {
   display: inline-flex;
@@ -210,8 +210,6 @@
   color: var(--text-3);
   font-size: 10.5px;
   font-weight: 650;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
 }
 .op-rail-head h2 svg {
   color: var(--accent);
@@ -334,13 +332,15 @@
   min-width: 0;
   min-height: 0;
   padding: 16px 18px 14px;
-  background: radial-gradient(1200px 500px at 50% -10%, rgb(92 192 201 / 0.04), transparent 60%), var(--bg-0);
+  background: var(--bg-0);
 }
 .op-monitors {
-  flex: 1;
+  /* do tamanho das telas (formato do slide); os controles ficam logo abaixo, perto do olhar */
+  flex: 0 1 auto;
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  align-items: start;
   gap: 14px;
 }
 .op-mon {
@@ -367,14 +367,12 @@
   border-radius: 5px;
   background: var(--bg-3);
   color: var(--text-2);
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 650;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 .op-tag-live {
-  background: rgb(255 92 77 / 0.14);
+  background: var(--live-soft);
   color: var(--live);
 }
 .op-tag-live i {
@@ -412,18 +410,24 @@
     opacity: 0.35;
   }
 }
+.op-mon {
+  max-height: 100%;
+}
+/* a tela tem o formato do slide (não estica até o fim da coluna): sobra espaço para os controles logo abaixo */
 .op-mon-view {
   position: relative;
-  flex: 1;
+  width: 100%;
+  aspect-ratio: var(--ratio, 16 / 9);
+  max-height: 100%;
   min-height: 0;
   border-radius: var(--r-md);
-  background: var(--bg-1);
+  background: var(--stage-pad);
   border: 1px solid var(--line);
   overflow: hidden;
 }
 .op-mon-live .op-mon-view {
-  border-color: rgb(255 92 77 / 0.5);
-  box-shadow: 0 0 0 1px rgb(255 92 77 / 0.12), 0 14px 40px -16px rgb(0 0 0 / 0.8);
+  border-color: color-mix(in srgb, var(--live) 50%, transparent);
+  box-shadow: 0 0 0 1px var(--live-soft), 0 10px 30px -14px rgb(0 0 0 / 0.5);
 }
 .op-mon-next .op-mon-view {
   opacity: 0.94;
@@ -435,8 +439,6 @@
   place-items: center;
   color: var(--text-4);
   font-size: 12.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 /* barra de progresso do avanço automático */
 .op-auto {
@@ -475,8 +477,6 @@
   margin-right: 6px;
   color: var(--accent-hi);
   font-size: 10.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 /* barra de comando */
@@ -490,6 +490,10 @@
   border-radius: var(--r-lg);
   border: 1px solid var(--line);
   background: var(--bg-1);
+}
+.op-transport .seg {
+  flex: none;
+  width: auto;
 }
 .op-next {
   min-width: 150px;
@@ -570,11 +574,11 @@
   background: var(--bg-3);
 }
 .op-slide[data-next='1'] {
-  border-color: rgb(122 167 255 / 0.55);
+  border-color: color-mix(in srgb, var(--info) 55%, transparent);
 }
 .op-slide[data-current='1'] {
   border-color: var(--live);
-  box-shadow: 0 0 0 1px rgb(255 92 77 / 0.4);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--live) 40%, transparent);
 }
 .op-slide-thumb {
   width: 100%;
@@ -608,16 +612,14 @@
   flex: none;
   padding: 1px 6px;
   border-radius: 4px;
-  background: rgb(255 92 77 / 0.16);
+  background: var(--live-soft);
   color: var(--live);
   font-style: normal;
   font-size: 9.5px;
   font-weight: 650;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
 }
 .op-slide-meta em.op-next-tag {
-  background: rgb(122 167 255 / 0.15);
+  background: color-mix(in srgb, var(--info) 15%, transparent);
   color: var(--info);
 }
 
@@ -761,7 +763,7 @@
   border-bottom: 0;
 }
 .sce-row[data-capturing='1'] {
-  background: linear-gradient(90deg, rgb(92 192 201 / 0.08), transparent);
+  background: var(--accent-soft);
   box-shadow: inset 2px 0 0 var(--accent);
   padding-left: 10px;
   margin-left: -10px;
@@ -806,7 +808,7 @@
   transition: background 0.12s, color 0.12s;
 }
 .sce-chip button:hover {
-  background: rgb(255 255 255 / 0.08);
+  background: var(--bg-3);
   color: var(--live);
 }
 .sce-add {

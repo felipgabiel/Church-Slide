@@ -1,12 +1,12 @@
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { TextLayerView } from '../../render/TextLayerView';
-import { layerNeedsLetters } from '../../render/colorRun';
-import { colorPartCount, colorPartIndex } from '../anim/colorfx';
+import { layerColorPlan, layerNeedsLetters } from '../../render/colorRun';
+import { partOf, type ColorWordPlan } from '../anim/colorfx';
 import { collectOverrides, type UnitOverride } from '../anim/engine';
 import { resolveAnimation } from '../defaults';
 import type { AnimationConfig, ColorFx, Project, Slide, TextStyle } from '../types';
-import { hasWordAnim, tokenizeText } from '../words';
+import { hasWordAnim } from '../words';
 
 /**
  * Mede a cena de um trecho usando o MESMO componente de texto do editor (TextLayerView),
@@ -57,7 +57,7 @@ export interface Scene {
   layers: TextStyle[];
 }
 
-function mount(project: Project, slide: Slide, width: number, height: number, unit: AnimationConfig['unit'], layerFx: ColorFx | null | undefined) {
+function mount(project: Project, slide: Slide, width: number, height: number, unit: AnimationConfig['unit']) {
   const host = document.createElement('div');
   host.setAttribute('aria-hidden', 'true');
   host.style.cssText = `position:fixed;left:-100000px;top:0;width:${width}px;height:${height}px;pointer-events:none;visibility:hidden;contain:strict`;
@@ -70,7 +70,7 @@ function mount(project: Project, slide: Slide, width: number, height: number, un
           {slide.layers
             .filter((l) => l.visible)
             .map((l) => (
-              <TextLayerView key={l.id} layer={l} unit={unit} float={0} letters={layerNeedsLetters(l, layerFx)} />
+              <TextLayerView key={l.id} layer={l} unit={unit} float={0} letters={layerNeedsLetters(l)} />
             ))}
         </div>
       </div>,
@@ -92,7 +92,7 @@ export async function measureScene(project: Project, slide: Slide, width: number
   const unit = hasWordAnim(slide.layers) ? 'word' : cfg.unit;
 
   // 1ª montagem: descobre quais fontes são usadas e espera carregarem (senão a medida sai errada)
-  let m = mount(project, slide, width, height, unit, cfg.colorFx);
+  let m = mount(project, slide, width, height, unit);
   const fonts = new Set<string>();
   m.host.querySelectorAll<HTMLElement>('[data-w]').forEach((el) => {
     const cs = getComputedStyle(el);
@@ -103,7 +103,7 @@ export async function measureScene(project: Project, slide: Slide, width: number
   await document.fonts.ready;
 
   // 2ª montagem, já com as fontes prontas
-  m = mount(project, slide, width, height, unit, cfg.colorFx);
+  m = mount(project, slide, width, height, unit);
   try {
     const stage = m.host.querySelector('.stage') as HTMLElement;
     const origin = stage.getBoundingClientRect();
@@ -115,8 +115,9 @@ export async function measureScene(project: Project, slide: Slide, width: number
     const layerEls = Array.from(m.host.querySelectorAll<HTMLElement>('[data-layer]'));
     const visible = slide.layers.filter((l) => l.visible);
     const words: WordBox[] = [];
-    const wordTexts = new Map<string, string[]>();
-    for (const l of visible) wordTexts.set(l.id, tokenizeText(l.text).flatMap((ln) => ln.tokens.filter((t) => t.kind === 'word').map((t) => t.text)));
+    // troca de cor: só as palavras marcadas, com a mesma conta de grupos do palco
+    const plans = new Map<string, Map<number, ColorWordPlan>>();
+    for (const l of visible) plans.set(l.id, layerColorPlan(l));
     m.host.querySelectorAll<HTMLElement>('[data-w]').forEach((el) => {
       const cs = getComputedStyle(el);
       // retângulo do TEXTO (área de conteúdo da fonte), independente de min-height/line-height do contêiner
@@ -128,10 +129,8 @@ export async function measureScene(project: Project, slide: Slide, width: number
       else if (cs.textTransform === 'lowercase') text = text.toLowerCase();
       const unitEl = el.closest('[data-unit]') ?? el;
       const layerEl = el.closest('[data-layer]') as HTMLElement | null;
-      const own = el.dataset.cfx ? (JSON.parse(el.dataset.cfx) as ColorFx) : undefined;
-      const fx = own ?? cfg.colorFx ?? undefined;
-      const texts = wordTexts.get(el.dataset.lid ?? '') ?? [];
-      const wi = Number(el.dataset.w);
+      const plan = plans.get(el.dataset.lid ?? '')?.get(Number(el.dataset.w));
+      const fx = plan?.fx;
       const upper = cs.textTransform === 'uppercase';
       const lower = cs.textTransform === 'lowercase';
       const chars =
@@ -139,7 +138,7 @@ export async function measureScene(project: Project, slide: Slide, width: number
           ? Array.from(el.querySelectorAll<HTMLElement>('.ch')).map((c, k) => {
               const rr = c.getBoundingClientRect();
               const raw = c.textContent ?? '';
-              return { text: upper ? raw.toUpperCase() : lower ? raw.toLowerCase() : raw, x: rr.left - origin.left, part: colorPartIndex('letter', texts, wi, k) };
+              return { text: upper ? raw.toUpperCase() : lower ? raw.toLowerCase() : raw, x: rr.left - origin.left, part: partOf(plan!, k) };
             })
           : undefined;
       words.push({
@@ -154,9 +153,9 @@ export async function measureScene(project: Project, slide: Slide, width: number
         unit: Math.max(0, unitEls.indexOf(unitEl as HTMLElement)),
         layer: Math.max(0, layerEl ? layerEls.indexOf(layerEl) : 0),
         ...(fx ? { fx } : {}),
-        part: fx ? colorPartIndex(fx.mode, texts, wi) : 0,
+        part: plan ? partOf(plan) : 0,
         ...(chars ? { chars } : {}),
-        parts: fx ? colorPartCount(fx.mode, texts) : 0,
+        parts: plan?.parts ?? 0,
       });
     });
     return { width, height, words, units, overrides: collectOverrides(unitEls), cfg, layers: visible.map((l) => l.style) };

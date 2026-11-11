@@ -29,6 +29,15 @@ Os louvores ficam salvos **no próprio navegador** deste computador. Para levar 
 
 Use **Chrome ou Edge** atualizados: foi neles que tudo foi testado. A geração dos vídeos usa o codificador H.264 do próprio navegador (WebCodecs), e o suporte em outros navegadores varia.
 
+## Dicas rápidas
+
+- **Troca de cor em algumas palavras:** clique nas palavras no slide (Shift ou Ctrl para somar mais de uma) e abra
+  *Animação → Troca de cor*. Monte a sequência de cores no "+", escolha em quantos segundos ela começa e pronto.
+  Também dá para clicar com o botão direito numa palavra e escolher *Troca de cor…*.
+- **Tema claro ou escuro:** botão de sol/lua no alto da tela. A escolha fica salva.
+- **Letra pequena demais?** *Texto → Legibilidade no telão → Letra mínima*: os ajustes automáticos nunca deixam a
+  letra menor que isso; a linha quebra em vez de encolher.
+
 ## Atualizar o site depois de mudar o código
 
 Só quem altera o programa precisa disso:

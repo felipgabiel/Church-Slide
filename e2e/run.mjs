@@ -523,6 +523,164 @@ await step('troca de cor (branco → verde): aparece branca, termina verde na te
   await pg.close();
 });
 
+await step('troca de cor só nas palavras marcadas: sequência vermelho → azul, começa no tempo escolhido, igual no telão', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'seleção');
+  await pg.goto(BASE);
+  await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+  await pg.locator('dialog input').first().fill('Seleção de cor');
+  await pg.locator('dialog textarea').first().fill('Vem sobre mim Senhor');
+  await pg.locator('dialog').getByText('Simples', { exact: true }).click();
+  await pg.getByRole('button', { name: /Criar e abrir/i }).click();
+  await pg.waitForURL(/#\/edit\//);
+  const pid = pg.url().split('/edit/')[1];
+  await pg.waitForTimeout(1200);
+  // marca só "Senhor" no slide
+  const box = await pg.locator('.surface [data-w="3"]').boundingBox();
+  await pg.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await pg.getByRole('tab', { name: /^Animação$/ }).click();
+  await pg.getByText('1 palavra marcada').waitFor();
+  await pg.getByRole('switch', { name: 'Trocar a cor das palavras marcadas' }).click();
+  // sequência: vermelho → azul (pelo seletor de cor)
+  const setHex = async (name, hex) => {
+    await pg.getByRole('button', { name, exact: true }).click();
+    const hexInput = pg.getByRole('textbox', { name: 'Cor em hexadecimal' });
+    await hexInput.fill(hex);
+    await pg.keyboard.press('Escape');
+  };
+  await setHex('Cor 1', '#ff0000');
+  await pg.getByRole('button', { name: 'Adicionar cor à sequência' }).click();
+  await setHex('Cor 2', '#0000ff');
+  // adicionar e remover: uma 3ª cor entra e sai
+  await pg.getByRole('button', { name: 'Adicionar cor à sequência' }).click();
+  assert((await pg.getByRole('button', { name: 'Cor 3', exact: true }).count()) === 1, '3ª cor não foi adicionada');
+  await pg.getByRole('button', { name: 'Cor 3', exact: true }).click();
+  await pg.getByRole('button', { name: /Remover esta cor/ }).click();
+  assert((await pg.getByRole('button', { name: 'Cor 3', exact: true }).count()) === 0, '3ª cor não foi removida');
+  // começa 3 s depois de o trecho aparecer; troca em 1 s
+  const start = pg.getByRole('textbox', { name: 'Começa em', exact: true });
+  await start.fill('3');
+  await start.press('Enter');
+  const dur = pg.getByRole('textbox', { name: 'Tempo da troca', exact: true });
+  await dur.fill('1');
+  await dur.press('Enter');
+  await pg.waitForTimeout(500);
+  // mede no próprio navegador, quadro a quadro, a partir do "Ver de novo"
+  const samples = await pg.evaluate(
+    () =>
+      new Promise((done) => {
+        const out = [];
+        const t0 = performance.now();
+        [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Ver de novo').click();
+        const tick = () => {
+          const frames = document.querySelectorAll('.surface .text-frame');
+          const ws = frames.length ? [...frames[frames.length - 1].querySelectorAll('[data-w]')] : [];
+          if (ws.length === 4) out.push({ t: performance.now() - t0, c: ws.map((w) => getComputedStyle(w).color) });
+          if (performance.now() - t0 < 5200) requestAnimationFrame(tick);
+          else done(out);
+        };
+        requestAnimationFrame(tick);
+      }),
+  );
+  const rgb = (c) => c.match(/\d+/g).slice(0, 3).map(Number);
+  assert(samples.length > 50, `poucos quadros medidos (${samples.length})`);
+  for (const s of samples) for (const k of [0, 1, 2]) assert(s.c[k] === 'rgb(255, 255, 255)', `palavra não marcada mudou de cor em ${s.t.toFixed(0)} ms: ${s.c[k]}`);
+  const early = samples.filter((s) => s.t < 2800);
+  assert(early.length && early.every((s) => s.c[3] === 'rgb(255, 255, 255)'), 'a troca começou antes dos 3 s');
+  const red = samples.find((s) => {
+    const [r, g, b] = rgb(s.c[3]);
+    return r > 230 && g < 40 && b < 40;
+  });
+  const blueIdx = samples.findIndex((s) => s.c[3] === 'rgb(0, 0, 255)');
+  assert(red, 'não passou pelo vermelho');
+  assert(blueIdx >= 0, `não terminou no azul: ${samples[samples.length - 1].c[3]}`);
+  assert(red.t < samples[blueIdx].t, 'a ordem da sequência não foi respeitada');
+  assert(red.t > 3000 && samples[blueIdx].t < 4600, `tempos fora do esperado: vermelho ${red.t.toFixed(0)} ms, azul ${samples[blueIdx].t.toFixed(0)} ms`);
+
+  // desmarcar: tirar a troca da palavra faz ela voltar à cor original na hora
+  await pg.getByRole('switch', { name: 'Trocar a cor das palavras marcadas' }).click();
+  await pg.waitForFunction(() => [...document.querySelectorAll('.surface .text-frame')].pop()?.querySelector('[data-w="3"]') && getComputedStyle([...document.querySelectorAll('.surface .text-frame')].pop().querySelector('[data-w="3"]')).color === 'rgb(255, 255, 255)', null, { timeout: 3000 });
+  await pg.keyboard.press('Control+z');
+  await pg.waitForTimeout(400);
+
+  // telão: mesma regra (só "Senhor" muda e termina azul)
+  const op2 = await ctx.newPage();
+  watch(op2, 'operador-cor');
+  await op2.goto(`${BASE}#/present/${pid}`);
+  await op2.locator('.op-count').waitFor();
+  const out2 = await ctx.newPage();
+  watch(out2, 'telão-cor');
+  await out2.goto(`${BASE}#/output`);
+  await out2.waitForFunction(() => document.querySelectorAll('.out [data-w]').length === 4, null, { timeout: 8000 });
+  await out2.waitForFunction(() => getComputedStyle(document.querySelector('.out [data-w="3"]')).color === 'rgb(0, 0, 255)', null, { timeout: 9000 });
+  const outColors = await out2.evaluate(() => [...document.querySelectorAll('.out [data-w]')].map((w) => getComputedStyle(w).color));
+  assert(outColors.slice(0, 3).every((c) => c === 'rgb(255, 255, 255)'), `no telão outras palavras mudaram: ${outColors}`);
+  await out2.close();
+  await op2.close();
+
+  // vídeo exportado: no último quadro "Senhor" está azul e o resto continua branco
+  await pg.getByRole('button', { name: /Exportar vídeos/ }).click();
+  await pg.getByRole('button', { name: /^Gerar 1 vídeo$/ }).click();
+  await pg.getByRole('button', { name: /Baixar/ }).first().waitFor({ timeout: 240000 });
+  const [dl] = await Promise.all([pg.waitForEvent('download'), pg.getByRole('button', { name: /Baixar/ }).first().click()]);
+  const dir = mkdtempSync(join(tmpdir(), 'cs-sel-'));
+  let file = join(dir, dl.suggestedFilename());
+  await dl.saveAs(file);
+  if (/\.zip$/.test(file)) {
+    spawnSync('unzip', ['-o', '-q', file, '-d', dir]);
+    file = join(dir, readdirSync(dir).find((f) => f.endsWith('.mp4')));
+  }
+  const last = spawnSync('ffmpeg', ['-v', 'error', '-sseof', '-0.3', '-i', file, '-frames:v', '1', '-vf', 'scale=480:270', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { maxBuffer: 1 << 26 }).stdout;
+  let white = 0;
+  let blue = 0;
+  for (let i = 0; i + 2 < last.length; i += 3) {
+    const [r, g, b] = [last[i], last[i + 1], last[i + 2]];
+    if (r > 225 && g > 225 && b > 225) white++;
+    else if (b > 180 && r < 80 && g < 80) blue++;
+  }
+  assert(blue > 60, `no vídeo "Senhor" não ficou azul (${blue} px azuis)`);
+  assert(white > 60, `no vídeo as palavras não marcadas deveriam continuar brancas (${white} px brancos)`);
+  await pg.close();
+});
+
+await step('legibilidade: frases curtas, médias e longas nunca abaixo da letra mínima nem fora do slide', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'legibilidade');
+  const cases = [
+    ['Impacto', 'Pai\nTu és bom, tu és fiel e o teu amor não tem fim'],
+    ['Impacto', 'Eu me rendo ao teu amor, eu me rendo ao teu querer, eu me prostro aos teus pés'],
+    ['Impacto', 'Santo'],
+    ['Simples', 'Porque Ele vive posso crer no amanhã, porque Ele vive temor não há, mas eu bem sei, eu sei que a minha vida está nas mãos do meu Jesus que vivo está'],
+  ];
+  for (const [vp, label] of [[{ width: 1600, height: 900 }, '1600×900'], [{ width: 1280, height: 720 }, '1280×720']]) {
+    await pg.setViewportSize(vp);
+    for (const [theme, text] of cases) {
+      await pg.goto(BASE);
+      await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+      await pg.locator('dialog input').first().fill('Legível');
+      await pg.locator('dialog textarea').first().fill(text);
+      await pg.locator('dialog').getByText(theme, { exact: true }).click();
+      await pg.getByRole('button', { name: /Criar e abrir/i }).click();
+      await pg.waitForURL(/#\/edit\//);
+      await pg.waitForTimeout(1600);
+      const r = await pg.evaluate(() => {
+        const st = document.querySelector('.surface .stage').getBoundingClientRect();
+        let min = Infinity;
+        const fora = [];
+        document.querySelectorAll('.surface .stage [data-w]').forEach((w) => {
+          min = Math.min(min, parseFloat(getComputedStyle(w).fontSize));
+          const q = w.getBoundingClientRect();
+          if (q.left < st.left - 1 || q.right > st.right + 1 || q.top < st.top - 1 || q.bottom > st.bottom + 1) fora.push(w.textContent);
+        });
+        return { pct: (min / st.height) * 100, fora };
+      });
+      assert(r.pct >= 4.45, `${label} "${text.slice(0, 24)}…": letra de ${r.pct.toFixed(2)}% da altura`);
+      assert(!r.fora.length, `${label} "${text.slice(0, 24)}…": fora do slide: ${r.fora.join(' ')}`);
+    }
+  }
+  await pg.close();
+});
+
 await step('proporção automática (Impacto): linhas com mais palavras ficam menores e terminam no mesmo comprimento da palavra grande', async () => {
   const pg = await ctx.newPage();
   watch(pg, 'proporção');
@@ -534,28 +692,122 @@ await step('proporção automática (Impacto): linhas com mais palavras ficam me
   await pg.getByRole('button', { name: /Criar e abrir/i }).click();
   await pg.waitForURL(/#\/edit\//);
   const lines = () =>
-    pg.evaluate(() =>
-      [...document.querySelectorAll('.surface .layer .ln')]
-        .filter((l) => l.textContent.trim())
-        .map((l) => {
-          const r = document.createRange();
-          r.selectNodeContents(l);
-          return { t: l.textContent.trim(), w: r.getBoundingClientRect().width, fs: parseFloat(getComputedStyle(l).fontSize) };
-        }),
-    );
+    pg.evaluate(() => {
+      const layer = document.querySelector('.surface .layer');
+      const stageH = document.querySelector('.surface .stage').getBoundingClientRect().height;
+      return {
+        block: layer.clientWidth,
+        stageH,
+        ls: [...layer.querySelectorAll('.ln')]
+          .filter((l) => l.textContent.trim())
+          .map((l) => {
+            const r = document.createRange();
+            r.selectNodeContents(l);
+            return { t: l.textContent.trim(), w: r.getBoundingClientRect().width, fs: parseFloat(getComputedStyle(l).fontSize), wrap: l.dataset.wrap === '1' };
+          }),
+      };
+    });
   for (const slide of [0, 1]) {
     await pg.getByRole('list', { name: 'Trechos do louvor' }).locator('li').nth(slide).click();
     await pg.waitForTimeout(1800);
-    const ls = await lines();
+    const { block, stageH, ls } = await lines();
     const big = ls.reduce((a, b) => (b.fs > a.fs ? b : a));
+    // comprimento-alvo: o da palavra grande, ou 36% da caixa se ela for curta demais (legibilidade)
+    const target = Math.max(big.w, block * 0.36);
     assert(ls.length >= 2, `trecho ${slide + 1}: esperava várias linhas`);
     for (const l of ls) {
-      // linhas curtas só crescem até ~60% da palavra grande (para ela continuar mandando); as demais igualam o comprimento
-      if (l === big || l.fs < big.fs * 0.6) assert(Math.abs(l.w - big.w) / big.w < 0.04, `trecho ${slide + 1}: "${l.t}" tem ${l.w.toFixed(0)}px e a palavra grande ${big.w.toFixed(0)}px`);
+      // linhas curtas só crescem até ~60% da palavra grande; linhas que quebraram por legibilidade não igualam
+      if (l !== big && l.fs < big.fs * 0.6 && !l.wrap) assert(Math.abs(l.w - target) / target < 0.04, `trecho ${slide + 1}: "${l.t}" tem ${l.w.toFixed(0)}px e o alvo é ${target.toFixed(0)}px`);
       if (l !== big) assert(l.fs < big.fs * 0.7, `trecho ${slide + 1}: "${l.t}" deveria ser bem menor que a palavra grande`);
-      assert(l.fs >= 16, `trecho ${slide + 1}: "${l.t}" ficou pequena demais (${l.fs.toFixed(0)}px)`);
+      assert(l.fs >= stageH * 0.045 - 0.5, `trecho ${slide + 1}: "${l.t}" ficou abaixo da letra mínima (${((l.fs / stageH) * 100).toFixed(2)}% da altura)`);
     }
   }
+  await pg.close();
+});
+
+await step('tema claro/escuro: botão troca, preferência fica salva e nada fica com a cor do outro tema', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'tema');
+  await pg.goto(BASE);
+  // ponto de partida conhecido
+  await pg.evaluate(() => localStorage.setItem('cs:theme', JSON.stringify('light')));
+  await pg.reload();
+  const theme = () => pg.evaluate(() => document.documentElement.dataset.theme);
+  assert((await theme()) === 'light', 'não começou claro');
+  await pg.getByRole('button', { name: 'Usar tema escuro' }).click();
+  assert((await theme()) === 'dark', 'botão não trocou para escuro');
+  await pg.reload();
+  assert((await theme()) === 'dark', 'a preferência não sobreviveu ao recarregar');
+
+  // varre a tela: em tema escuro nenhum fundo claro sobra (fora do slide e das amostras de cor), e vice-versa
+  const leftovers = (dark) =>
+    pg.evaluate((dark) => {
+      const lum = (c) => {
+        const m = c.match(/[\d.]+/g);
+        if (!m) return null;
+        const [r, g, b, a = 1] = m.map(Number);
+        if (a < 0.6) return null;
+        return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+      };
+      const bad = [];
+      for (const el of document.querySelectorAll('body *')) {
+        // o slide e as miniaturas (fundo preto atrás do slide) são sempre escuros, em qualquer tema
+        if (el.closest('.stage, .thumb, [class*="thumb"], .swatch, .color-swatch, .cp, .cfx-path, .cp-now, svg')) continue;
+        const r = el.getBoundingClientRect();
+        if (!r.width || !r.height || getComputedStyle(el).visibility === 'hidden') continue;
+        const L = lum(getComputedStyle(el).backgroundColor);
+        if (L === null) continue;
+        if (dark ? L > 0.75 : L < 0.08) bad.push(`${el.tagName.toLowerCase()}.${[...el.classList].join('.')}`);
+      }
+      return [...new Set(bad)].slice(0, 6);
+    }, dark);
+  const tour = async (dark) => {
+    const where = [];
+    let b = await leftovers(dark);
+    if (b.length) where.push(`biblioteca: ${b}`);
+    await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+    b = await leftovers(dark);
+    if (b.length) where.push(`novo louvor: ${b}`);
+    await pg.locator('dialog textarea').first().fill('Vem sobre mim Senhor');
+    await pg.getByRole('button', { name: /Criar e abrir/i }).click();
+    await pg.waitForURL(/#\/edit\//);
+    await pg.waitForTimeout(800);
+    for (const tab of ['Texto', 'Palavras', 'Fundo', 'Animação']) {
+      await pg.getByRole('tab', { name: tab, exact: true }).click();
+      b = await leftovers(dark);
+      if (b.length) where.push(`editor/${tab}: ${b}`);
+    }
+    const box = await pg.locator('.surface [data-w="0"]').boundingBox();
+    await pg.mouse.click(box.x + 5, box.y + 5, { button: 'right' });
+    b = await leftovers(dark);
+    if (b.length) where.push(`menu: ${b}`);
+    await pg.keyboard.press('Escape');
+    await pg.getByRole('button', { name: /Exportar vídeos/ }).click();
+    b = await leftovers(dark);
+    if (b.length) where.push(`exportar: ${b}`);
+    await pg.keyboard.press('Escape');
+    const id = pg.url().split('/edit/')[1];
+    await pg.goto(`${BASE}#/present/${id}`);
+    await pg.locator('.op-count').waitFor();
+    b = await leftovers(dark);
+    if (b.length) where.push(`operador: ${b}`);
+    await pg.goto(BASE);
+    return where;
+  };
+  const darkBad = await tour(true);
+  assert(!darkBad.length, `fundos claros no tema escuro: ${darkBad.join(' | ')}`);
+  await pg.getByRole('button', { name: 'Usar tema claro' }).click();
+  assert((await theme()) === 'light', 'não voltou para o claro');
+  await pg.waitForTimeout(450); // fim da transição suave
+  const lightBad = await tour(false);
+  assert(!lightBad.length, `fundos escuros no tema claro: ${lightBad.join(' | ')}`);
+  // outra janela aberta acompanha a troca
+  const other = await ctx.newPage();
+  await other.goto(BASE);
+  await pg.getByRole('button', { name: 'Usar tema escuro' }).click();
+  await other.waitForFunction(() => document.documentElement.dataset.theme === 'dark', null, { timeout: 3000 });
+  await other.close();
+  await pg.getByRole('button', { name: 'Usar tema claro' }).click();
   await pg.close();
 });
 
