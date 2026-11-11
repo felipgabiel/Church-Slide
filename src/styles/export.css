@@ -196,3 +196,53 @@
     transition: none;
   }
 }
+
+/* ===== Apoio opcional (Pix) ===== */
+.support {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 14px;
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, var(--bg-1));
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+.pix-qr {
+  flex: none;
+  border-radius: var(--r-sm);
+  box-shadow: 0 0 0 1px var(--line-2);
+}
+.support-body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.support h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.support h3 svg {
+  color: var(--accent);
+}
+.support p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.support .support-to {
+  font-size: 12px;
+  color: var(--text-3);
+}
+.support-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 2px;
+}

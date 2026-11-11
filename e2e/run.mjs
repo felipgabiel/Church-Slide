@@ -3,7 +3,7 @@
 // Cobre: criar louvor → editar → persistir → operador → janela do telão (sincronia) →
 // tela preta → Motion Blur real → erros de console.
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readdirSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
@@ -808,6 +808,51 @@ await step('tema claro/escuro: botão troca, preferência fica salva e nada fica
   await other.waitForFunction(() => document.documentElement.dataset.theme === 'dark', null, { timeout: 3000 });
   await other.close();
   await pg.getByRole('button', { name: 'Usar tema claro' }).click();
+  await pg.close();
+});
+
+await step('apoio via Pix: convite opcional depois de gerar, QR lido como o código Pix certo, "Agora não" some', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'apoio');
+  await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await pg.goto(BASE);
+  await pg.evaluate(() => localStorage.removeItem('cs:support-snooze-until'));
+  // botão fixo na biblioteca
+  await pg.getByRole('button', { name: 'Apoiar o projeto' }).click();
+  const qr = pg.locator('dialog[open] .pix-qr');
+  await qr.waitFor();
+  const png = join(mkdtempSync(join(tmpdir(), 'cs-pix-')), 'qr.png');
+  await qr.screenshot({ path: png, scale: 'device' });
+  const dec = spawnSync('python3', ['-c', 'import cv2,sys; i=cv2.imread(sys.argv[1]); i=cv2.resize(i,None,fx=4,fy=4,interpolation=cv2.INTER_NEAREST); i=cv2.copyMakeBorder(i,40,40,40,40,cv2.BORDER_CONSTANT,value=(255,255,255)); print(cv2.QRCodeDetector().detectAndDecode(i)[0])', png], { encoding: 'utf8' });
+  const expected = /PIX_CODE =\s*'([^']+)'/.exec(readFileSync(new URL('../src/core/support.ts', import.meta.url), 'utf8'))[1];
+  const code = dec.stdout.trim();
+  assert(code.startsWith('000201') && code.includes('BR.GOV.BCB.PIX'), `QR não é um Pix: "${code.slice(0, 40)}"`);
+  assert(code === expected, 'QR diferente do código Pix');
+  await pg.getByRole('button', { name: 'Copiar código Pix' }).click();
+  await pg.getByRole('button', { name: 'Código copiado' }).waitFor();
+  const clip = await pg.evaluate(() => navigator.clipboard.readText());
+  assert(clip === code, 'o código copiado não é o mesmo do QR');
+  await pg.keyboard.press('Escape');
+
+  // depois de gerar os vídeos: convite aparece, não bloqueia o download, e "Agora não" esconde nas próximas vezes
+  await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+  await pg.locator('dialog textarea').first().fill('Aleluia');
+  await pg.getByRole('button', { name: /Criar e abrir/i }).click();
+  await pg.waitForURL(/#\/edit\//);
+  const gen = async () => {
+    await pg.getByRole('button', { name: /Exportar vídeos/ }).click();
+    await pg.getByRole('button', { name: /^Gerar 1 vídeo$/ }).click();
+    await pg.getByRole('button', { name: /Baixar tudo/ }).waitFor({ timeout: 240000 });
+  };
+  await gen();
+  assert(await pg.locator('dialog[open] .support').isVisible(), 'convite não apareceu depois de gerar');
+  assert(await pg.getByRole('button', { name: /Baixar tudo/ }).isEnabled(), 'download não pode depender do apoio');
+  await pg.getByRole('button', { name: 'Agora não' }).click();
+  assert(!(await pg.locator('dialog[open] .support').count()), '"Agora não" não escondeu');
+  await pg.keyboard.press('Escape');
+  await gen();
+  assert(!(await pg.locator('dialog[open] .support').count()), 'convite voltou logo depois de "Agora não"');
+  await pg.keyboard.press('Escape');
   await pg.close();
 });
 

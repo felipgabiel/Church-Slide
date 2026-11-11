@@ -215,6 +215,14 @@ altura do slide ≈ 49 px em Full HD; ajustável em *Texto → Legibilidade no t
 
 O tamanho que a pessoa escolhe à mão não é limitado. O vídeo mede o mesmo DOM, então sai igual.
 
+### Apoio opcional via Pix (`core/support.ts`, `features/support/SupportCard.tsx`)
+
+O site é gratuito. Depois de gerar os vídeos, o diálogo de exportação mostra um convite discreto com o QR Code e o
+"Pix copia e cola" do autor; também há o botão "Apoiar o projeto" (coração) na biblioteca. Nunca bloqueia o
+download e nunca vai para dentro do vídeo. "Agora não" esconde o convite por 21 dias. O código Pix é o gerado pelo
+banco (chave aleatória, sem valor fixo; CRC conferido em teste) e o QR foi desenhado uma vez como caminho SVG,
+então funciona sem internet e sem biblioteca. Para trocar o Pix: substituir `PIX_CODE` e gerar o `PIX_QR` de novo.
+
 ## 9. Fontes embutidas
 
 Poppins 400/500/700 (SIL OFL 1.1, recortada para caracteres latinos, ~11 KB cada) está em `src/assets/fonts/`
@@ -244,8 +252,8 @@ Painéis laterais acompanham a largura do monitor (`clamp`), testados de 1280×7
 | Comando | O que faz |
 |---|---|
 | `npm run typecheck` | `tsc --noEmit` (ver limitação na seção 1) |
-| `npm test` | 97 testes unitários: easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção |
-| `npm run build && npm run e2e` | 25 etapas no navegador contra o build de produção (ver abaixo) |
+| `npm test` | 98 testes unitários: easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção |
+| `npm run build && npm run e2e` | 26 etapas no navegador contra o build de produção (ver abaixo) |
 | `npm run e2e:fidelity` | compara o desenho em canvas (vídeo) com o DOM do editor (PSNR; exige ffmpeg) |
 
 O e2e (`e2e/run.mjs`) cria um louvor pela interface, edita e confere a persistência após recarregar,

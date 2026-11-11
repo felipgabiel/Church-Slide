@@ -55,3 +55,12 @@ test('projeto antigo com troca de cor no trecho: vira troca de cor em cada palav
   const bad = normalizeProject({ ...base, slides: [{ ...base.slides[0], layers: [layer], animation: { ...base.theme.animation, colorFx: { to: 'banana' } } }] });
   assert.equal(bad.slides[0].layers[0].words?.['0'], undefined);
 });
+
+import { PIX_CODE, PIX_QR, pixCrc } from '../src/core/support';
+
+test('Pix de apoio: código válido (CRC confere) e QR presente', () => {
+  assert.ok(PIX_CODE.startsWith('000201'), 'formato BR Code');
+  assert.ok(PIX_CODE.includes('BR.GOV.BCB.PIX'));
+  assert.equal(pixCrc(PIX_CODE.slice(0, -4)), PIX_CODE.slice(-4));
+  assert.ok(PIX_QR.size > 20 && PIX_QR.path.length > 100);
+});

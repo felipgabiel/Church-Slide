@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { SupportCard, supportDue } from '../support/SupportCard';
 import { LuCheck, LuDownload, LuFolderDown, LuFiles, LuPlay, LuTriangleAlert, LuX } from 'react-icons/lu';
 import { slideText } from '../../core/defaults';
 import { canEncodeVideo, ExportAbort } from '../../core/export/encode';
@@ -50,6 +51,8 @@ function ExportBody({ onClose }: { onClose: () => void }) {
   const prefs: Prefs = { ...DEFAULT_SETTINGS, ...saved };
   const [selected, setSelected] = useState<Set<string>>(() => new Set(slides.map((s) => s.id)));
   const [phase, setPhase] = useState<Phase>('idle');
+  // convite opcional de apoio (Pix): só depois de gerar, nunca dentro do vídeo; some por semanas após "Agora não"
+  const [showSupport, setShowSupport] = useState(supportDue);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [clips, setClips] = useState<ClipResult[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -246,6 +249,8 @@ function ExportBody({ onClose }: { onClose: () => void }) {
           <LuTriangleAlert aria-hidden /> {error}
         </p>
       )}
+
+      {phase === 'done' && showSupport && <SupportCard onDismiss={() => setShowSupport(false)} />}
 
       <div className="xd-foot">
         {phase === 'idle' && (

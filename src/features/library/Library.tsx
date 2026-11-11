@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { SupportCard } from '../support/SupportCard';
 import { ThemeToggle } from '../../ui/ThemeToggle';
 import {
   LuArchive,
@@ -6,6 +7,7 @@ import {
   LuDownload,
   LuEllipsis,
   LuFolderOpen,
+  LuHeart,
   LuHistory,
   LuLayoutTemplate,
   LuLibrary,
@@ -27,7 +29,8 @@ import { collectCategories, duplicateProject, readSnapshot, restoreFromSnapshot,
 import type { Project } from '../../core/types';
 import { timeAgo } from '../../core/util';
 import { SlideThumb } from '../../render/SlideThumb';
-import { Button } from '../../ui/Button';
+import { Button, IconButton } from '../../ui/Button';
+import { Modal } from '../../ui/Modal';
 import { Select } from '../../ui/Controls';
 import { LazyMount } from '../../ui/LazyMount';
 import { Wordmark } from '../../ui/Logo';
@@ -52,6 +55,7 @@ export function Library() {
   const [newTheme, setNewTheme] = useState('impacto');
   const [trashOpen, setTrashOpen] = useState(false);
   const [info, setInfo] = useState<Project | null>(null);
+  const [supportOpen, setSupportOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const offline = useOfflineReady();
 
@@ -173,6 +177,7 @@ export function Library() {
         </label>
         <div className="lib-top-actions">
           <input ref={fileRef} type="file" accept=".json,application/json" multiple hidden onChange={(e) => void doImport(e.currentTarget.files)} />
+          <IconButton label="Apoiar o projeto" icon={<LuHeart />} onClick={() => setSupportOpen(true)} />
           <ThemeToggle />
           <Button icon={<LuUpload />} onClick={() => fileRef.current?.click()}>
             Importar
@@ -298,6 +303,9 @@ export function Library() {
       />
       <TrashDialog open={trashOpen} onClose={() => setTrashOpen(false)} items={trashed} onChanged={() => void reload()} />
       <InfoDialog project={info} categories={categories} onClose={() => setInfo(null)} onSaved={() => void reload()} />
+      <Modal open={supportOpen} onClose={() => setSupportOpen(false)} title="Apoiar o projeto" width={560}>
+        <SupportCard />
+      </Modal>
     </div>
   );
 }
