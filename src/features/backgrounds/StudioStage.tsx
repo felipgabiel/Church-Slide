@@ -5,7 +5,8 @@ import type { BackgroundDesign, DesignLayer } from '../../core/types';
 import { FitBox } from '../../render/FitBox';
 import { DesignCanvas } from '../../render/DesignCanvas';
 import { useSetting } from '../../core/settings';
-import { rotatedHalf, snapAxis, SNAP_PX, type SnapHit } from '../../core/snap';
+import { rotatedHalf, SAFE_MARGIN, snapAxis, SNAP_PX, SNAP_SETTING, type SnapHit } from '../../core/snap';
+import { SnapToggle } from '../../ui/SnapToggle';
 import type { StudioApi } from './Studio';
 
 export interface StudioClock {
@@ -37,10 +38,17 @@ function useLoopClock(loopSec: number) {
   return { now, playing, play, pause, seek, toggle: () => (st.current.playing ? pause() : play()) };
 }
 
+interface Start {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rotation: number;
+}
 type Drag =
-  | { mode: 'move'; id: string; px: number; py: number; x0: number; y0: number }
-  | { mode: 'scale'; id: string; cx: number; cy: number; d0: number; w0: number; h0: number }
-  | { mode: 'rotate'; id: string; cx: number; cy: number; a0: number; r0: number };
+  | { mode: 'move'; px: number; py: number; starts: Record<string, Start>; ux: number; uy: number; uhw: number; uhh: number; edgesX: boolean; edgesY: boolean }
+  | { mode: 'scale'; cx: number; cy: number; d0: number; starts: Record<string, Start> }
+  | { mode: 'rotate'; cx: number; cy: number; a0: number; starts: Record<string, Start> };
 
 export function StudioStage({ api, clockRef }: { api: StudioApi; clockRef: MutableRefObject<StudioClock | null> }) {
   const { design, selected } = api;
@@ -65,6 +73,7 @@ export function StudioStage({ api, clockRef }: { api: StudioApi; clockRef: Mutab
           <button type="button" className="st-chip" aria-pressed={sample} data-on={sample ? '1' : undefined} onClick={() => setSample(!sample)} title="Mostra uma letra por cima para conferir a leitura">
             <LuType aria-hidden /> Letra de exemplo
           </button>
+          <SnapToggle className="st-chip" />
           <button type="button" className="st-chip" onClick={() => clockRef.current?.fullscreen()} title="Tela cheia (F)">
             <LuMaximize aria-hidden /> Tela cheia
           </button>
@@ -194,11 +203,12 @@ function inside(px: number, py: number, b: ReturnType<typeof boxOf>) {
 }
 
 function Surface({ api, getTime, sample }: { api: StudioApi; getTime: () => number; sample: boolean }) {
-  const { design, selected } = api;
+  const { design, selected, selectedIds } = api;
   const ref = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
   const [busy, setBusy] = useState<Drag['mode'] | null>(null);
   const [hits, setHits] = useState<{ x: SnapHit; y: SnapHit }>({ x: null, y: null });
+  const [snapOn] = useSetting<boolean>(SNAP_SETTING, true);
   const [size, setSize] = useState({ W: 0, H: 0 });
   useEffect(() => {
     const el = ref.current;
@@ -215,14 +225,26 @@ function Surface({ api, getTime, sample }: { api: StudioApi; getTime: () => numb
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
 
-  const sel = selected && isPlaced(selected) && selected.visible ? selected : null;
+  const shown = (l: DesignLayer | null | undefined): l is DesignLayer => !!l && isPlaced(l) && l.visible;
+  const sel = shown(selected) ? selected : null;
   const box = sel && W ? boxOf(sel, W, H) : null;
+  const others = design.layers.filter((l) => l.id !== sel?.id && selectedIds.includes(l.id) && shown(l));
+  /** camadas que se movem juntas: as selecionadas que dá para arrastar (as travadas ficam) */
+  const movable = () => design.layers.filter((l) => selectedIds.includes(l.id) && shown(l) && !l.locked);
+  const startsOf = (ls: DesignLayer[]) => Object.fromEntries(ls.map((l) => [l.id, { x: l.x, y: l.y, w: l.w, h: l.h, rotation: l.rotation }]));
 
   const onDown = (e: RPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     const p = local(e);
-    // a selecionada tem prioridade; depois, de cima para baixo
-    let hit: DesignLayer | null = sel && !sel.locked && box && inside(p.x, p.y, box) ? sel : null;
+    const additive = e.ctrlKey || e.metaKey;
+    // as selecionadas têm prioridade; depois, de cima para baixo
+    let hit: DesignLayer | null = null;
+    for (const l of [...design.layers].reverse()) {
+      if (selectedIds.includes(l.id) && shown(l) && !l.locked && inside(p.x, p.y, boxOf(l, W, H))) {
+        hit = l;
+        break;
+      }
+    }
     if (!hit) {
       for (const l of [...design.layers].reverse()) {
         if (!l.visible || l.locked || !isPlaced(l)) continue;
@@ -233,11 +255,48 @@ function Surface({ api, getTime, sample }: { api: StudioApi; getTime: () => numb
       }
     }
     if (!hit) {
-      api.select(null);
+      if (!additive) api.select(null);
       return;
     }
-    api.select(hit.id);
-    drag.current = { mode: 'move', id: hit.id, px: p.x, py: p.y, x0: hit.x, y0: hit.y };
+    if (additive) {
+      // Ctrl + clique: soma ou tira da seleção, sem arrastar
+      api.select(hit.id, true);
+      return;
+    }
+    const inGroup = selectedIds.includes(hit.id) && selectedIds.length > 1;
+    const group = inGroup ? movable() : [hit];
+    if (!inGroup) api.select(hit.id);
+    // caixa que envolve o grupo, para o ímã alinhar a borda de fora
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    let edgesX = false;
+    let edgesY = false;
+    for (const l of group) {
+      const b = boxOf(l, W, H);
+      const half = l.kind === 'gradient' ? { hw: 0, hh: 0 } : rotatedHalf(b.bw, b.bh, b.rot);
+      // ondas atravessam a tela: só a altura conta para encostar
+      const hw = l.kind === 'waves' ? 0 : half.hw;
+      minX = Math.min(minX, b.cx - hw);
+      maxX = Math.max(maxX, b.cx + hw);
+      minY = Math.min(minY, b.cy - half.hh);
+      maxY = Math.max(maxY, b.cy + half.hh);
+      edgesX ||= l.kind === 'shape' || l.kind === 'glow';
+      edgesY ||= l.kind !== 'gradient';
+    }
+    drag.current = {
+      mode: 'move',
+      px: p.x,
+      py: p.y,
+      starts: startsOf(group),
+      ux: (((minX + maxX) / 2) / W) * 100,
+      uy: (((minY + maxY) / 2) / H) * 100,
+      uhw: (((maxX - minX) / 2) / W) * 100,
+      uhh: (((maxY - minY) / 2) / H) * 100,
+      edgesX,
+      edgesY,
+    };
     setBusy('move');
     e.currentTarget.setPointerCapture(e.pointerId);
   };
@@ -246,8 +305,10 @@ function Surface({ api, getTime, sample }: { api: StudioApi; getTime: () => numb
     if (!sel || !box || sel.locked) return;
     e.stopPropagation();
     const p = local(e);
-    if (mode === 'scale') drag.current = { mode, id: sel.id, cx: box.cx, cy: box.cy, d0: Math.max(4, Math.hypot(p.x - box.cx, p.y - box.cy)), w0: sel.w, h0: sel.h };
-    else drag.current = { mode, id: sel.id, cx: box.cx, cy: box.cy, a0: Math.atan2(p.y - box.cy, p.x - box.cx), r0: sel.rotation };
+    const group = selectedIds.length > 1 ? movable() : [sel];
+    const starts = startsOf(group);
+    if (mode === 'scale') drag.current = { mode, cx: box.cx, cy: box.cy, d0: Math.max(4, Math.hypot(p.x - box.cx, p.y - box.cy)), starts };
+    else drag.current = { mode, cx: box.cx, cy: box.cy, a0: Math.atan2(p.y - box.cy, p.x - box.cx), starts };
     setBusy(mode);
     ref.current?.setPointerCapture(e.pointerId);
   };
@@ -256,33 +317,40 @@ function Surface({ api, getTime, sample }: { api: StudioApi; getTime: () => numb
     const d = drag.current;
     if (!d) return;
     const p = local(e);
+    const ids = Object.keys(d.starts);
+    const key = `${d.mode}:${ids.join(',')}`;
     if (d.mode === 'move') {
-      let x = d.x0 + ((p.x - d.px) / W) * 100;
-      let y = d.y0 + ((p.y - d.py) / H) * 100;
-      // ímã: encosta na borda do slide (ou no centro) quando chega perto; continuar arrastando solta. Alt desliga.
+      let ux = d.ux + ((p.x - d.px) / W) * 100;
+      let uy = d.uy + ((p.y - d.py) / H) * 100;
       let hx: SnapHit = null;
       let hy: SnapHit = null;
-      const l = design.layers.find((q) => q.id === d.id);
-      if (l && !e.altKey) {
-        const b = boxOf(l, W, H);
-        const half = l.kind === 'gradient' ? { hw: 0, hh: 0 } : rotatedHalf(b.bw, b.bh, b.rot);
-        const sx = snapAxis(x, (half.hw / W) * 100, (SNAP_PX / W) * 100, { edges: l.kind === 'shape' || l.kind === 'glow' });
-        const sy = snapAxis(y, (half.hh / H) * 100, (SNAP_PX / H) * 100, { edges: l.kind !== 'gradient' });
-        x = sx.pos;
-        y = sy.pos;
+      // ímã: encosta na borda, na margem segura ou no centro quando chega perto; continuar arrastando solta.
+      // Desligado no botão "Ímã" (ou segurando Alt), o movimento é totalmente livre.
+      if (snapOn && !e.altKey) {
+        const sx = snapAxis(ux, d.uhw, (SNAP_PX / W) * 100, { edges: d.edgesX, safe: SAFE_MARGIN });
+        const sy = snapAxis(uy, d.uhh, (SNAP_PX / H) * 100, { edges: d.edgesY, safe: SAFE_MARGIN });
+        ux = sx.pos;
+        uy = sy.pos;
         hx = sx.hit;
         hy = sy.hit;
       }
       if (hx !== hits.x || hy !== hits.y) setHits({ x: hx, y: hy });
-      api.patchLayer(d.id, { x: +x.toFixed(2), y: +y.toFixed(2) }, `move:${d.id}`);
+      const mx = ux - d.ux;
+      const my = uy - d.uy;
+      api.patchMany(Object.fromEntries(ids.map((id) => [id, { x: +(d.starts[id].x + mx).toFixed(2), y: +(d.starts[id].y + my).toFixed(2) }])), key);
     } else if (d.mode === 'scale') {
       const k = Math.max(0.05, Math.hypot(p.x - d.cx, p.y - d.cy) / d.d0);
-      api.patchLayer(d.id, { w: +Math.min(400, Math.max(1, d.w0 * k)).toFixed(2), h: +Math.min(400, Math.max(1, d.h0 * k)).toFixed(2) }, `scale:${d.id}`);
+      const fit = (v: number) => +Math.min(400, Math.max(1, v * k)).toFixed(2);
+      api.patchMany(Object.fromEntries(ids.map((id) => [id, { w: fit(d.starts[id].w), h: fit(d.starts[id].h) }])), key);
     } else {
-      let r = d.r0 + ((Math.atan2(p.y - d.cy, p.x - d.cx) - d.a0) * 180) / Math.PI;
-      r = ((((r + 180) % 360) + 360) % 360) - 180;
-      if (e.shiftKey) r = Math.round(r / 15) * 15;
-      api.patchLayer(d.id, { rotation: Math.round(r) }, `rot:${d.id}`);
+      let delta = ((Math.atan2(p.y - d.cy, p.x - d.cx) - d.a0) * 180) / Math.PI;
+      const primary = sel ? d.starts[sel.id] : undefined;
+      if (e.shiftKey && primary) {
+        const r = Math.round((primary.rotation + delta) / 15) * 15; // a principal anda de 15 em 15°
+        delta = r - primary.rotation;
+      }
+      const norm = (r: number) => Math.round(((((r + 180) % 360) + 360) % 360) - 180);
+      api.patchMany(Object.fromEntries(ids.map((id) => [id, { rotation: norm(d.starts[id].rotation + delta) }])), key);
     }
   };
 
@@ -290,6 +358,11 @@ function Surface({ api, getTime, sample }: { api: StudioApi; getTime: () => numb
     drag.current = null;
     setBusy(null);
     setHits({ x: null, y: null });
+  };
+
+  const outline = (l: DesignLayer) => {
+    const b = boxOf(l, W, H);
+    return { left: b.cx - b.bw / 2, top: b.cy - b.bh / 2, width: b.bw, height: b.bh, transform: `rotate(${b.rot}deg)` };
   };
 
   return (
@@ -303,6 +376,7 @@ function Surface({ api, getTime, sample }: { api: StudioApi; getTime: () => numb
       )}
       {busy === 'move' && (
         <div className="guides" aria-hidden>
+          <i className="g-safe" data-hot={hits.x?.startsWith('safe') || hits.y?.startsWith('safe') ? '1' : '0'} />
           <i className="g-v" data-hot={hits.x === 'center' ? '1' : '0'} />
           <i className="g-h" data-hot={hits.y === 'center' ? '1' : '0'} />
           {hits.x === 'start' && <i className="g-edge g-edge-l" />}
@@ -311,6 +385,8 @@ function Surface({ api, getTime, sample }: { api: StudioApi; getTime: () => numb
           {hits.y === 'end' && <i className="g-edge g-edge-b" />}
         </div>
       )}
+      {W > 0 && others.map((l) => <div key={l.id} className="sel st-sel sel-extra" style={outline(l)} aria-hidden />)}
+      {selectedIds.length > 1 && <span className="sel-count">{selectedIds.length} camadas selecionadas · Ctrl + clique soma ou tira</span>}
       {box && sel && (
         <div className="sel-wrap" data-drag={busy === 'move' ? '1' : undefined} data-busy={busy === 'rotate' ? '1' : undefined}>
           <div

@@ -29,6 +29,8 @@ export function layerCss(style: TextStyle): CSSProperties {
     lineHeight: style.lineHeight,
     textAlign: style.align,
     opacity: style.opacity / 100,
+    // inverter cores: a caixa inteira (letra, sombra, brilho) se mistura com o fundo do palco
+    ...(style.blend === 'difference' ? { mixBlendMode: 'difference' as const } : {}),
   };
   if (shadows.length) css.textShadow = shadows.join(', ');
   if (style.stroke.enabled) {

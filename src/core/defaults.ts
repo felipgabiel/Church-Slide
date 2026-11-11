@@ -48,6 +48,7 @@ export function defaultTextStyle(): TextStyle {
     autoWidth: false,
     minFont: MIN_FONT,
     rotation: 0,
+    blend: 'normal',
   };
 }
 
@@ -160,6 +161,13 @@ function moveColorToWords(layers: TextLayer[], fx: ColorFx | undefined): void {
   }
 }
 
+/** Estilo de texto validado (campos novos recebem o padrão; valores desconhecidos voltam ao normal). */
+function textStyle(raw: unknown): TextStyle {
+  const st = fillDefaults(defaultTextStyle(), raw);
+  if (st.blend !== 'normal' && st.blend !== 'difference') st.blend = 'normal';
+  return st;
+}
+
 /** Fundo validado; um fundo do Estúdio com dados ruins vira o degradê padrão (nunca tela preta quebrada). */
 export function normalizeBackground(raw: unknown): Background {
   const bg = fillDefaults(defaultBackground(), raw);
@@ -177,6 +185,7 @@ export function normalizeProject(raw: unknown): Project {
   const r = (raw ?? {}) as Partial<Project>;
   const theme = fillDefaults(defaultTheme(), r.theme);
   theme.background = normalizeBackground(r.theme?.background);
+  theme.text = textStyle(r.theme?.text);
   theme.animation = cleanAnimation(r.theme?.animation);
   const slides = (Array.isArray(r.slides) ? r.slides : []).map((s): Slide => {
     const slide = (s ?? {}) as Partial<Slide>;
@@ -189,7 +198,7 @@ export function normalizeProject(raw: unknown): Project {
           name: layer.name ?? ROLE_NAMES[layer.role ?? 'lyrics'],
           text: typeof layer.text === 'string' ? layer.text : '',
           visible: layer.visible !== false,
-          style: fillDefaults(defaultTextStyle(), layer.style),
+          style: textStyle(layer.style),
           // sem isso, todo ajuste por palavra se perdia ao reabrir/importar o projeto
           ...(sanitizeWords(layer.words) ? { words: sanitizeWords(layer.words) } : {}),
         };

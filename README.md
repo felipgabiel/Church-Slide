@@ -37,6 +37,9 @@ Use **Chrome ou Edge** atualizados: foi neles que tudo foi testado. A geração 
 - **Fundos próprios:** na biblioteca, clique em *Fundos*, escolha um modelo (Sol poente, Portais, Neblina…) e ajuste
   formas, luzes, ondas, texturas e o movimento em loop. Tudo salva sozinho em *Meus fundos*. Use *Usar num louvor* (cada
   louvor guarda a própria cópia) ou *Exportar vídeo* para levar só o fundo, em MP4 que repete sem emenda, para o Holyrics.
+- **Alinhar e mover vários:** arrastando, o texto gruda nas bordas, na margem segura e no centro (botão *Ímã* liga e
+  desliga; Alt solta na hora). Ctrl + clique seleciona vários textos (ou camadas no Estúdio) para mover e ajustar juntos.
+- **Inverter cores:** *Texto → Inverter cores* faz a letra mostrar o negativo do fundo, legível mesmo em fundos que mudam.
 - **Tema claro ou escuro:** botão de sol/lua no alto da tela. A escolha fica salva.
 - **Letra pequena demais?** *Texto → Legibilidade no telão → Letra mínima*: os ajustes automáticos nunca deixam a
   letra menor que isso; a linha quebra em vez de encolher.

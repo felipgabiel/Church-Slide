@@ -1001,6 +1001,129 @@ await step('ímã na borda: o texto encosta e gruda na borda do slide; continuar
   await pg.close();
 });
 
+await step('ímã: margem segura gruda; o botão "Ímã" desligado deixa o movimento livre (sem borda nem centro)', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'ímã 2');
+  await pg.goto(BASE);
+  await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+  await pg.locator('dialog input').first().fill('Ímã 2');
+  await pg.locator('dialog textarea').first().fill('Santo');
+  await pg.getByRole('button', { name: /Criar e abrir/i }).click();
+  await pg.waitForURL(/#\/edit\//);
+  await pg.locator('.surface [data-w]').first().waitFor();
+  const s = await pg.locator('.surface').first().boundingBox();
+  const w0 = await pg.locator('.surface [data-w]').first().boundingBox();
+  await pg.mouse.click(w0.x + w0.width / 2, w0.y + w0.height / 2);
+  const sel = pg.locator('.sel').first();
+  await sel.waitFor();
+  const dragTo = async (targetTop) => {
+    const b = await sel.boundingBox();
+    const w = await pg.locator('.surface [data-w]').first().boundingBox();
+    const x = w.x + w.width / 2;
+    const y = w.y + w.height / 2;
+    await pg.mouse.move(x, y);
+    await pg.mouse.down();
+    await pg.mouse.move(x, y + (targetTop - b.y), { steps: 12 });
+    const safeHot = await pg.locator('.g-safe[data-hot="1"]').count();
+    const edgeHot = await pg.locator('.g-edge-t').count();
+    await pg.mouse.up();
+    await pg.waitForTimeout(250);
+    return { safeHot, edgeHot, top: (await sel.boundingBox()).y };
+  };
+  // margem segura (5% da altura): chegando a 4 px dela, gruda nela
+  const safeY = s.y + s.height * 0.05;
+  let r = await dragTo(safeY + 4);
+  assert(r.safeHot === 1 && Math.abs(r.top - safeY) <= 1.5, `deveria grudar na margem segura (topo ${r.top.toFixed(1)} × ${safeY.toFixed(1)})`);
+  // borda de cima
+  r = await dragTo(s.y + 4);
+  assert(r.edgeHot === 1 && Math.abs(r.top - s.y) <= 1.5, `deveria grudar na borda de cima (${(r.top - s.y).toFixed(1)} px)`);
+  // desliga o ímã: o mesmo movimento para perto da borda não gruda
+  await pg.getByRole('switch', { name: /Alinhamento magnético/ }).click();
+  r = await dragTo(s.y + 6);
+  assert(r.edgeHot === 0 && Math.abs(r.top - (s.y + 6)) <= 1.5, `com o ímã desligado o texto deveria parar onde soltei (${(r.top - s.y).toFixed(1)} px)`);
+  const wc = await pg.locator('.surface [data-w]').first().boundingBox();
+  // centro também desligado: perto do centro não puxa
+  const b = await sel.boundingBox();
+  const cxNow = b.x + b.width / 2;
+  const targetCx = s.x + s.width / 2 + 5;
+  await pg.mouse.move(wc.x + wc.width / 2, wc.y + wc.height / 2);
+  await pg.mouse.down();
+  await pg.mouse.move(wc.x + wc.width / 2 + (targetCx - cxNow), wc.y + wc.height / 2, { steps: 10 });
+  await pg.mouse.up();
+  await pg.waitForTimeout(250);
+  const b2 = await sel.boundingBox();
+  assert(Math.abs(b2.x + b2.width / 2 - targetCx) <= 1.5, 'com o ímã desligado o centro não deveria puxar');
+  // a preferência vale também para o Estúdio e fica salva
+  assert((await pg.evaluate(() => localStorage.getItem('cs:snap-enabled'))) === 'false', 'a escolha do ímã fica salva');
+  await pg.getByRole('switch', { name: /Alinhamento magnético/ }).click();
+  await pg.close();
+});
+
+await step('seleção múltipla no editor (Ctrl + clique): arrastar move os dois textos juntos e o estilo vale para ambos', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'multi');
+  await pg.goto(BASE);
+  await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+  await pg.locator('dialog input').first().fill('Multi');
+  await pg.locator('dialog textarea').first().fill('Santo');
+  await pg.getByRole('button', { name: /Criar e abrir/i }).click();
+  await pg.waitForURL(/#\/edit\//);
+  const pid = pg.url().split('/edit/')[1];
+  await pg.getByRole('tab', { name: /Elementos/ }).click();
+  await pg.getByRole('button', { name: /Texto livre/ }).click();
+  const words = pg.locator('.surface .layer');
+  await pg.waitForFunction(() => document.querySelectorAll('.surface .layer').length === 2);
+  const a = await pg.locator('.surface [data-w]', { hasText: 'Santo' }).first().boundingBox();
+  const bTxt = await pg.locator('.surface [data-w]', { hasText: 'Novo' }).first().boundingBox();
+  // "Santo" pela ponta esquerda (o texto livre nasce no meio, por cima dele)
+  await pg.mouse.click(a.x + 12, a.y + a.height / 2);
+  await pg.keyboard.down('Control');
+  await pg.mouse.click(bTxt.x + bTxt.width / 2, bTxt.y + bTxt.height / 2);
+  await pg.keyboard.up('Control');
+  await pg.locator('.sel-count', { hasText: '2 textos selecionados' }).waitFor();
+  // arrasta o grupo pela primeira palavra
+  const a2 = await pg.locator('.surface [data-w]', { hasText: 'Santo' }).first().boundingBox();
+  const s0 = await pg.locator('.surface').first().boundingBox();
+  const pos0 = await pg.evaluate(() => {
+    const ls = [...document.querySelectorAll('.surface .layer')];
+    const pick = (i) => ({ x: parseFloat(ls[i].style.left), y: parseFloat(ls[i].style.top) });
+    return { lyr: pick(0), free: pick(1) };
+  });
+  await pg.mouse.move(a2.x + 12, a2.y + a2.height / 2);
+  await pg.keyboard.down('Alt'); // sem ímã: aqui o que importa é andar junto
+  await pg.mouse.down();
+  await pg.mouse.move(a2.x + 12 + 60, a2.y + a2.height / 2 + 30, { steps: 8 });
+  await pg.mouse.up();
+  await pg.keyboard.up('Alt');
+  await pg.waitForTimeout(1200); // salvamento automático
+  // o texto da letra se reajusta perto da borda, então conferimos a posição salva de cada camada
+  const pos = await pg.evaluate(
+    (id) =>
+      new Promise((res) => {
+        const r = indexedDB.open('church-slide');
+        r.onsuccess = () => {
+          const g = r.result.transaction('projects', 'readonly').objectStore('projects').get(id);
+          g.onsuccess = () => res(g.result.slides[0].layers.map((l) => ({ role: l.role, x: l.style.x, y: l.style.y })));
+        };
+      }),
+    pid,
+  );
+  const lyr = pos.find((l) => l.role === 'lyrics');
+  const free = pos.find((l) => l.role === 'free');
+  const dx = (60 / s0.width) * 100;
+  const dy = (30 / s0.height) * 100;
+  assert(Math.abs(lyr.x - pos0.lyr.x - dx) < 0.3 && Math.abs(free.x - pos0.free.x - dx) < 0.3, `os dois deveriam andar ${dx.toFixed(1)}% (${(lyr.x - pos0.lyr.x).toFixed(1)} / ${(free.x - pos0.free.x).toFixed(1)})`);
+  assert(Math.abs(lyr.y - pos0.lyr.y - dy) < 0.3 && Math.abs(free.y - pos0.free.y - dy) < 0.3, 'o segundo texto também desce junto');
+  // estilo em lote: liga "Inverter cores" com os dois selecionados
+  await pg.getByRole('tab', { name: /^Texto$/ }).click();
+  await pg.getByText('2 textos selecionados.').waitFor();
+  await pg.getByRole('switch', { name: 'Ativar Inverter cores' }).click();
+  await pg.waitForTimeout(300);
+  const blends = await words.evaluateAll((els) => els.map((e) => getComputedStyle(e).mixBlendMode));
+  assert(blends.length === 2 && blends.every((b) => b === 'difference'), `os dois textos deveriam inverter cores (${blends.join(', ')})`);
+  await pg.close();
+});
+
 /* ------------------------------ Estúdio de Fundos ------------------------------ */
 
 /** Lê um registro direto do IndexedDB do app (o que ficou salvo de verdade). */
@@ -1103,6 +1226,42 @@ await step('Estúdio: camada nova, recorte, cores e movimento (ciclo de cores) p
   await st.keyboard.press('Delete');
   assert((await st.locator('.dl-row').count()) === 5, 'Delete remove a camada selecionada');
   await waitSaved(st);
+
+  // Ctrl + clique na lista: "Sol" + "Brilho"; a opacidade e o "inverter cores" valem para os dois
+  await st.getByRole('button', { name: 'Sol', exact: true }).click();
+  await st.keyboard.down('Control');
+  await st.getByRole('button', { name: 'Brilho', exact: true }).click();
+  await st.keyboard.up('Control');
+  await st.getByText('2 camadas selecionadas.').waitFor();
+  const op = st.getByLabel('Opacidade', { exact: true });
+  await op.fill('40');
+  await op.press('Enter');
+  await st.locator('.studio-props').getByRole('combobox', { name: 'Modo de mistura' }).click();
+  await st.getByRole('option', { name: /Inverter cores/ }).click();
+  await waitSaved(st);
+  const rec = await idbGet(st, 'designs', designId);
+  const both = rec.layers.filter((l) => l.name === 'Sol' || l.name === 'Brilho');
+  assert(both.length === 2 && both.every((l) => l.opacity === 40 && l.blend === 'difference'), `ajuste em lote: ${JSON.stringify(both.map((l) => [l.name, l.opacity, l.blend]))}`);
+  // arrastar no palco move o grupo
+  const xs0 = Object.fromEntries(both.map((l) => [l.name, l.x]));
+  const box = await st.locator('.st-surface').boundingBox();
+  await st.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await st.keyboard.down('Alt');
+  await st.mouse.down();
+  await st.mouse.move(box.x + box.width / 2 + box.width * 0.2, box.y + box.height / 2, { steps: 8 });
+  await st.mouse.up();
+  await st.keyboard.up('Alt');
+  await waitSaved(st);
+  const rec2 = await idbGet(st, 'designs', designId);
+  for (const l of rec2.layers.filter((q) => q.name === 'Sol' || q.name === 'Brilho')) {
+    assert(Math.abs(l.x - xs0[l.name] - 20) < 0.6, `${l.name} deveria andar 20% junto (andou ${(l.x - xs0[l.name]).toFixed(2)})`);
+  }
+  // desfaz tudo (arraste, mistura, opacidade) para as próximas etapas
+  for (let i = 0; i < 3; i++) await st.keyboard.press('Control+z');
+  await st.keyboard.press('Escape');
+  await waitSaved(st);
+  const rec3 = await idbGet(st, 'designs', designId);
+  assert(rec3.layers.find((l) => l.name === 'Sol').x === 50 && rec3.layers.find((l) => l.name === 'Sol').opacity === 100, 'desfazer volta o grupo');
 });
 
 await step('Fundo em vídeo (só o fundo): MP4 de 12 s que repete sem emenda', async () => {

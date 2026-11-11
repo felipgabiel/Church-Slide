@@ -61,7 +61,8 @@ export function StudioLayers({ api }: { api: StudioApi }) {
               <li
                 key={l.id}
                 className="dl-row"
-                data-on={selected?.id === l.id ? '1' : undefined}
+                data-on={api.selectedIds.includes(l.id) ? '1' : undefined}
+                data-primary={selected?.id === l.id && api.selectedIds.length > 1 ? '1' : undefined}
                 data-hidden={l.visible ? undefined : '1'}
                 data-clip={l.clip && idx > 0 ? '1' : undefined}
                 data-over={drag && drag.over === vi && drag.id !== l.id ? '1' : undefined}
@@ -83,7 +84,14 @@ export function StudioLayers({ api }: { api: StudioApi }) {
                 }}
                 onDragEnd={() => setDrag(null)}
               >
-                <button type="button" className="dl-main" onClick={() => api.select(l.id)} onDoubleClick={() => setRenaming(l.id)} aria-pressed={selected?.id === l.id}>
+                <button
+                  type="button"
+                  className="dl-main"
+                  onClick={(e) => api.select(l.id, e.ctrlKey || e.metaKey || e.shiftKey)}
+                  onDoubleClick={() => setRenaming(l.id)}
+                  aria-pressed={api.selectedIds.includes(l.id)}
+                  title="Ctrl + clique seleciona várias"
+                >
                   <span className="dl-ico" aria-hidden>
                     {KIND_ICON[l.kind]}
                   </span>
@@ -129,7 +137,7 @@ export function StudioLayers({ api }: { api: StudioApi }) {
           })}
         </ol>
       )}
-      <p className="sl-panel-hint">Arraste para mudar a ordem. Duplo clique renomeia.</p>
+      <p className="sl-panel-hint">Arraste para mudar a ordem. Ctrl + clique seleciona várias. Duplo clique renomeia.</p>
       <button type="button" className="dl-base" data-on={!selected ? '1' : undefined} onClick={() => api.select(null)}>
         <span className="dl-swatch" style={{ background: design.base }} aria-hidden />
         <span>

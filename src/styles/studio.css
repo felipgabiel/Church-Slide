@@ -722,3 +722,25 @@
 .insp-pair + .slider {
   margin-top: 11px;
 }
+.insp-many {
+  margin: 10px 14px 0;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.insp-many b {
+  color: var(--text);
+  font-weight: 600;
+}
+.insp-many .xd-link {
+  margin-left: 6px;
+}
+.dl-row[data-primary='1'] {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.st-chip.snap-toggle {
+  padding-right: 6px;
+}

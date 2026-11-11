@@ -180,11 +180,19 @@ Como no Canva: cantos aumentam/diminuem a letra e a largura na mesma proporção
 `TextStyle.rotation`; no palco é um `rotate()` na camada e no vídeo o compositor mede o texto sem giro e gira o
 desenho em torno do mesmo centro (caso "caixa girada" no teste de fidelidade).
 
-### Ímã nas bordas (`core/snap.ts`)
+### Ímã, seleção múltipla e inverter cores
 
-Ao arrastar o texto (editor) ou uma camada (Estúdio), a caixa gruda alinhada à borda do slide ou ao centro quando
-chega a 10 px de tela; a borda acende. Continuar arrastando para fora passa do ímã e o objeto segue o mouse.
-A caixa girada usa o tamanho que realmente ocupa na tela. Alt desliga o ímã.
+- **Ímã (`core/snap.ts`):** ao arrastar texto (editor) ou camada (Estúdio), a caixa — ou a caixa que envolve o grupo
+  selecionado — gruda na borda do slide, na margem segura (5%, a linha tracejada) ou no centro quando chega a 12 px de
+  tela; a guia correspondente acende. Continuar arrastando passa do ímã. O botão **Ímã** (preferência `cs:snap-enabled`,
+  a mesma no editor e no Estúdio) desliga tudo; Alt desliga só durante o arraste.
+- **Seleção múltipla (Ctrl + clique):** no editor, `extraLayerIds` guarda as outras camadas de texto; arrastar move
+  todas pelo mesmo deslocamento (`moveLayers`) e `patchStyle` aplica o estilo a todas (posição por deslocamento).
+  No Estúdio, `selectedIds` (a principal é a última): ajustes do painel, arrastar, tamanho, giro, setas, Delete e Ctrl+D
+  valem para o grupo. Clicar uma palavra prefere a camada de cima quando os textos se sobrepõem.
+- **Inverter cores:** `TextStyle.blend = 'difference'` vira `mix-blend-mode: difference` na camada (o palco é
+  `isolation: isolate`); no vídeo, a camada é desenhada à parte e composta com `difference`. No Estúdio, o modo de
+  mistura "Inverter cores" usa o mesmo operador do canvas. Casos de fidelidade cobrem os dois.
 
 ### Troca de cor (`core/anim/colorfx.ts`, `render/colorRun.ts`, `features/editor/panels/ColorChange.tsx`)
 
@@ -300,8 +308,8 @@ Painéis laterais acompanham a largura do monitor (`clamp`), testados de 1280×7
 | Comando | O que faz |
 |---|---|
 | `npm run typecheck` | `tsc --noEmit` (ver limitação na seção 1) |
-| `npm test` | 110 testes unitários: easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
-| `npm run build && npm run e2e` | 34 etapas no navegador contra o build de produção (ver abaixo) |
+| `npm test` | 111 testes unitários: easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
+| `npm run build && npm run e2e` | 36 etapas no navegador contra o build de produção (ver abaixo) |
 | `npm run e2e:fidelity` | compara o desenho em canvas (vídeo) com o DOM do editor (PSNR; exige ffmpeg) |
 
 O e2e (`e2e/run.mjs`) cria um louvor pela interface, edita e confere a persistência após recarregar,

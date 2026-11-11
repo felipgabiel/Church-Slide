@@ -17,6 +17,7 @@ const COMPOSITE: Record<DesignBlend, GlobalCompositeOperation> = {
   overlay: 'overlay',
   multiply: 'multiply',
   lighter: 'lighter',
+  difference: 'difference',
 };
 
 type Ctx = CanvasRenderingContext2D;

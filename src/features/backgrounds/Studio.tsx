@@ -18,8 +18,18 @@ import { StudioStage, type StudioClock } from './StudioStage';
 
 export interface StudioApi {
   design: BackgroundDesign;
+  /** camada principal (a última clicada): é a que o painel de ajustes mostra */
   selected: DesignLayer | null;
-  select: (id: string | null) => void;
+  /** todas as selecionadas (Ctrl + clique soma); a principal é a última */
+  selectedIds: string[];
+  /** `add` = Ctrl + clique: soma (ou tira, se já estava) sem desfazer o resto */
+  select: (id: string | null, add?: boolean) => void;
+  /** aplica o ajuste em TODAS as selecionadas (posição anda junto, pelo mesmo deslocamento) */
+  patchSelected: (patch: Partial<DesignLayer>, key?: string) => void;
+  /** muda várias camadas de uma vez, cada uma com o seu valor (arrastar o grupo no palco) */
+  patchMany: (patches: Record<string, Partial<DesignLayer>>, key: string) => void;
+  removeSelected: () => void;
+  duplicateSelected: () => void;
   /** altera uma cópia do fundo; `key` junta alterações seguidas (arrastar um controle) num passo só de desfazer */
   update: (fn: (d: BackgroundDesign) => void, key?: string) => void;
   patchLayer: (id: string, patch: Partial<DesignLayer>, key?: string) => void;
@@ -38,7 +48,9 @@ type Status = 'saved' | 'saving' | 'error';
 export function Studio({ id, from }: { id: string; from?: string }) {
   const [design, setDesign] = useState<BackgroundDesign | null>(null);
   const [missing, setMissing] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const selectedId = selectedIds.length ? selectedIds[selectedIds.length - 1] : null;
+  const setSelectedId = (id: string | null) => setSelectedIds(id ? [id] : []);
   const [status, setStatus] = useState<Status>('saved');
   const [fromName, setFromName] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -124,10 +136,60 @@ export function Studio({ id, from }: { id: string; from?: string }) {
       fn(next);
       commit(next, key);
     };
+    const ids = selectedIds.filter((x) => design.layers.some((l) => l.id === x));
     return {
       design,
       selected: design.layers.find((l) => l.id === selectedId) ?? null,
-      select: setSelectedId,
+      selectedIds: ids,
+      select: (sid, add = false) => {
+        if (!sid) return setSelectedIds([]);
+        if (!add) return setSelectedIds([sid]);
+        setSelectedIds((cur) => (cur.includes(sid) ? cur.filter((x) => x !== sid) : [...cur, sid]));
+      },
+      patchSelected: (patch, key) => {
+        const primary = cur.current?.layers.find((l) => l.id === selectedId);
+        if (!primary) return;
+        const group = ids.length ? ids : [primary.id];
+        const dx = patch.x !== undefined ? patch.x - primary.x : 0;
+        const dy = patch.y !== undefined ? patch.y - primary.y : 0;
+        update((d) => {
+          for (const l of d.layers) {
+            if (!group.includes(l.id)) continue;
+            const own: Partial<DesignLayer> = { ...patch };
+            if (l.id !== primary.id) {
+              delete own.name; // o nome é de cada camada
+              if (patch.x !== undefined) own.x = +(l.x + dx).toFixed(2);
+              if (patch.y !== undefined) own.y = +(l.y + dy).toFixed(2);
+            }
+            Object.assign(l, own);
+          }
+        }, key ?? `sel:${group.join(',')}:${Object.keys(patch).join(',')}`);
+      },
+      patchMany: (patches, key) =>
+        update((d) => {
+          for (const l of d.layers) if (patches[l.id]) Object.assign(l, patches[l.id]);
+        }, key),
+      removeSelected: () => {
+        if (!ids.length) return;
+        update((d) => {
+          d.layers = d.layers.filter((l) => !ids.includes(l.id));
+        });
+        setSelectedIds([]);
+      },
+      duplicateSelected: () => {
+        if (!ids.length) return;
+        const copies: string[] = [];
+        update((d) => {
+          for (const sid of ids) {
+            const i = d.layers.findIndex((l) => l.id === sid);
+            if (i < 0) continue;
+            const copy = { ...structuredClone(d.layers[i]), id: newDesignLayer(d.layers[i].kind).id, name: `${d.layers[i].name} (cópia)` };
+            d.layers.splice(i + 1, 0, copy);
+            copies.push(copy.id);
+          }
+        });
+        setSelectedIds(copies);
+      },
       update,
       patchLayer: (lid, patch, key) =>
         update((d) => {
@@ -148,7 +210,7 @@ export function Studio({ id, from }: { id: string; from?: string }) {
         update((d) => {
           d.layers = d.layers.filter((l) => l.id !== lid);
         });
-        if (selectedId === lid) setSelectedId(null);
+        setSelectedIds((cur) => cur.filter((x) => x !== lid));
       },
       duplicateLayer: (lid) => {
         const src = cur.current?.layers.find((l) => l.id === lid);
@@ -168,7 +230,7 @@ export function Studio({ id, from }: { id: string; from?: string }) {
           d.layers.splice(Math.max(0, Math.min(d.layers.length, to)), 0, l);
         }),
     };
-  }, [design, selectedId, commit]);
+  }, [design, selectedIds, selectedId, commit]);
 
   const undo = useCallback(() => {
     const prev = past.current.pop();
@@ -224,10 +286,10 @@ export function Studio({ id, from }: { id: string; from?: string }) {
       const sel = a.selected;
       if (mod && k === 'd' && sel) {
         e.preventDefault();
-        a.duplicateLayer(sel.id);
+        a.duplicateSelected();
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && sel) {
         e.preventDefault();
-        a.removeLayer(sel.id);
+        a.removeSelected();
       } else if (e.key === ' ') {
         e.preventDefault();
         clock.current?.toggle();
@@ -237,12 +299,15 @@ export function Studio({ id, from }: { id: string; from?: string }) {
       } else if (e.key === 'Escape') {
         if (sel) a.select(null);
         else back();
-      } else if (sel && !sel.locked && e.key.startsWith('Arrow')) {
+      } else if (sel && e.key.startsWith('Arrow')) {
         e.preventDefault();
         const step = e.shiftKey ? 5 : 0.5;
         const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
         const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
-        a.patchLayer(sel.id, { x: +(sel.x + dx).toFixed(2), y: +(sel.y + dy).toFixed(2) }, `nudge:${sel.id}`);
+        // todas as selecionadas andam juntas (as travadas ficam)
+        const patches: Record<string, Partial<DesignLayer>> = {};
+        for (const l of a.design.layers) if (a.selectedIds.includes(l.id) && !l.locked) patches[l.id] = { x: +(l.x + dx).toFixed(2), y: +(l.y + dy).toFixed(2) };
+        if (Object.keys(patches).length) a.patchMany(patches, `nudge:${Object.keys(patches).join(',')}`);
       }
     };
     window.addEventListener('keydown', onKey);

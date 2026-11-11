@@ -62,7 +62,14 @@ export interface TextStyle {
   minFont: number;
   /** giro da caixa de texto em graus (sentido horário), em torno do centro dela */
   rotation: number;
+  /**
+   * Como o texto se mistura com o fundo. `difference` = inverter cores: a letra mostra o negativo do que
+   * está atrás dela (branco sobre vermelho vira ciano), então continua legível em fundos que mudam.
+   */
+  blend: TextBlend;
 }
+
+export type TextBlend = 'normal' | 'difference';
 
 export type TextCase = 'none' | 'upper' | 'lower';
 
@@ -184,7 +191,7 @@ export interface Background {
 export type DesignLayerKind = 'gradient' | 'shape' | 'glow' | 'waves' | 'texture' | 'particles';
 export type DesignShape = 'circle' | 'rounded' | 'arch' | 'band' | 'polygon';
 export type DesignFillType = 'solid' | 'linear' | 'radial' | 'conic';
-export type DesignBlend = 'normal' | 'screen' | 'overlay' | 'multiply' | 'lighter';
+export type DesignBlend = 'normal' | 'screen' | 'overlay' | 'multiply' | 'lighter' | 'difference';
 export type DesignTexture = 'grain' | 'stripes';
 /** movimentos prontos; todos fecham exatamente no fim do loop */
 export type DesignMotionKind = 'drift' | 'breathe' | 'spin' | 'flow' | 'colors' | 'twinkle';

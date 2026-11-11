@@ -111,6 +111,9 @@ export function createCompositor(scene: Scene): Compositor {
 
   const off = document.createElement('canvas');
   const octx = off.getContext('2d')!;
+  /** tela à parte para camadas com "inverter cores" */
+  const blend = document.createElement('canvas');
+  const bctx = blend.getContext('2d')!;
 
   const stateOf = (unit: number, t: number): UnitState => {
     if (instant) return FINAL;
@@ -190,10 +193,10 @@ export function createCompositor(scene: Scene): Compositor {
     animMs,
     draw(ctx, tMs) {
       const cache = new Map<number, UnitState>();
-      for (const wd of words) {
+      const drawOne = (ctx: CanvasRenderingContext2D, wd: WordBox) => {
         let s = cache.get(wd.unit);
         if (!s) cache.set(wd.unit, (s = stateOf(wd.unit, tMs)));
-        if (s.opacity <= 0.002) continue;
+        if (s.opacity <= 0.002) return;
         const style = layers[wd.layer] ?? layers[0];
         const pieces = piecesOf(wd, tMs, enterMs);
         // caixa girada: gira o desenho em torno do centro dela, como o CSS faz no palco
@@ -221,6 +224,28 @@ export function createCompositor(scene: Scene): Compositor {
           drawGrouped(ctx, wd, style, s, pieces);
         }
         if (turned) ctx.restore();
+      };
+      // camada a camada, na ordem do palco. "Inverter cores" desenha a camada inteira à parte e depois a
+      // mistura com o que já está no quadro (fundo + camadas de baixo), como o mix-blend-mode do CSS.
+      for (let li = 0; li < Math.max(1, layers.length); li++) {
+        const style = layers[li] ?? layers[0];
+        const mine = words.filter((wd) => (layers[wd.layer] ? wd.layer : 0) === li);
+        if (!mine.length) continue;
+        if (style?.blend === 'difference') {
+          if (blend.width !== W || blend.height !== H) {
+            blend.width = W;
+            blend.height = H;
+          }
+          bctx.setTransform(1, 0, 0, 1, 0, 0);
+          bctx.clearRect(0, 0, W, H);
+          for (const wd of mine) drawOne(bctx, wd);
+          ctx.save();
+          ctx.globalCompositeOperation = 'difference';
+          ctx.drawImage(blend, 0, 0);
+          ctx.restore();
+        } else {
+          for (const wd of mine) drawOne(ctx, wd);
+        }
       }
     },
   };

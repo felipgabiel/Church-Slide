@@ -85,12 +85,13 @@ export const BLEND_LABEL: Record<DesignBlend, string> = {
   lighter: 'Somar luz',
   overlay: 'Sobrepor',
   multiply: 'Multiplicar (escurece)',
+  difference: 'Inverter cores (diferença)',
 };
 
 const KINDS: DesignLayerKind[] = ['gradient', 'shape', 'glow', 'waves', 'texture', 'particles'];
 const SHAPES: DesignShape[] = ['circle', 'rounded', 'arch', 'band', 'polygon'];
 const FILLS: DesignFillType[] = ['solid', 'linear', 'radial', 'conic'];
-const BLENDS: DesignBlend[] = ['normal', 'screen', 'overlay', 'multiply', 'lighter'];
+const BLENDS: DesignBlend[] = ['normal', 'screen', 'overlay', 'multiply', 'lighter', 'difference'];
 const TEXTURES: DesignTexture[] = ['grain', 'stripes'];
 const MOTIONS: DesignMotionKind[] = ['drift', 'breathe', 'spin', 'flow', 'colors', 'twinkle'];
 

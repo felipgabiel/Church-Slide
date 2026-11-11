@@ -46,6 +46,8 @@ export interface EditorState {
   loadError: string | null;
   slideId: string | null;
   layerId: string | null;
+  /** outras camadas de texto selecionadas junto (Ctrl + clique): estilo e arraste valem para todas */
+  extraLayerIds: string[];
   scope: EditScope;
   past: Project[];
   future: Project[];
@@ -62,6 +64,7 @@ const initial: EditorState = {
   loadError: null,
   slideId: null,
   layerId: null,
+  extraLayerIds: [],
   scope: 'slide',
   past: [],
   future: [],
@@ -138,7 +141,14 @@ if (typeof window !== 'undefined') {
 function fixSelection(project: Project, slideId: string | null, layerId: string | null) {
   const slide = project.slides.find((s) => s.id === slideId) ?? project.slides[0] ?? null;
   const layer = slide?.layers.find((l) => l.id === layerId) ?? slide?.layers[0] ?? null;
-  return { slideId: slide?.id ?? null, layerId: layer?.id ?? null };
+  const extras = editorStore.get().extraLayerIds.filter((id) => id !== layer?.id && !!slide?.layers.some((l) => l.id === id));
+  return { slideId: slide?.id ?? null, layerId: layer?.id ?? null, extraLayerIds: extras };
+}
+
+/** Ids de todas as camadas selecionadas no trecho atual (a principal primeiro). */
+function selectedIds(): string[] {
+  const { layerId, extraLayerIds } = editorStore.get();
+  return layerId ? [layerId, ...extraLayerIds.filter((x) => x !== layerId)] : [];
 }
 
 /**
@@ -257,11 +267,43 @@ export const editor = {
     // mantém o mesmo tipo de camada selecionado (ex.: continuar editando o "Título")
     const curRole = project.slides.find((s) => s.id === slideId)?.layers.find((l) => l.id === layerId)?.role;
     const layer = slide.layers.find((l) => l.role === curRole) ?? slide.layers[0];
-    editorStore.set({ slideId: id, layerId: layer.id });
+    editorStore.set({ slideId: id, layerId: layer.id, extraLayerIds: [] });
   },
 
-  selectLayer(id: string) {
-    editorStore.set({ layerId: id });
+  /**
+   * Seleciona uma camada. Com `add` (Ctrl + clique), soma à seleção: a clicada vira a principal (é a que o
+   * painel mostra) e as outras continuam juntas; Ctrl + clique numa que já estava junto tira ela da seleção.
+   */
+  selectLayer(id: string, add = false) {
+    const { layerId, extraLayerIds } = editorStore.get();
+    if (!add) return editorStore.set({ layerId: id, extraLayerIds: [] });
+    if (id === layerId) return;
+    if (extraLayerIds.includes(id)) return editorStore.set({ extraLayerIds: extraLayerIds.filter((x) => x !== id) });
+    editorStore.set({ layerId: id, extraLayerIds: [...extraLayerIds, ...(layerId ? [layerId] : [])].filter((x, i, a) => x !== id && a.indexOf(x) === i) });
+  },
+
+  /** Torna principal uma camada que já está na seleção múltipla (sem desfazer o grupo). */
+  focusLayer(id: string) {
+    const { layerId, extraLayerIds } = editorStore.get();
+    if (id === layerId || !extraLayerIds.includes(id)) return;
+    editorStore.set({ layerId: id, extraLayerIds: [...extraLayerIds.filter((x) => x !== id), ...(layerId ? [layerId] : [])] });
+  },
+
+  /** Posição de várias camadas de uma vez (arrastar a seleção múltipla). Vale só para o trecho atual. */
+  moveLayers(pos: Record<string, { x: number; y: number }>) {
+    mutate(
+      (d) => {
+        const slide = currentSlide(d);
+        for (const l of slide?.layers ?? []) {
+          const p = pos[l.id];
+          if (p) {
+            l.style.x = p.x;
+            l.style.y = p.y;
+          }
+        }
+      },
+      { coalesce: `move:${Object.keys(pos).sort().join(',')}` },
+    );
   },
 
   replay() {
@@ -600,13 +642,23 @@ export const editor = {
       (d) => {
         const layer = currentLayer(d);
         if (!layer) return;
+        const slide = currentSlide(d);
+        const ids = selectedIds();
+        const group = (slide?.layers ?? []).filter((l) => ids.includes(l.id));
+        // seleção múltipla: posição anda junto (mesmo deslocamento), o resto vale igual para todas
+        const dx = patch.x !== undefined ? patch.x - layer.style.x : 0;
+        const dy = patch.y !== undefined ? patch.y - layer.style.y : 0;
+        const forLayer = (l: TextLayer): DeepPartial<TextStyle> =>
+          l === layer || (patch.x === undefined && patch.y === undefined)
+            ? patch
+            : { ...patch, ...(patch.x !== undefined ? { x: Math.round((l.style.x + dx) * 10) / 10 } : {}), ...(patch.y !== undefined ? { y: Math.round((l.style.y + dy) * 10) / 10 } : {}) };
         if (scope === 'slide') {
-          layer.style = deepMerge(layer.style, patch);
+          for (const l of group.length ? group : [layer]) l.style = deepMerge(l.style, forLayer(l));
           return;
         }
-        const role = layer.role;
-        for (const s of d.slides) for (const l of s.layers) if (l.role === role) l.style = deepMerge(l.style, patch);
-        if (role === 'lyrics') d.theme.text = deepMerge(d.theme.text, patch);
+        const roles = new Set((group.length ? group : [layer]).map((l) => l.role));
+        for (const s of d.slides) for (const l of s.layers) if (roles.has(l.role)) l.style = deepMerge(l.style, patch);
+        if (roles.has('lyrics')) d.theme.text = deepMerge(d.theme.text, patch);
       },
       { coalesce: `style:${scope}:${editorStore.get().layerId}:${Object.keys(patch).join(',')}` },
     );
@@ -793,6 +845,13 @@ export const editor = {
 
 export function useActiveSlide(): Slide | null {
   return useEditor((s) => s.project?.slides.find((x) => x.id === s.slideId) ?? null);
+}
+
+/** Camadas selecionadas (principal + Ctrl + clique). */
+export function useSelectedLayerIds(): string[] {
+  const layerId = useEditor((s) => s.layerId);
+  const extra = useEditor((s) => s.extraLayerIds);
+  return layerId ? [layerId, ...extra.filter((x) => x !== layerId)] : [];
 }
 
 export function useActiveLayer(): TextLayer | null {

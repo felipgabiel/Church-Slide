@@ -18,7 +18,9 @@ const FILL_TYPES: { value: DesignFillType; label: string }[] = [
 export function StudioInspector({ api }: { api: StudioApi }) {
   const l = api.selected;
   if (!l) return <DesignSettings api={api} />;
-  const set = (patch: Partial<DesignLayer>, key?: string) => api.patchLayer(l.id, patch, key);
+  // com várias selecionadas (Ctrl + clique), cada ajuste vale para todas
+  const set = (patch: Partial<DesignLayer>, key?: string) => api.patchSelected(patch, key);
+  const many = api.selectedIds.length > 1;
   const placed = l.kind === 'shape' || l.kind === 'glow' || l.kind === 'waves' || (l.kind === 'gradient' && l.fill.type !== 'linear' && l.fill.type !== 'solid');
   const idx = api.design.layers.findIndex((x) => x.id === l.id);
 
@@ -28,9 +30,17 @@ export function StudioInspector({ api }: { api: StudioApi }) {
         <span className="insp-ico" aria-hidden>
           {KIND_ICON[l.kind]}
         </span>
-        <input className="insp-name" value={l.name} aria-label="Nome da camada" onChange={(e) => set({ name: e.currentTarget.value.slice(0, 60) }, `name:${l.id}`)} />
+        <input className="insp-name" value={l.name} aria-label="Nome da camada" onChange={(e) => api.patchLayer(l.id, { name: e.currentTarget.value.slice(0, 60) }, `name:${l.id}`)} />
         <span className="insp-kind">{KIND_LABEL[l.kind]}</span>
       </div>
+      {many && (
+        <div className="insp-many" role="status">
+          <b>{api.selectedIds.length} camadas selecionadas.</b> Os ajustes abaixo valem para todas; a posição anda junto.
+          <button type="button" className="xd-link" onClick={() => api.select(l.id)}>
+            Só esta
+          </button>
+        </div>
+      )}
 
       {l.kind === 'shape' && (
         <Section title="Forma">
@@ -123,11 +133,11 @@ export function StudioInspector({ api }: { api: StudioApi }) {
       </Section>
 
       <div className="insp-foot">
-        <Button size="sm" variant="ghost" onClick={() => api.duplicateLayer(l.id)}>
-          Duplicar
+        <Button size="sm" variant="ghost" onClick={() => api.duplicateSelected()}>
+          {many ? `Duplicar ${api.selectedIds.length}` : 'Duplicar'}
         </Button>
-        <Button size="sm" variant="ghost" className="danger-text" onClick={() => api.removeLayer(l.id)}>
-          Excluir camada
+        <Button size="sm" variant="ghost" className="danger-text" onClick={() => api.removeSelected()}>
+          {many ? `Excluir ${api.selectedIds.length} camadas` : 'Excluir camada'}
         </Button>
       </div>
     </div>

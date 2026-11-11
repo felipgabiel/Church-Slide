@@ -1,14 +1,15 @@
 import { useLayoutEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { LuChevronLeft, LuChevronRight, LuClipboardPaste, LuGrid3X3, LuRotateCcw, LuRotateCw } from 'react-icons/lu';
+import { SnapToggle } from '../../ui/SnapToggle';
 import { slideText } from '../../core/defaults';
 import { ASPECT_RATIOS } from '../../core/types';
 import { clamp } from '../../core/util';
 import { useSetting, writeSetting } from '../../core/settings';
 import { useWordSelection, wordKey, wordSelection } from '../../store/wordSelection';
 import { FitBox } from '../../render/FitBox';
-import { rotatedHalf, snapAxis, SNAP_PX, type SnapHit } from '../../core/snap';
+import { rotatedHalf, SAFE_MARGIN, snapAxis, SNAP_PX, SNAP_SETTING, type SnapHit } from '../../core/snap';
 import { Stage } from '../../render/Stage';
-import { editor, editorStore, useActiveSlide, useEditor } from '../../store/editor';
+import { editor, editorStore, useActiveSlide, useEditor, useSelectedLayerIds } from '../../store/editor';
 import { Button, IconButton } from '../../ui/Button';
 import { ContextMenu, type ContextItem } from '../../ui/ContextMenu';
 import { toast } from '../../ui/toast';
@@ -123,33 +124,58 @@ function Surface({ guides }: { guides: boolean }) {
   const layerId = useEditor((s) => s.layerId);
   const replayKey = useEditor((s) => s.replayKey);
   const ref = useRef<HTMLDivElement>(null);
-  const [box, setBox] = useState<Box | null>(null);
+  const [boxes, setBoxes] = useState<Record<string, Box>>({});
+  const selIds = useSelectedLayerIds();
+  const selKey = selIds.join(',');
+  const box = layerId ? boxes[layerId] ?? null : null;
+  const [snapOn] = useSetting<boolean>(SNAP_SETTING, true);
   const [hover, setHover] = useState(false);
   const selectedWords = useWordSelection();
-  const pendingWord = useRef<{ key: string | null; add: boolean; sx: number; sy: number } | null>(null);
+  const pendingWord = useRef<{ key: string | null; add: boolean; sx: number; sy: number; layer?: string } | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; items: ContextItem[] } | null>(null);
-  const [drag, setDrag] = useState<{ sx: number; sy: number; x0: number; y0: number; hitX: SnapHit; hitY: SnapHit } | null>(null);
+  const [drag, setDrag] = useState<{
+    sx: number;
+    sy: number;
+    /** posição inicial de cada camada arrastada (a principal primeiro) */
+    starts: Record<string, { x: number; y: number }>;
+    /** caixa que envolve tudo o que está sendo arrastado, em % (centro e metades), no início */
+    ux: number;
+    uy: number;
+    uhw: number;
+    uhh: number;
+    hitX: SnapHit;
+    hitY: SnapHit;
+  } | null>(null);
   const [busy, setBusy] = useState(false); // usando uma alça (tamanho/giro)
   const slideRef = useRef(slide);
   slideRef.current = slide;
 
-  // mede a camada selecionada depois que o palco terminou de atualizar
+  // mede as camadas selecionadas depois que o palco terminou de atualizar
   useLayoutEffect(() => {
     const root = ref.current;
     if (!root) return;
     const raf = requestAnimationFrame(() => {
-      const els = layerId ? root.querySelectorAll<HTMLElement>(`[data-layer="${layerId}"]`) : [];
-      const el = els.length ? els[els.length - 1] : null;
-      if (!el) return setBox(null);
-      const r = el.getBoundingClientRect();
       const p = root.getBoundingClientRect();
-      // centro: o da caixa na tela (girar não tira o centro do lugar); tamanho: o do layout, sem giro
       const k = root.offsetWidth ? p.width / root.offsetWidth : 1;
-      const rot = slideRef.current?.layers.find((l) => l.id === layerId)?.style.rotation ?? 0;
-      const next = { cx: r.left + r.width / 2 - p.left, cy: r.top + r.height / 2 - p.top, w: el.offsetWidth * k, h: el.offsetHeight * k, rot };
-      setBox((b) =>
-        b && Math.abs(b.cx - next.cx) < 0.5 && Math.abs(b.cy - next.cy) < 0.5 && Math.abs(b.w - next.w) < 0.5 && Math.abs(b.h - next.h) < 0.5 && b.rot === next.rot ? b : next,
-      );
+      const next: Record<string, Box> = {};
+      for (const id of selKey ? selKey.split(',') : []) {
+        const els = root.querySelectorAll<HTMLElement>(`[data-layer="${id}"]`);
+        const el = els.length ? els[els.length - 1] : null;
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        // centro: o da caixa na tela (girar não tira o centro do lugar); tamanho: o do layout, sem giro
+        const rot = slideRef.current?.layers.find((l) => l.id === id)?.style.rotation ?? 0;
+        next[id] = { cx: r.left + r.width / 2 - p.left, cy: r.top + r.height / 2 - p.top, w: el.offsetWidth * k, h: el.offsetHeight * k, rot };
+      }
+      setBoxes((prev) => {
+        const same =
+          Object.keys(prev).length === Object.keys(next).length &&
+          Object.entries(next).every(([id, b]) => {
+            const a = prev[id];
+            return a && Math.abs(a.cx - b.cx) < 0.5 && Math.abs(a.cy - b.cy) < 0.5 && Math.abs(a.w - b.w) < 0.5 && Math.abs(a.h - b.h) < 0.5 && a.rot === b.rot;
+          });
+        return same ? prev : next;
+      });
     });
     return () => cancelAnimationFrame(raf);
   });
@@ -158,6 +184,12 @@ function Surface({ guides }: { guides: boolean }) {
   const hit = (clientX: number, clientY: number): string | null => {
     const root = ref.current;
     if (!root || !slide) return null;
+    // a palavra que está de fato sob o ponteiro vence (caixas de texto podem se sobrepor)
+    const k = wordAt(clientX, clientY);
+    if (k) {
+      const lid = k.slice(0, k.lastIndexOf(':'));
+      if (slide.layers.some((l) => l.id === lid && l.visible)) return lid;
+    }
     for (const layer of [...slide.layers].reverse()) {
       if (!layer.visible) continue;
       const els = root.querySelectorAll<HTMLElement>(`[data-layer="${layer.id}"]`);
@@ -177,7 +209,8 @@ function Surface({ guides }: { guides: boolean }) {
     const frames = root.querySelectorAll('.text-frame');
     const frame = frames[frames.length - 1];
     if (!frame) return null;
-    for (const el of Array.from(frame.querySelectorAll<HTMLElement>('[data-w]'))) {
+    // de trás para frente: a camada de cima (desenhada por último) vence quando as palavras se sobrepõem
+    for (const el of Array.from(frame.querySelectorAll<HTMLElement>('[data-w]')).reverse()) {
       const r = el.getBoundingClientRect();
       if (clientX >= r.left - 3 && clientX <= r.right + 3 && clientY >= r.top - 2 && clientY <= r.bottom + 2) return wordKey(el.dataset.lid ?? '', Number(el.dataset.w));
     }
@@ -199,7 +232,7 @@ function Surface({ guides }: { guides: boolean }) {
 
       {(guides || drag) && (
         <div className="guides" aria-hidden>
-          <i className="g-safe" />
+          <i className="g-safe" data-hot={drag && (drag.hitX?.startsWith('safe') || drag.hitY?.startsWith('safe')) ? '1' : '0'} />
           <i className="g-v" data-hot={drag?.hitX === 'center' ? '1' : '0'} />
           <i className="g-h" data-hot={drag?.hitY === 'center' ? '1' : '0'} />
           {drag?.hitX === 'start' && <i className="g-edge g-edge-l" />}
@@ -220,11 +253,54 @@ function Surface({ guides }: { guides: boolean }) {
           if (!layer) return;
           const id = hit(e.clientX, e.clientY);
           if (!id) return;
-          editor.selectLayer(id);
-          const target = slide?.layers.find((l) => l.id === id);
-          if (!target) return;
+          const additive = e.ctrlKey || e.metaKey;
+          const already = selIds.includes(id);
+          if (additive && !already) {
+            // Ctrl + clique noutra camada: soma ela à seleção (não marca palavra nem arrasta)
+            editor.selectLayer(id, true);
+            pendingWord.current = null;
+            return;
+          }
+          // clique simples numa camada que já faz parte da seleção múltipla: arrasta o grupo todo
+          const group = already && selIds.length > 1 ? selIds : [id];
+          if (group.length > 1) editor.focusLayer(id);
+          else if (!additive) editor.selectLayer(id);
+          if (pendingWord.current) pendingWord.current.layer = id;
+          const root = ref.current!;
+          const r = root.getBoundingClientRect();
+          const starts: Record<string, { x: number; y: number }> = {};
+          for (const gid of [id, ...group.filter((g) => g !== id)]) {
+            const l = slide?.layers.find((q) => q.id === gid);
+            if (l) starts[gid] = { x: l.style.x, y: l.style.y };
+          }
+          // caixa que envolve o grupo (em % do slide), para o ímã alinhar a borda de fora
+          let minX = Infinity;
+          let maxX = -Infinity;
+          let minY = Infinity;
+          let maxY = -Infinity;
+          for (const gid of Object.keys(starts)) {
+            const b = boxes[gid];
+            if (!b) continue;
+            const hh = rotatedHalf(b.w, b.h, b.rot);
+            minX = Math.min(minX, b.cx - hh.hw);
+            maxX = Math.max(maxX, b.cx + hh.hw);
+            minY = Math.min(minY, b.cy - hh.hh);
+            maxY = Math.max(maxY, b.cy + hh.hh);
+          }
+          const known = Number.isFinite(minX);
+          const st0 = starts[id];
           e.currentTarget.setPointerCapture(e.pointerId);
-          setDrag({ sx: e.clientX, sy: e.clientY, x0: target.style.x, y0: target.style.y, hitX: null, hitY: null });
+          setDrag({
+            sx: e.clientX,
+            sy: e.clientY,
+            starts,
+            ux: known ? (((minX + maxX) / 2) / r.width) * 100 : st0.x,
+            uy: known ? (((minY + maxY) / 2) / r.height) * 100 : st0.y,
+            uhw: known ? (((maxX - minX) / 2) / r.width) * 100 : 0,
+            uhh: known ? (((maxY - minY) / 2) / r.height) * 100 : 0,
+            hitX: null,
+            hitY: null,
+          });
         }}
         onPointerMove={(e) => {
           const root = ref.current;
@@ -234,28 +310,42 @@ function Surface({ guides }: { guides: boolean }) {
             return;
           }
           const r = root.getBoundingClientRect();
-          let x = clamp(drag.x0 + ((e.clientX - drag.sx) / r.width) * 100, 0, 100);
-          let y = clamp(drag.y0 + ((e.clientY - drag.sy) / r.height) * 100, 0, 100);
-          // ímã: encosta na borda (ou no centro) quando chega perto; continuar arrastando solta. Alt desliga.
+          const ddx = ((e.clientX - drag.sx) / r.width) * 100;
+          const ddy = ((e.clientY - drag.sy) / r.height) * 100;
+          // o grupo inteiro (ou a caixa sozinha) anda junto; o ímã olha para a caixa que envolve tudo
+          let ux = drag.ux + ddx;
+          let uy = drag.uy + ddy;
           let hitX: SnapHit = null;
           let hitY: SnapHit = null;
-          if (!e.altKey) {
-            const half = box ? rotatedHalf(box.w, box.h, box.rot) : { hw: 0, hh: 0 };
-            const sx = snapAxis(x, (half.hw / r.width) * 100, (SNAP_PX / r.width) * 100, { edges: !!box });
-            const sy = snapAxis(y, (half.hh / r.height) * 100, (SNAP_PX / r.height) * 100, { edges: !!box });
-            x = sx.pos;
-            y = sy.pos;
+          // ímã: encosta na borda, na margem segura ou no centro quando chega perto; continuar arrastando solta.
+          // Desligado no botão "Ímã" (ou segurando Alt), o movimento é totalmente livre.
+          if (snapOn && !e.altKey) {
+            const known = drag.uhw > 0 || drag.uhh > 0;
+            const sx = snapAxis(ux, drag.uhw, (SNAP_PX / r.width) * 100, { edges: known, safe: SAFE_MARGIN });
+            const sy = snapAxis(uy, drag.uhh, (SNAP_PX / r.height) * 100, { edges: known, safe: SAFE_MARGIN });
+            ux = sx.pos;
+            uy = sy.pos;
             hitX = sx.hit;
             hitY = sy.hit;
           }
+          const mx = ux - drag.ux;
+          const my = uy - drag.uy;
           if (hitX !== drag.hitX || hitY !== drag.hitY) setDrag((d) => (d ? { ...d, hitX, hitY } : d));
-          editor.patchStyle({ x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 });
+          const ids = Object.keys(drag.starts);
+          const at = (id: string) => ({
+            x: Math.round(clamp(drag.starts[id].x + mx, 0, 100) * 10) / 10,
+            y: Math.round(clamp(drag.starts[id].y + my, 0, 100) * 10) / 10,
+          });
+          if (ids.length > 1) editor.moveLayers(Object.fromEntries(ids.map((id) => [id, at(id)])));
+          else editor.patchStyle(at(ids[0]));
         }}
         onPointerUp={(e) => {
           setDrag(null);
           const p = pendingWord.current;
           pendingWord.current = null;
           if (!p || Math.hypot(e.clientX - p.sx, e.clientY - p.sy) > 4) return; // foi um arraste, não um clique
+          // clique simples (sem arrastar) numa camada do grupo: volta a selecionar só ela
+          if (!p.add && p.layer && editorStore.get().extraLayerIds.length) editor.selectLayer(p.layer);
           if (p.key) {
             wordSelection.click(p.key, p.add);
             writeSetting('right-tab', 'words');
@@ -282,6 +372,11 @@ function Surface({ guides }: { guides: boolean }) {
           setMenu({ x: e.clientX, y: e.clientY, items: buildStageMenu({ stage: root, slide, word, layerId: id, at, toast }) });
         }}
       />
+      {selIds.slice(1).map((id) => {
+        const b = boxes[id];
+        return b ? <div key={id} className="sel sel-extra" style={{ left: b.cx, top: b.cy, width: b.w, height: b.h, transform: `translate(-50%, -50%) rotate(${b.rot}deg)` }} aria-hidden /> : null;
+      })}
+      {selIds.length > 1 && <span className="sel-count">{selIds.length} textos selecionados · Ctrl + clique soma ou tira</span>}
       {box && layer && (
         <div className="sel-wrap" data-drag={drag ? '1' : '0'} data-busy={busy ? '1' : '0'}>
           <Handles box={box} layerName={layer.name} onBusy={setBusy} />
@@ -334,6 +429,7 @@ export function StageArea({ onLyrics }: { onLyrics: () => void }) {
           <Button size="sm" variant="ghost" icon={<LuRotateCcw />} onClick={() => editor.replay()} title="Repetir a animação de entrada e saída (R)">
             Repetir animação
           </Button>
+          <SnapToggle />
           <IconButton label="Guias de centralização e área segura" icon={<LuGrid3X3 />} size="sm" active={guides} onClick={() => setGuides(!guides)} />
           <span className="chip">{aspect}</span>
         </div>

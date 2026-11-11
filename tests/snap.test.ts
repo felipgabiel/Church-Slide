@@ -27,3 +27,10 @@ test('encaixe: caixa girada ocupa mais espaço', () => {
   assert.ok(Math.abs(r.hw - 5) < 1e-9 && Math.abs(r.hh - 10) < 1e-9);
   assert.deepEqual(rotatedHalf(20, 10, 0), { hw: 10, hh: 5 });
 });
+
+test('encaixe: margem segura também gruda, e a mais perto vence', () => {
+  // meia = 10, margem 5: a borda encosta na margem quando o centro está em 15
+  assert.deepEqual(snapAxis(16, 10, 2, { safe: 5 }), { pos: 15, hit: 'safe-start' });
+  assert.deepEqual(snapAxis(11, 10, 2, { safe: 5 }), { pos: 10, hit: 'start' });
+  assert.deepEqual(snapAxis(84.5, 10, 2, { safe: 5 }), { pos: 85, hit: 'safe-end' });
+});

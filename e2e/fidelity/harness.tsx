@@ -79,6 +79,11 @@ async function canvasOf(draw: (ctx: CanvasRenderingContext2D) => Promise<void> |
     await frame();
     const scene = await measureScene(p, slide, W, H);
     const comp = createCompositor(scene);
-    return canvasOf((ctx) => comp.draw(ctx, comp.enterMs + 1000));
+    const bg = p.theme.background;
+    const painter = bg.kind === 'solid' && bg.color === '#000000' ? null : await BackgroundPainter.create(bg, W, H);
+    return canvasOf(async (ctx) => {
+      if (painter) await painter.draw(ctx, 0);
+      comp.draw(ctx, comp.enterMs + 1000);
+    });
   },
 };

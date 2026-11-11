@@ -1509,3 +1509,37 @@
 .g-edge-b {
   bottom: 0;
 }
+.g-safe[data-hot='1'] {
+  border: 1px dashed var(--accent);
+  box-shadow: 0 0 10px -2px var(--accent);
+}
+/* seleção múltipla (Ctrl + clique): contorno das outras caixas e aviso */
+.sel-extra {
+  border-style: dashed;
+  pointer-events: none;
+}
+.sel-count {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.65);
+  color: #fff;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.snap-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-2);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.snap-toggle > svg {
+  font-size: 14px;
+  color: var(--text-3);
+}

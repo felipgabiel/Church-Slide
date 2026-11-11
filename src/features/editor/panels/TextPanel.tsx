@@ -3,7 +3,7 @@ import { LuAlignCenter, LuAlignLeft, LuAlignRight, LuBold, LuCaseUpper, LuItalic
 import { MIN_FONT, SYSTEM_SANS } from '../../../core/defaults';
 import { getFontOptions } from '../../../core/fonts';
 import type { Align } from '../../../core/types';
-import { editor, useActiveLayer } from '../../../store/editor';
+import { editor, useActiveLayer, useSelectedLayerIds } from '../../../store/editor';
 import { Button, IconButton } from '../../../ui/Button';
 import { ColorField, Row, Section, Segmented, Select, Slider, Switch } from '../../../ui/Controls';
 import { toast } from '../../../ui/toast';
@@ -15,6 +15,7 @@ export function TextPanel() {
   const layer = useActiveLayer();
   const fonts = useCustomFonts();
   const file = useRef<HTMLInputElement>(null);
+  const selCount = useSelectedLayerIds().length;
   if (!layer) return <p className="panel-empty">Nenhuma camada selecionada.</p>;
   const s = layer.style;
   const set = editor.patchStyle;
@@ -37,6 +38,16 @@ export function TextPanel() {
 
   return (
     <div className="props">
+      {selCount > 1 && (
+        <div className="notice" role="status">
+          <span>
+            <b>{selCount} textos selecionados.</b> Os ajustes valem para todos.
+          </span>
+          <Button size="sm" variant="ghost" onClick={() => editor.selectLayer(layer.id)}>
+            Só este
+          </Button>
+        </div>
+      )}
       <Section title="Fonte">
         <div className="font-row">
           <Select value={s.fontFamily} onChange={(v) => set({ fontFamily: v })} label="Fonte" optionStyle={(v) => ({ fontFamily: v })}>
@@ -139,6 +150,22 @@ export function TextPanel() {
             Centralizar ↕
           </Button>
         </div>
+      </Section>
+
+      <Section
+        title="Inverter cores"
+        defaultOpen={false}
+        hint="A letra mostra o negativo do que está atrás dela: sobre partes claras fica escura e sobre partes escuras fica clara. Funciona melhor com a letra branca."
+        toggle={{ checked: s.blend === 'difference', onChange: (v) => set({ blend: v ? 'difference' : 'normal' }) }}
+      >
+        <p className="props-note">
+          {s.blend === 'difference' ? 'Ligado: a cor da letra se inverte sobre o fundo, inclusive em fundos animados e no vídeo.' : 'Ligue para a letra trocar de cor sozinha conforme o fundo passa por trás.'}
+        </p>
+        {s.blend === 'difference' && s.color.toLowerCase() !== '#ffffff' && (
+          <Button size="sm" onClick={() => set({ color: '#ffffff' })}>
+            Usar letra branca (inversão completa)
+          </Button>
+        )}
       </Section>
 
       <Section title="Aparência" defaultOpen={false}>
