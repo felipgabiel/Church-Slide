@@ -17,6 +17,10 @@ import { editor, useActiveSlide, useEditor } from '../../store/editor';
 import { toast } from '../../ui/toast';
 import { applyAnimationPreset } from './applyPreset';
 import { MediaGrid } from './MediaGrid';
+import { navigate, paths } from '../../app/router';
+import { designBackground } from '../../core/design/apply';
+import { DesignThumb } from '../backgrounds/DesignThumb';
+import { useDesigns } from '../backgrounds/useDesigns';
 import { SlideList } from './SlideList';
 
 type Tab = 'slides' | 'backgrounds' | 'animations' | 'elements';
@@ -39,8 +43,37 @@ function BackgroundLibrary() {
   const theme = useEditor((s) => s.project!.theme);
   const aspect = useEditor((s) => s.project!.aspect);
   const current = resolveBackground(slide, theme);
+  const designs = useDesigns();
   return (
     <div className="lp-scroll">
+      <h3 className="lp-title">Meus fundos</h3>
+      {designs.items.length > 0 ? (
+        <div className="cards">
+          {designs.items.map((d) => (
+            <button
+              key={d.id}
+              type="button"
+              className="card"
+              data-on={current.kind === 'design' && current.design?.id === d.id ? '1' : '0'}
+              aria-pressed={current.kind === 'design' && current.design?.id === d.id}
+              title={`${d.name}: aplicar (o louvor guarda uma cópia)`}
+              onClick={() => editor.setBackground(designBackground(d))}
+            >
+              <DesignThumb design={d} />
+              <span>{d.name}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        !designs.loading && (
+          <p className="lp-empty-note">
+            Fundos criados no Estúdio aparecem aqui.{' '}
+            <button type="button" className="xd-link" onClick={() => navigate(paths.backgrounds)}>
+              Abrir o Estúdio de Fundos
+            </button>
+          </p>
+        )
+      )}
       <h3 className="lp-title">Meus arquivos</h3>
       <MediaGrid
         selectedId={current.mediaId}

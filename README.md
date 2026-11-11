@@ -34,6 +34,9 @@ Use **Chrome ou Edge** atualizados: foi neles que tudo foi testado. A geração 
 - **Troca de cor em algumas palavras:** clique nas palavras no slide (Shift ou Ctrl para somar mais de uma) e abra
   *Animação → Troca de cor*. Monte a sequência de cores no "+", escolha em quantos segundos ela começa e pronto.
   Também dá para clicar com o botão direito numa palavra e escolher *Troca de cor…*.
+- **Fundos próprios:** na biblioteca, clique em *Fundos*, escolha um modelo (Sol poente, Portais, Neblina…) e ajuste
+  formas, luzes, ondas, texturas e o movimento em loop. Tudo salva sozinho em *Meus fundos*. Use *Usar num louvor* (cada
+  louvor guarda a própria cópia) ou *Exportar vídeo* para levar só o fundo, em MP4 que repete sem emenda, para o Holyrics.
 - **Tema claro ou escuro:** botão de sol/lua no alto da tela. A escolha fica salva.
 - **Letra pequena demais?** *Texto → Legibilidade no telão → Letra mínima*: os ajustes automáticos nunca deixam a
   letra menor que isso; a linha quebra em vez de encolher.

@@ -18,6 +18,7 @@ import {
   LuLibrary,
   LuMonitorPlay,
   LuMusic,
+  LuPalette,
   LuPencil,
   LuPlus,
   LuSearch,
@@ -47,16 +48,26 @@ import { InfoDialog } from './InfoDialog';
 import { NewProjectDialog } from './NewProjectDialog';
 import { TrashDialog } from './TrashDialog';
 import { useProjects } from './useProjects';
+import { Gallery, startFromStarter } from '../backgrounds/Gallery';
+import { useDesigns } from '../backgrounds/useDesigns';
+import { STARTERS } from '../../core/design/starters';
 
 type Filter = { kind: 'all' } | { kind: 'templates' } | { kind: 'category'; name: string } | { kind: 'none' };
 type Sort = 'recent' | 'name';
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-export function Library() {
+export function Library({ section = 'songs' }: { section?: 'songs' | 'backgrounds' }) {
+  const designs = useDesigns();
+  const inBg = section === 'backgrounds';
   const { projects, loading, error, reload } = useProjects();
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<Filter>({ kind: 'all' });
+  const [filter, setFilterState] = useState<Filter>({ kind: 'all' });
+  // na seção Fundos, clicar em Louvores/Modelos/categorias volta para a lista de louvores
+  const setFilter = (f: Filter) => {
+    setFilterState(f);
+    if (inBg) navigate(paths.library);
+  };
   const [sort, setSort] = useState<Sort>('recent');
   const [newOpen, setNewOpen] = useState(false);
   const [newTheme, setNewTheme] = useState('impacto');
@@ -206,16 +217,17 @@ export function Library() {
           <Wordmark />
         </div>
         <nav className="lib-nav-group">
-          <NavItem icon={<LuLibrary />} label="Louvores" count={songs.length} on={filter.kind === 'all'} onClick={() => setFilter({ kind: 'all' })} />
-          <NavItem icon={<LuLayoutTemplate />} label="Modelos" count={templates.length} on={filter.kind === 'templates'} onClick={() => setFilter({ kind: 'templates' })} />
+          <NavItem icon={<LuLibrary />} label="Louvores" count={songs.length} on={!inBg && filter.kind === 'all'} onClick={() => setFilter({ kind: 'all' })} />
+          <NavItem icon={<LuLayoutTemplate />} label="Modelos" count={templates.length} on={!inBg && filter.kind === 'templates'} onClick={() => setFilter({ kind: 'templates' })} />
+          <NavItem icon={<LuPalette />} label="Fundos" count={designs.items.length} on={inBg} onClick={() => navigate(paths.backgrounds)} />
         </nav>
         {(categories.length > 0 || uncategorized > 0) && (
           <nav className="lib-nav-group lib-cats" aria-label="Categorias">
             <h3>Categorias</h3>
             {categories.map((c) => (
-              <NavItem key={c} icon={<LuHash />} label={c} count={songs.filter((p) => p.category.trim() === c).length} on={filter.kind === 'category' && filter.name === c} onClick={() => setFilter({ kind: 'category', name: c })} />
+              <NavItem key={c} icon={<LuHash />} label={c} count={songs.filter((p) => p.category.trim() === c).length} on={!inBg && filter.kind === 'category' && filter.name === c} onClick={() => setFilter({ kind: 'category', name: c })} />
             ))}
-            {uncategorized > 0 && categories.length > 0 && <NavItem icon={<LuHash />} label="Sem categoria" count={uncategorized} on={filter.kind === 'none'} onClick={() => setFilter({ kind: 'none' })} />}
+            {uncategorized > 0 && categories.length > 0 && <NavItem icon={<LuHash />} label="Sem categoria" count={uncategorized} on={!inBg && filter.kind === 'none'} onClick={() => setFilter({ kind: 'none' })} />}
           </nav>
         )}
         <div className="lib-side-foot">
@@ -238,30 +250,39 @@ export function Library() {
         <header className="lib-bar">
           <label className="lib-search">
             <LuSearch aria-hidden />
-            <input ref={searchRef} type="search" placeholder="Buscar louvor, artista ou trecho da letra" value={query} onChange={(e) => setQuery(e.currentTarget.value)} aria-label="Buscar louvores" />
+            <input ref={searchRef} type="search" placeholder={inBg ? 'Buscar nos meus fundos' : 'Buscar louvor, artista ou trecho da letra'} value={query} onChange={(e) => setQuery(e.currentTarget.value)} aria-label={inBg ? 'Buscar fundos' : 'Buscar louvores'} />
             {!query && <kbd aria-hidden>/</kbd>}
           </label>
           <div className="lib-bar-actions">
             <input ref={fileRef} type="file" accept=".json,application/json" multiple hidden onChange={(e) => void doImport(e.currentTarget.files)} />
             <ThemeToggle />
-            <Button variant="ghost" icon={<LuUpload />} onClick={() => fileRef.current?.click()}>
-              Importar
-            </Button>
-            <Button variant="primary" icon={<LuPlus />} onClick={startNew}>
-              Novo louvor
-            </Button>
+            {inBg ? (
+              <Button variant="primary" icon={<LuPlus />} onClick={() => void startFromStarter(STARTERS[STARTERS.length - 1])}>
+                Novo fundo
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" icon={<LuUpload />} onClick={() => fileRef.current?.click()}>
+                  Importar
+                </Button>
+                <Button variant="primary" icon={<LuPlus />} onClick={startNew}>
+                  Novo louvor
+                </Button>
+              </>
+            )}
           </div>
         </header>
 
         <div className="lib-content">
-          {storageMode === 'memory' && (
+          {inBg && <Gallery query={query} />}
+          {!inBg && storageMode === 'memory' && (
             <div className="lib-banner" role="alert">
               <LuWifiOff aria-hidden />
               Este navegador bloqueou o armazenamento local (navegação privada?). Os projetos só existem enquanto esta aba estiver aberta. Use “Exportar” para guardar uma cópia.
             </div>
           )}
 
-          {home && !loading && !error && (
+          {!inBg && home && !loading && !error && (
             <section className="lib-hello" aria-label="Início">
               <h1>{greeting()}</h1>
               <p>
@@ -272,7 +293,7 @@ export function Library() {
             </section>
           )}
 
-          {home && recent.length > 0 && !error && (
+          {!inBg && home && recent.length > 0 && !error && (
             <section className="lib-recent" aria-labelledby="lib-recent-h">
               <h2 id="lib-recent-h">Continue de onde parou</h2>
               <div className="lib-recent-row">
@@ -283,6 +304,7 @@ export function Library() {
             </section>
           )}
 
+          {!inBg && (
           <section className="lib-all" aria-labelledby="lib-all-h">
             <div className="lib-head">
               <h2 id="lib-all-h">{query.trim() ? 'Resultados' : heading}</h2>
@@ -391,6 +413,7 @@ export function Library() {
               </div>
             )}
           </section>
+          )}
         </div>
       </main>
 

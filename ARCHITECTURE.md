@@ -88,7 +88,7 @@ sai (crossfade): nunca há quadro vazio.
 
 ## 5. Armazenamento
 
-- IndexedDB `church-slide` v1, stores `projects`, `media`, `snapshots`.
+- IndexedDB `church-slide` v2, stores `projects`, `media`, `snapshots` e `designs` (fundos do Estúdio; a migração da v1 só cria o store novo).
 - **Autosave** com debounce de 400 ms; `pagehide` e `visibilitychange` forçam a gravação imediata.
 - **Desfazer/refazer**: até 100 estados, com fusão de edições contínuas (arrastar um controle = 1 passo).
 - **Recuperação**: a cada gravação boa guarda-se um *snapshot*; o projeto pode ser restaurado dele.
@@ -223,6 +223,23 @@ altura do slide ≈ 49 px em Full HD; ajustável em *Texto → Legibilidade no t
 
 O tamanho que a pessoa escolhe à mão não é limitado. O vídeo mede o mesmo DOM, então sai igual.
 
+### Estúdio de Fundos (`core/design/*`, `features/backgrounds/*`, `render/DesignCanvas.tsx`)
+
+- **Onde fica:** item "Fundos" na barra lateral da biblioteca (`#/fundos`: modelos de partida + "Meus fundos") e o
+  estúdio em tela própria (`#/fundos/<id>`, ou `#/fundos/<id>/de/<louvor>` quando aberto pelo editor, com caminho de volta).
+- **Modelo:** `BackgroundDesign` = nome, duração do loop, cor de base e uma pilha de `DesignLayer` (degradê, forma,
+  luz, ondas, textura, partículas). Formato plano, validado por `sanitizeDesign` ao ler do banco ou de um louvor.
+- **Desenho:** `DesignPainter` (canvas 2D) desenha cada camada numa tela auxiliar e compõe com opacidade, modo de
+  mistura e desfoque (desfoques grandes em meia resolução). "Recortar pela camada de baixo" usa a camada anterior como
+  máscara. É o MESMO código no palco, no telão e no vídeo (`BackgroundPainter` delega para ele), e o teste de fidelidade
+  compara os dois.
+- **Loop sem emenda:** todo movimento (`core/design/motion.ts`) é função periódica da fase do loop com voltas inteiras;
+  partículas sobem uma tela por loop; o vídeo "só o fundo" tem exatamente `loop × fps` quadros.
+- **Cópia, não vínculo (decisão do produto):** aplicar um fundo grava uma cópia dentro do louvor (`Background.kind = 'design'`
+  + `design`). Mudar "Meus fundos" não altera louvores prontos; o painel Fundo avisa que há versão mais nova e oferece
+  "Atualizar". "Aplicar neste louvor" (vindo do editor) troca só as cópias daquele fundo, mantendo os ajustes do louvor.
+- **Modelos de louvor** levam o fundo junto (é só mais um fundo dentro do projeto); "Usar num louvor" lista modelos também.
+
 ### Apoio opcional via Pix (`core/support.ts`, `features/support/SupportCard.tsx`)
 
 O site é gratuito. Depois de gerar os vídeos, o diálogo de exportação mostra um convite discreto com o QR Code e o
@@ -277,8 +294,8 @@ Painéis laterais acompanham a largura do monitor (`clamp`), testados de 1280×7
 | Comando | O que faz |
 |---|---|
 | `npm run typecheck` | `tsc --noEmit` (ver limitação na seção 1) |
-| `npm test` | 98 testes unitários: easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção |
-| `npm run build && npm run e2e` | 28 etapas no navegador contra o build de produção (ver abaixo) |
+| `npm test` | 106 testes unitários: easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
+| `npm run build && npm run e2e` | 33 etapas no navegador contra o build de produção (ver abaixo) |
 | `npm run e2e:fidelity` | compara o desenho em canvas (vídeo) com o DOM do editor (PSNR; exige ffmpeg) |
 
 O e2e (`e2e/run.mjs`) cria um louvor pela interface, edita e confere a persistência após recarregar,
@@ -291,7 +308,9 @@ que realmente aproxima, troca de cor (confere os pixels do vídeo com ffmpeg), p
 servido numa subpasta como no GitHub Pages, inclusive offline, troca de cor só nas palavras marcadas (quadro a quadro:
 ordem da sequência, início no tempo escolhido, telão e vídeo iguais), legibilidade de frases curtas a longas em
 1600×900 e 1280×720 e os dois temas (botão, preferência salva, varredura de cores que sobraram do outro tema em
-biblioteca, editor, menus, diálogos e operador). Termina conferindo que não houve erros de console.
+biblioteca, editor, menus, diálogos e operador) e o Estúdio de Fundos (criar a partir de modelo, mover no palco, desfazer,
+salvar sozinho, camadas e movimentos, vídeo só do fundo com 360 quadros e emenda invisível, cópia no louvor, "Atualizar" e a
+ida e volta editor ↔ estúdio). Termina conferindo que não houve erros de console.
 
 O build **falha** se `sw.js` sair com marcadores sem substituir — um bug anterior fazia o service
 worker não registrar e o modo offline nunca funcionava, sem nenhum aviso.
@@ -302,6 +321,7 @@ worker não registrar e o modo offline nunca funcionava, sem nenhum aviso.
   ou pareamento WebRTC manual por QR code). Fica para uma próxima etapa; a camada `LiveBus` já isola o
   transporte, então um canal de rede entra no lugar do `BroadcastChannel` sem tocar nas telas.
 - **Biblioteca de fundos em vídeo embutida** (o app traz fundos animados e gradientes gerados por código, que não pesam; vídeos e imagens são enviados pelo usuário).
+- **Estúdio de Fundos:** imagem/vídeo como camada, importar/exportar um fundo em arquivo `.json` e degradê em malha ficam para uma próxima etapa.
 - **Contas, nuvem e sincronização entre computadores** — fora do escopo desta etapa por decisão do briefing.
 - Verificação em hardware real com **dois monitores físicos**: o fluxo é testado com duas janelas, mas a
   Window Management API só pode ser exercitada de verdade em máquina com mais de um monitor.

@@ -5,15 +5,17 @@
  *  - projects  : projetos (JSON)
  *  - media     : imagens, vídeos e fontes (Blob)
  *  - snapshots : cópia de segurança do último estado bom de cada projeto
+ *  - designs   : fundos criados no Estúdio de Fundos ("Meus fundos"), desde a versão 2
  *
  * Se o IndexedDB estiver indisponível (ex.: navegação privada em alguns
  * navegadores) caímos para memória, e a interface avisa que nada será salvo.
  */
 
-export type StoreName = 'projects' | 'media' | 'snapshots';
+export type StoreName = 'projects' | 'media' | 'snapshots' | 'designs';
 
 const DB_NAME = 'church-slide';
-const DB_VERSION = 1;
+/** 2: store `designs`. A migração só cria o que falta, nunca mexe nos louvores. */
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 export let storageMode: 'idb' | 'memory' = 'idb';
@@ -22,6 +24,7 @@ const memory: Record<StoreName, Map<string, unknown>> = {
   projects: new Map(),
   media: new Map(),
   snapshots: new Map(),
+  designs: new Map(),
 };
 
 function open(): Promise<IDBDatabase> {
@@ -30,7 +33,7 @@ function open(): Promise<IDBDatabase> {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
-      for (const name of ['projects', 'media', 'snapshots'] as StoreName[]) {
+      for (const name of ['projects', 'media', 'snapshots', 'designs'] as StoreName[]) {
         if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: 'id' });
       }
     };

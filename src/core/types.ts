@@ -145,7 +145,7 @@ export interface TextLayer {
   words?: Record<string, WordOverride>;
 }
 
-export type BackgroundKind = 'solid' | 'gradient' | 'image' | 'video' | 'animated';
+export type BackgroundKind = 'solid' | 'gradient' | 'image' | 'video' | 'animated' | 'design';
 export type AnimatedKind = 'aurora' | 'drift' | 'bokeh' | 'rays' | 'waves';
 
 export interface BackgroundAdjust {
@@ -172,6 +172,93 @@ export interface Background {
   posX: number;
   posY: number;
   adjust: BackgroundAdjust;
+  /**
+   * Fundo criado no Estúdio de Fundos (kind 'design'). É uma CÓPIA: cada louvor guarda a sua,
+   * então mudar o fundo em "Meus fundos" depois não altera louvores que já o usam.
+   */
+  design?: BackgroundDesign | null;
+}
+
+/* ------------------------- Estúdio de Fundos ------------------------- */
+
+export type DesignLayerKind = 'gradient' | 'shape' | 'glow' | 'waves' | 'texture' | 'particles';
+export type DesignShape = 'circle' | 'rounded' | 'arch' | 'band' | 'polygon';
+export type DesignFillType = 'solid' | 'linear' | 'radial' | 'conic';
+export type DesignBlend = 'normal' | 'screen' | 'overlay' | 'multiply' | 'lighter';
+export type DesignTexture = 'grain' | 'stripes';
+/** movimentos prontos; todos fecham exatamente no fim do loop */
+export type DesignMotionKind = 'drift' | 'breathe' | 'spin' | 'flow' | 'colors' | 'twinkle';
+
+export interface DesignFill {
+  type: DesignFillType;
+  /** graus (linear: direção; cônico: giro inicial) */
+  angle: number;
+  stops: { color: string; at: number }[];
+}
+
+export interface DesignMotion {
+  kind: DesignMotionKind;
+  /** 0–100 */
+  amount: number;
+  /** quantas voltas o movimento dá dentro de um loop (1–4) */
+  cycles: number;
+  /** paleta do ciclo de cores (2–6 cores) */
+  colors?: string[];
+}
+
+/**
+ * Uma camada do fundo. Campos que não se aplicam ao tipo são ignorados ao desenhar
+ * (formato plano: simples de validar, copiar e editar no painel de ajustes).
+ */
+export interface DesignLayer {
+  id: string;
+  kind: DesignLayerKind;
+  name: string;
+  visible: boolean;
+  locked: boolean;
+  /** 0–100 */
+  opacity: number;
+  blend: DesignBlend;
+  /** desfoque 0–100 (100 = 25% da altura) */
+  blur: number;
+  /** centro, em % da largura / altura */
+  x: number;
+  y: number;
+  /** largura e altura, em % da ALTURA do slide (formas e luzes não se deformam em outras proporções) */
+  w: number;
+  h: number;
+  rotation: number;
+  fill: DesignFill;
+  shape: DesignShape;
+  /** cantos (retângulo) 0–50, em % do menor lado */
+  radius: number;
+  /** lados do polígono */
+  sides: number;
+  /** ondas: quantidade de fios; partículas: quantidade */
+  count: number;
+  /** ondas: altura da ondulação (% da altura) */
+  amplitude: number;
+  /** ondas: espessura do fio; listras: espessura (% do espaço) */
+  thickness: number;
+  texture: DesignTexture;
+  /** textura: tamanho do grão / espaço entre listras (% da altura) */
+  scale: number;
+  /** recorta a camada pelo formato da camada logo abaixo (listras só dentro do sol) */
+  clip: boolean;
+  motions: DesignMotion[];
+}
+
+export interface BackgroundDesign {
+  id: string;
+  name: string;
+  /** duração do loop em segundos */
+  loopSec: number;
+  /** cor que fica por baixo de tudo */
+  base: string;
+  /** de baixo para cima */
+  layers: DesignLayer[];
+  createdAt: number;
+  updatedAt: number;
 }
 
 export type EasingName = 'linear' | 'ease-out' | 'ease-in-out' | 'smooth' | 'back' | 'expo';

@@ -6,15 +6,18 @@ import { Library } from '../features/library/Library';
 import { Editor } from '../features/editor/Editor';
 import { Operator } from '../features/present/Operator';
 import { Output } from '../features/present/Output';
+import { Studio } from '../features/backgrounds/Studio';
 
 export function App() {
   const route = useRoute();
   useThemeMode(); // acompanha a troca de tema feita em outra janela
-  const key = route.name === 'library' || route.name === 'output' ? route.name : `${route.name}:${route.id}`;
+  // biblioteca e galeria de fundos são a mesma tela (só muda a seção): não remonta ao trocar
+  const key = route.name === 'library' || route.name === 'backgrounds' ? 'library' : route.name === 'output' ? route.name : `${route.name}:${route.id}`;
   return (
     <div className="app">
       <ErrorBoundary key={key}>
-        {route.name === 'library' && <Library />}
+        {(route.name === 'library' || route.name === 'backgrounds') && <Library section={route.name === 'backgrounds' ? 'backgrounds' : 'songs'} />}
+        {route.name === 'studio' && <Studio id={route.id} from={route.from} />}
         {route.name === 'edit' && <Editor id={route.id} />}
         {route.name === 'present' && <Operator id={route.id} />}
         {route.name === 'output' && <Output />}

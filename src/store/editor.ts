@@ -1,12 +1,14 @@
 import { applyPreset, getPreset } from '../core/anim/presets';
 import { newLayer, newSlide, normalizeProject, resolveAnimation, resolveBackground } from '../core/defaults';
 import { uid } from '../core/ids';
+import { designBackground } from '../core/design/apply';
 import { splitLyrics } from '../core/split';
 import { getProject, saveProject, writeSnapshot } from '../core/storage/projects';
 import type {
   AnimationConfig,
   Aspect,
   Background,
+  BackgroundDesign,
   DeepPartial,
   LayerRole,
   Project,
@@ -643,6 +645,15 @@ export const editor = {
   },
 
   /** Substitui o fundo inteiro (usado pelos presets da biblioteca). */
+  /** Troca TODAS as cópias de um fundo do Estúdio no louvor (tema e trechos) pela versão nova, mantendo os ajustes. */
+  replaceDesignCopies(design: BackgroundDesign) {
+    mutate((d) => {
+      const swap = (bg: Background) => (bg.kind === 'design' && bg.design?.id === design.id ? designBackground(design, bg) : bg);
+      d.theme.background = swap(d.theme.background);
+      for (const s of d.slides) if (s.background) s.background = swap(s.background);
+    });
+  },
+
   setBackground(bg: Background) {
     const scope = editorStore.get().scope;
     mutate((d) => {

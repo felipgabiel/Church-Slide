@@ -63,6 +63,15 @@ for (const b of bgs) {
 }
 cases.push({ name: 'fundo degradê (160°, 3 cores)', min: 38, shot: true, run: () => page.evaluate(() => window.H.background({ kind: 'gradient', animated: 'aurora', color: '#000', gradient: { angle: 160, stops: [{ color: '#ff5a1f', at: 0 }, { color: '#d4152b', at: 50 }, { color: '#5c0b1c', at: 100 }] }, mediaId: null, speed: 1, scale: 100, posX: 50, posY: 50, adjust: { brightness: 100, contrast: 100, saturate: 100, blur: 0, dim: 0 } }, 0)) });
 cases.push({ name: 'fundo aurora + brilho/contraste/saturação/escurecer', min: 30, shot: true, run: () => page.evaluate(() => window.H.background({ kind: 'animated', animated: 'aurora', color: '#0a0204', gradient: { angle: 160, stops: [{ color: '#6d5cff', at: 0 }, { color: '#00c2ff', at: 50 }, { color: '#ff4da6', at: 100 }] }, mediaId: null, speed: 1, scale: 100, posX: 50, posY: 50, adjust: { brightness: 120, contrast: 110, saturate: 130, blur: 0, dim: 25 } }, 5)) });
+// fundos do Estúdio: o mesmo desenhista no palco e no vídeo; aqui conferimos a montagem (filtros, escurecer, desfoque da borda)
+for (const [id, t, adjust] of [['sunset', 0, null], ['portals', 3.1, null], ['mist', 5, { brightness: 115, contrast: 105, saturate: 120, blur: 0, dim: 20 }], ['streaks', 8.4, { brightness: 100, contrast: 100, saturate: 100, blur: 6, dim: 0 }]]) {
+  cases.push({
+    name: `fundo do Estúdio "${id}" t=${t}s${adjust ? ' + ajustes' : ''}`,
+    min: 30,
+    shot: true,
+    run: () => page.evaluate(({ id, t, adjust }) => window.H.design(id, t, adjust), { id, t, adjust }),
+  });
+}
 cases.push({ name: 'texto: 1 linha padrão', min: 24, shot: true, run: () => page.evaluate(() => window.H.text({ text: 'Grande é o Senhor' })) });
 cases.push({ name: 'texto: várias linhas + acentos', min: 24, shot: true, run: () => page.evaluate(() => window.H.text({ text: 'Santo, Santo, Santo\nDeus Todo-Poderoso\nQue era, que é e que há de vir' })) });
 cases.push({ name: 'texto: layout Impacto (palavras com tamanhos/pesos diferentes)', min: 24, shot: true, run: () => page.evaluate(() => window.H.text({ text: 'Vem sobre mim Senhor', impact: true })) });

@@ -10,6 +10,8 @@ import { createCompositor } from '../../src/core/export/compose';
 import { measureScene } from '../../src/core/export/scene';
 import { defaultBackground, newProject } from '../../src/core/defaults';
 import { applyImpactToLayer } from '../../src/core/impact';
+import { designBackground } from '../../src/core/design/apply';
+import { STARTERS } from '../../src/core/design/starters';
 import type { Background, Project } from '../../src/core/types';
 
 const W = 1280;
@@ -42,7 +44,8 @@ async function canvasOf(draw: (ctx: CanvasRenderingContext2D) => Promise<void> |
   async background(bg: Background, t: number) {
     const el = host();
     const root = createRoot(el);
-    flushSync(() => root.render(<div className="stage" style={{ width: W, height: H }}><div className="bg-layer"><BackgroundView bg={bg} mode="live" /></div></div>));
+    const design = bg.kind === 'design';
+    flushSync(() => root.render(<div className="stage" style={{ width: W, height: H }}><div className="bg-layer"><BackgroundView bg={bg} mode="live" time={design ? t : undefined} /></div></div>));
     await frame();
     document.getAnimations().forEach((a) => {
       a.pause();
@@ -51,6 +54,14 @@ async function canvasOf(draw: (ctx: CanvasRenderingContext2D) => Promise<void> |
     await frame();
     const painter = await BackgroundPainter.create(bg, W, H);
     return canvasOf((ctx) => painter.draw(ctx, t));
+  },
+
+  /** Fundo do Estúdio (modelo de partida `id`) no instante t, com ajustes opcionais do louvor. */
+  async design(id: string, t: number, adjust: Background['adjust'] | null) {
+    const st = STARTERS.find((s) => s.id === id)!;
+    const bg = designBackground(st.make());
+    if (adjust) bg.adjust = adjust;
+    return (this as unknown as { background: (b: Background, t: number) => Promise<string> }).background(bg, t);
   },
 
   /** DOM: texto estático (estado final) sobre preto. Devolve o canvas equivalente no fim da animação. */

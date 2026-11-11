@@ -2,6 +2,7 @@ import { memo, useEffect, useRef, useState, type CSSProperties, type SyntheticEv
 import { BOKEH } from '../core/bokeh';
 import type { Background } from '../core/types';
 import { adjustFilter, gradientCss } from './css';
+import { DesignCanvas } from './DesignCanvas';
 import { useMediaUrl } from './useMedia';
 
 interface Props {
@@ -10,6 +11,8 @@ interface Props {
   mode: 'live' | 'static';
   /** quando o vídeo falha, avisa quem estiver observando */
   onMediaError?: () => void;
+  /** congela o fundo do Estúdio neste instante (s), em resolução cheia (testes de fidelidade) */
+  time?: number;
 }
 
 
@@ -132,14 +135,24 @@ function MediaFill({ bg, mode, onMediaError }: Props) {
  * Fundo de um slide. Camada de cor/gradiente sempre presente — se a mídia
  * faltar ou o vídeo não carregar, o fundo continua válido (nunca fica preto "quebrado").
  */
-export const BackgroundView = memo(function BackgroundView({ bg, mode, onMediaError }: Props) {
+export const BackgroundView = memo(function BackgroundView({ bg, mode, onMediaError, time }: Props) {
   const filter = adjustFilter(bg);
   const blur = bg.adjust.blur > 0;
   const base = bg.kind === 'gradient' ? gradientCss(bg) : bg.kind === 'animated' ? bg.color : bg.color;
   const hasMedia = (bg.kind === 'image' || bg.kind === 'video') && !!bg.mediaId;
+  const design = bg.kind === 'design' ? bg.design ?? null : null;
 
   return (
     <div className="bg" style={{ background: base }}>
+      {design && (
+        <div className="bg-media" style={{ filter, inset: blur ? '-4%' : 0 }}>
+          {time !== undefined ? (
+            <DesignCanvas design={design} mode="static" at={time * Math.max(0.1, bg.speed)} maxWidth={4096} />
+          ) : (
+            <DesignCanvas design={design} mode={mode} speed={bg.speed} maxWidth={mode === 'live' ? 1600 : 480} />
+          )}
+        </div>
+      )}
       {(hasMedia || bg.kind === 'animated') && (
         <div className="bg-media" style={{ filter, inset: blur ? '-4%' : 0 }}>
           {hasMedia ? <MediaFill bg={bg} mode={mode} onMediaError={onMediaError} /> : mode === 'live' ? <AnimatedBg bg={bg} /> : <StaticAnimated bg={bg} />}

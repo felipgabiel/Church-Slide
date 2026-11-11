@@ -34,6 +34,9 @@ async function step(name, fn) {
     results.push({ name, ok: true });
     console.log(`  ✔ ${name} (${Date.now() - t0} ms)`);
   } catch (err) {
+    if (process.env.E2E_SHOTS) {
+      for (const pg of ctx.pages()) await pg.screenshot({ path: join(process.env.E2E_SHOTS, `${results.length}-${pg.url().split('#')[1]?.replace(/\W+/g, '_') ?? 'x'}.png`) }).catch(() => undefined);
+    }
     results.push({ name, ok: false, err });
     console.log(`  ✘ ${name}\n      ${String(err.message ?? err).split('\n')[0]}`);
   }
@@ -953,6 +956,177 @@ await step('alças da caixa (estilo Canva): canto aumenta/diminui, lateral muda 
   await pg.waitForTimeout(200);
   assert((await style()).t.includes('rotate'), 'desfazer não trouxe o giro de volta');
   await pg.close();
+});
+
+/* ------------------------------ Estúdio de Fundos ------------------------------ */
+
+/** Lê um registro direto do IndexedDB do app (o que ficou salvo de verdade). */
+const idbGet = (pg, store, id) =>
+  pg.evaluate(
+    ({ store, id }) =>
+      new Promise((res, rej) => {
+        const r = indexedDB.open('church-slide');
+        r.onsuccess = () => {
+          const g = r.result.transaction(store, 'readonly').objectStore(store).get(id);
+          g.onsuccess = () => {
+            res(g.result ?? null);
+            r.result.close();
+          };
+          g.onerror = () => rej(g.error);
+        };
+        r.onerror = () => rej(r.error);
+      }),
+    { store, id },
+  );
+/** Repete a leitura até bater (a interface atualiza alguns campos depois do quadro). */
+const settle = async (read, ok, ms = 3000) => {
+  const t0 = Date.now();
+  let v = await read();
+  while (!ok(v) && Date.now() - t0 < ms) {
+    await new Promise((r) => setTimeout(r, 80));
+    v = await read();
+  }
+  return v;
+};
+const waitSaved = (pg) => pg.locator('.studio-status[data-state="saved"]').waitFor({ timeout: 5000 });
+let designId = '';
+let st = null;
+
+await step('Estúdio de Fundos: item na barra lateral, modelo abre o estúdio, mover no palco, desfazer e salvar sozinho', async () => {
+  st = await ctx.newPage();
+  watch(st, 'estúdio');
+  await st.goto(BASE);
+  await st.getByRole('button', { name: /^Fundos/ }).first().click();
+  await st.waitForURL(/#\/fundos$/);
+  await st.getByRole('heading', { name: 'Comece por um modelo' }).waitFor();
+  await st.getByRole('button', { name: /Sol poente/ }).click();
+  await st.waitForURL(/#\/fundos\/bg/);
+  designId = decodeURIComponent(st.url().split('/fundos/')[1]);
+  await st.locator('.st-surface canvas').waitFor();
+  await st.waitForTimeout(400);
+  const lum = await st.evaluate(() => {
+    const c = document.querySelector('.st-surface canvas');
+    const d = c.getContext('2d').getImageData((c.width / 2) | 0, (c.height / 2) | 0, 1, 1).data;
+    return d[0] + d[1] + d[2];
+  });
+  assert(lum > 150, `o palco deveria mostrar o sol no centro (soma RGB ${lum})`);
+  assert((await st.locator('.dl-row').count()) === 5, 'o modelo "Sol poente" tem 5 camadas');
+
+  const box = await st.locator('.st-surface').boundingBox();
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  await st.mouse.click(cx, cy);
+  assert((await st.locator('.insp-name').inputValue()) === 'Sol', 'clicar no sol seleciona a camada "Sol"');
+  await st.mouse.move(cx, cy);
+  await st.mouse.down();
+  await st.mouse.move(cx + box.width * 0.1, cy, { steps: 6 });
+  await st.mouse.up();
+  const hx = () => st.getByLabel('Horizontal', { exact: true }).inputValue().then(Number);
+  const x1 = await settle(hx, (v) => Math.abs(v - 60) < 1.5);
+  assert(Math.abs(x1 - 60) < 1.5, `arrastar 10% da largura deveria levar o sol a ~60% (veio ${x1})`);
+  await st.keyboard.press('Control+z');
+  const x0 = await settle(hx, (v) => v === 50);
+  assert(x0 === 50, `desfazer volta para 50% num passo só (veio ${x0})`);
+
+  await st.locator('.tb-name').fill('Meu sol');
+  await waitSaved(st);
+  await st.reload();
+  await st.locator('.st-surface canvas').waitFor();
+  assert((await st.locator('.tb-name').inputValue()) === 'Meu sol', 'o nome sobrevive ao recarregar');
+  assert((await st.locator('.dl-row').count()) === 5, 'as camadas sobrevivem ao recarregar');
+  const rec = await idbGet(st, 'designs', designId);
+  assert(rec && rec.layers.find((l) => l.name === 'Sol').x === 50, 'o banco guardou o sol no lugar desfeito');
+});
+
+await step('Estúdio: camada nova, recorte, cores e movimento (ciclo de cores) pelo painel', async () => {
+  await st.getByRole('button', { name: 'Adicionar camada' }).click();
+  await st.getByRole('menuitem', { name: /Partículas/ }).click();
+  assert((await st.locator('.dl-row').count()) === 6, 'a camada nova entra na lista');
+  assert((await st.locator('.insp-name').inputValue()) === 'Partículas', 'a camada nova fica selecionada');
+  await st.getByRole('button', { name: /Adicionar movimento/ }).click();
+  await st.getByRole('menuitem', { name: /Ciclo de cores/ }).click();
+  await st.locator('.motion', { hasText: 'Ciclo de cores' }).waitFor();
+  await st.keyboard.press('Delete');
+  assert((await st.locator('.dl-row').count()) === 5, 'Delete remove a camada selecionada');
+  await waitSaved(st);
+});
+
+await step('Fundo em vídeo (só o fundo): MP4 de 12 s que repete sem emenda', async () => {
+  await st.goto(BASE + '#/fundos');
+  await st.getByRole('button', { name: 'Mais ações para Meu sol' }).click();
+  await st.getByRole('menuitem', { name: /Exportar vídeo/ }).click();
+  await st.locator('dialog').getByRole('radio', { name: '720p' }).click();
+  await st.locator('dialog').getByRole('button', { name: 'Gerar vídeo' }).click();
+  await st.locator('dialog').getByRole('button', { name: 'Baixar vídeo' }).waitFor({ timeout: 180000 });
+  const [dl] = await Promise.all([st.waitForEvent('download'), st.locator('dialog').getByRole('button', { name: 'Baixar vídeo' }).click()]);
+  assert(/Meu sol \(loop 12s\)\.mp4$/.test(dl.suggestedFilename()), `nome: ${dl.suggestedFilename()}`);
+  const dir = mkdtempSync(join(tmpdir(), 'cs-loop-'));
+  const f = join(dir, 'loop.mp4');
+  await dl.saveAs(f);
+  const probe = spawnSync('ffprobe', ['-v', 'error', '-count_frames', '-select_streams', 'v:0', '-show_entries', 'stream=codec_name,width,height,nb_read_frames', '-of', 'json', f], { encoding: 'utf8' });
+  if (probe.status !== 0) return console.log('      (ffprobe ausente: conferi só o download)');
+  const s = JSON.parse(probe.stdout).streams[0];
+  assert(s.codec_name === 'h264' && s.width === 1280 && s.height === 720, `vídeo inesperado: ${JSON.stringify(s)}`);
+  assert(Number(s.nb_read_frames) === 360, `12 s × 30 qps = 360 quadros (veio ${s.nb_read_frames})`);
+  // emenda: do último quadro para o primeiro a mudança é do tamanho de qualquer outra virada de bloco do codificador
+  // (a cada 2 s entra um quadro-chave; a volta 359 → 0 é uma virada dessas)
+  const grab = (n, out) => spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', f, '-vf', `select=eq(n\\,${n})`, '-vframes', '1', join(dir, out)]);
+  grab(0, 'a.png');
+  grab(59, 'g1.png');
+  grab(60, 'g2.png');
+  grab(359, 'z.png');
+  const psnr = (a, b) => {
+    const r = spawnSync('ffmpeg', ['-i', join(dir, a), '-i', join(dir, b), '-lavfi', 'psnr', '-f', 'null', '-'], { encoding: 'utf8' });
+    const m = /average:([\d.]+|inf)/.exec(r.stderr);
+    return m ? (m[1] === 'inf' ? 99 : parseFloat(m[1])) : NaN;
+  };
+  const gop = psnr('g1.png', 'g2.png');
+  const seam = psnr('z.png', 'a.png');
+  assert(seam >= gop - 4, `emenda visível: último→primeiro ${seam.toFixed(1)} dB, virada normal de bloco ${gop.toFixed(1)} dB`);
+  await st.keyboard.press('Escape');
+});
+
+await step('Usar num louvor: o louvor guarda uma CÓPIA; mudar "Meus fundos" não altera o louvor até pedir "Atualizar"', async () => {
+  await st.goto(BASE + '#/fundos'); // recarrega: nenhum diálogo de etapa anterior fica aberto
+  await st.getByRole('button', { name: 'Mais ações para Meu sol' }).click();
+  await st.getByRole('menuitem', { name: /Usar num louvor/ }).click();
+  await st.locator('dialog .apply-item').filter({ has: st.locator('b', { hasText: /^Grande é o Senhor$/ }) }).first().click();
+  await st.waitForURL(new RegExp(`#/edit/${projectId}`));
+  await st.locator('.surface .bg canvas').first().waitFor();
+  let p = await idbGet(st, 'projects', projectId);
+  assert(p.theme.background.kind === 'design' && p.theme.background.design.name === 'Meu sol', 'o fundo virou o fundo do louvor');
+  assert(p.slides.every((s) => !s.background), 'vale para todos os trechos');
+
+  // muda o original no estúdio
+  await st.goto(BASE + '#/fundos/' + encodeURIComponent(designId));
+  await st.getByRole('button', { name: 'Sol', exact: true }).click();
+  await st.keyboard.press('Shift+ArrowRight');
+  await waitSaved(st);
+  p = await idbGet(st, 'projects', projectId);
+  assert(p.theme.background.design.layers.find((l) => l.name === 'Sol').x === 50, 'o louvor não mudou junto (é cópia)');
+
+  // no editor: aviso de versão nova e "Atualizar"
+  await st.goto(BASE + '#/edit/' + projectId);
+  await st.getByRole('tab', { name: 'Fundo', exact: true }).click();
+  await st.getByText('Há uma versão mais nova em Meus fundos.').waitFor();
+  await st.getByRole('button', { name: 'Atualizar', exact: true }).click();
+  await st.waitForTimeout(1500);
+  p = await idbGet(st, 'projects', projectId);
+  assert(p.theme.background.design.layers.find((l) => l.name === 'Sol').x === 55, `"Atualizar" trouxe a versão nova (x=${p.theme.background.design.layers.find((l) => l.name === 'Sol').x})`);
+});
+
+await step('Editar no estúdio a partir do louvor e voltar com "Aplicar neste louvor"', async () => {
+  await st.getByRole('button', { name: 'Editar no estúdio' }).click();
+  await st.waitForURL(/#\/fundos\/.+\/de\//);
+  await st.getByRole('button', { name: /Voltar para/ }).waitFor();
+  await st.getByRole('button', { name: 'Sol', exact: true }).click();
+  await st.keyboard.press('Shift+ArrowDown');
+  await st.getByRole('button', { name: 'Aplicar neste louvor' }).click();
+  await st.waitForURL(new RegExp(`#/edit/${projectId}`));
+  await st.locator('.surface .bg canvas').first().waitFor();
+  const p = await idbGet(st, 'projects', projectId);
+  assert(p.theme.background.design.layers.find((l) => l.name === 'Sol').y === 55, 'o louvor recebeu a edição');
+  await st.close();
 });
 
 await step('nenhum erro de console durante todo o fluxo', async () => {

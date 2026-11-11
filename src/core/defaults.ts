@@ -15,6 +15,7 @@ import {
 } from './types';
 import { clone, deepMerge, fillDefaults } from './util';
 import { sanitizeColorFx } from './anim/colorfx';
+import { sanitizeDesign } from './design/model';
 import { patchWord, sanitizeWords, tokenizeText } from './words';
 
 export const SYSTEM_SANS = 'Inter, "Segoe UI", "Helvetica Neue", Roboto, system-ui, sans-serif';
@@ -159,9 +160,23 @@ function moveColorToWords(layers: TextLayer[], fx: ColorFx | undefined): void {
   }
 }
 
+/** Fundo validado; um fundo do Estúdio com dados ruins vira o degradê padrão (nunca tela preta quebrada). */
+export function normalizeBackground(raw: unknown): Background {
+  const bg = fillDefaults(defaultBackground(), raw);
+  if (bg.kind === 'design') {
+    const design = sanitizeDesign(bg.design);
+    if (design) return { ...bg, design };
+    return { ...bg, kind: 'gradient', design: null };
+  }
+  if (!['solid', 'gradient', 'image', 'video', 'animated'].includes(bg.kind)) bg.kind = 'gradient';
+  delete bg.design;
+  return bg;
+}
+
 export function normalizeProject(raw: unknown): Project {
   const r = (raw ?? {}) as Partial<Project>;
   const theme = fillDefaults(defaultTheme(), r.theme);
+  theme.background = normalizeBackground(r.theme?.background);
   theme.animation = cleanAnimation(r.theme?.animation);
   const slides = (Array.isArray(r.slides) ? r.slides : []).map((s): Slide => {
     const slide = (s ?? {}) as Partial<Slide>;
@@ -185,7 +200,7 @@ export function normalizeProject(raw: unknown): Project {
       id: slide.id || uid('s'),
       label: slide.label ?? '',
       layers,
-      background: slide.background ? fillDefaults(defaultBackground(), slide.background) : null,
+      background: slide.background ? normalizeBackground(slide.background) : null,
       animation: slide.animation ? cleanAnimation(slide.animation) : null,
       duration: typeof slide.duration === 'number' ? slide.duration : null,
       notes: slide.notes ?? '',

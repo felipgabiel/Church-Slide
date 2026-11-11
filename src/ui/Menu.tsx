@@ -5,6 +5,8 @@ export interface MenuItem {
   label?: string;
   icon?: ReactNode;
   hint?: string;
+  /** descrição curta numa segunda linha, abaixo do rótulo */
+  desc?: string;
   danger?: boolean;
   disabled?: boolean;
   divider?: boolean;
@@ -107,7 +109,14 @@ export function Menu({ items, trigger, align = 'start', width = 220 }: MenuProps
                   }}
                 >
                   <span className="menu-ico">{it.icon}</span>
-                  <span className="menu-label">{it.label}</span>
+                  {it.desc ? (
+                    <span className="menu-label menu-label-2">
+                      {it.label}
+                      <small>{it.desc}</small>
+                    </span>
+                  ) : (
+                    <span className="menu-label">{it.label}</span>
+                  )}
                   {it.checked && <span className="menu-check">✓</span>}
                   {it.hint && <span className="menu-hint">{it.hint}</span>}
                 </button>

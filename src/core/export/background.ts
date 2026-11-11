@@ -1,5 +1,6 @@
 import { cubicBezier } from '../anim/easing';
 import { BOKEH } from '../bokeh';
+import { DesignPainter } from '../design/paint';
 import { getMedia } from '../storage/media';
 import type { Background } from '../types';
 import { clear, rgba } from './color';
@@ -210,6 +211,7 @@ export class BackgroundPainter {
   private image: ImageBitmap | null = null;
   private video: HTMLVideoElement | null = null;
   private videoUrl: string | null = null;
+  private design: DesignPainter | null = null;
   /** true se a mídia pedida não pôde ser carregada: o fundo cai para a cor/gradiente */
   mediaMissing = false;
 
@@ -222,6 +224,7 @@ export class BackgroundPainter {
     this.layer.width = w;
     this.layer.height = h;
     this.lctx = this.layer.getContext('2d')!;
+    if (bg.kind === 'design' && bg.design) this.design = new DesignPainter(w, h);
   }
 
   static async create(bg: Background, w: number, h: number): Promise<BackgroundPainter> {
@@ -269,7 +272,11 @@ export class BackgroundPainter {
     baseCtx.fillRect(0, 0, w, h);
 
     let isMedia = false;
-    if (bg.kind === 'animated') {
+    if (this.design && bg.design) {
+      // fundo do Estúdio: o mesmo desenho do editor e do telão
+      this.design.draw(lctx, bg.design, t * Math.max(0.1, bg.speed));
+      isMedia = true;
+    } else if (bg.kind === 'animated') {
       paintAnimated(lctx, bg, w, h, t);
       isMedia = true;
     } else if (this.image) {

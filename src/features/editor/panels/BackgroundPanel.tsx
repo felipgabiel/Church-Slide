@@ -1,4 +1,9 @@
-import { LuArrowLeftRight, LuMinus, LuPlus, LuUndo2 } from 'react-icons/lu';
+import { useEffect, useState } from 'react';
+import { LuArrowLeftRight, LuMinus, LuPalette, LuPlus, LuRefreshCw, LuUndo2 } from 'react-icons/lu';
+import { navigate, paths } from '../../../app/router';
+import { getDesign, saveDesign } from '../../../core/storage/designs';
+import type { BackgroundDesign } from '../../../core/types';
+import { toast, toastError } from '../../../ui/toast';
 import { ANIMATED_LABELS, ensureStops } from '../../../core/backgrounds';
 import { resolveBackground } from '../../../core/defaults';
 import type { AnimatedKind, BackgroundKind } from '../../../core/types';
@@ -24,6 +29,8 @@ export function BackgroundPanel() {
   const a = bg.adjust;
   const media = bg.kind === 'image' || bg.kind === 'video';
   const own = !!slide?.background && scope === 'slide';
+  const projectId = useEditor((s) => s.project!.id);
+  const kinds = bg.design ? [...KINDS, { value: 'design' as BackgroundKind, label: 'Estúdio' }] : KINDS;
 
   const setStops = (stops: typeof bg.gradient.stops) => set({ gradient: { stops } });
 
@@ -39,10 +46,11 @@ export function BackgroundPanel() {
       )}
 
       <Section title="Tipo de fundo">
-        <Segmented<BackgroundKind> size="sm" label="Tipo de fundo" value={bg.kind} onChange={(v) => set({ kind: v })} options={KINDS} />
+        <Segmented<BackgroundKind> size="sm" label="Tipo de fundo" value={bg.kind} onChange={(v) => set({ kind: v })} options={kinds} />
       </Section>
 
-      <Section title={bg.kind === 'solid' ? 'Cor' : bg.kind === 'gradient' ? 'Degradê' : bg.kind === 'animated' ? 'Fundo animado' : bg.kind === 'image' ? 'Imagem' : 'Vídeo'}>
+      <Section title={bg.kind === 'solid' ? 'Cor' : bg.kind === 'gradient' ? 'Degradê' : bg.kind === 'animated' ? 'Fundo animado' : bg.kind === 'design' ? 'Fundo do Estúdio' : bg.kind === 'image' ? 'Imagem' : 'Vídeo'}>
+        {bg.kind === 'design' && bg.design && <DesignSection design={bg.design} projectId={projectId} speed={bg.speed} color={bg.color} />}
         {bg.kind === 'solid' && (
           <Row label="Cor de fundo">
             <ColorField label="Cor de fundo" value={bg.color} onChange={(v) => set({ color: v })} />
@@ -150,5 +158,63 @@ export function BackgroundPanel() {
         <Slider label="Escurecer (transparência)" value={a.dim} min={0} max={90} unit="%" reset={0} onChange={(v) => set({ adjust: { dim: v } })} />
       </Section>
     </div>
+  );
+}
+
+/** Fundo do Estúdio aplicado neste louvor (uma cópia). Oferece editar e, se "Meus fundos" tiver versão mais nova, atualizar. */
+function DesignSection({ design, projectId, speed, color }: { design: BackgroundDesign; projectId: string; speed: number; color: string }) {
+  const [saved, setSaved] = useState<BackgroundDesign | null | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    void getDesign(design.id).then((d) => alive && setSaved(d));
+    return () => {
+      alive = false;
+    };
+  }, [design.id]);
+  const newer = !!saved && saved.updatedAt > design.updatedAt && JSON.stringify(saved.layers) + saved.base + saved.loopSec !== JSON.stringify(design.layers) + design.base + design.loopSec;
+
+  const edit = async () => {
+    try {
+      // edita a versão de "Meus fundos"; se ela não existir mais (louvor importado, fundo excluído), volta a existir a partir desta cópia
+      if (!saved) await saveDesign(design, false);
+      navigate(paths.studio(design.id, projectId));
+    } catch {
+      toastError('Não foi possível abrir o estúdio.');
+    }
+  };
+  return (
+    <>
+      <div className="bg-design">
+        <b>{design.name}</b>
+        <small>
+          Loop de {design.loopSec} s · {design.layers.length} {design.layers.length === 1 ? 'camada' : 'camadas'}. Este louvor guarda a própria cópia.
+        </small>
+      </div>
+      {newer && saved && (
+        <div className="notice">
+          <span>Há uma versão mais nova em Meus fundos.</span>
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<LuRefreshCw />}
+            onClick={() => {
+              editor.replaceDesignCopies(saved);
+              toast('Fundo atualizado');
+            }}
+          >
+            Atualizar
+          </Button>
+        </div>
+      )}
+      <div className="props-pair">
+        <Button size="sm" icon={<LuPalette />} onClick={() => void edit()}>
+          Editar no estúdio
+        </Button>
+      </div>
+      <Slider label="Velocidade" value={speed} min={0.25} max={2.5} step={0.05} unit="×" reset={1} onChange={(v) => editor.patchBackground({ speed: v })} />
+      <Row label="Cor de reserva" hint="Aparece se o desenho não puder ser mostrado">
+        <ColorField label="Cor de reserva" value={color} onChange={(v) => editor.patchBackground({ color: v })} />
+      </Row>
+    </>
   );
 }
