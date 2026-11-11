@@ -67,6 +67,7 @@ cases.push({ name: 'texto: 1 linha padrão', min: 24, shot: true, run: () => pag
 cases.push({ name: 'texto: várias linhas + acentos', min: 24, shot: true, run: () => page.evaluate(() => window.H.text({ text: 'Santo, Santo, Santo\nDeus Todo-Poderoso\nQue era, que é e que há de vir' })) });
 cases.push({ name: 'texto: layout Impacto (palavras com tamanhos/pesos diferentes)', min: 24, shot: true, run: () => page.evaluate(() => window.H.text({ text: 'Vem sobre mim Senhor', impact: true })) });
 cases.push({ name: 'texto: sombra + brilho + contorno', min: 22, shot: true, run: () => page.evaluate(() => window.H.text({ text: 'Aleluia\nAleluia', patch: (p) => { const s = p.slides[0].layers[0].style; s.shadow = { enabled: true, color: '#000000', x: 0, y: 4, blur: 14 }; s.glow = { enabled: true, color: '#ffd27a', blur: 24 }; s.stroke = { enabled: true, color: '#7a1020', width: 5 }; s.color = '#ffffff'; } })) });
+cases.push({ name: 'texto: caixa girada (-12°) fora do centro', min: 24, shot: true, run: () => page.evaluate(() => window.H.text({ text: 'Vem sobre mim Senhor', impact: true, patch: (p) => { const s = p.slides[0].layers[0].style; s.rotation = -12; s.x = 42; s.y = 46; } })) });
 cases.push({ name: 'texto: itálico, espaçamento e alinhamento à esquerda', min: 24, shot: true, run: () => page.evaluate(() => window.H.text({ text: 'Tu és fiel\nSenhor meu Deus', patch: (p) => { const s = p.slides[0].layers[0].style; s.italic = true; s.letterSpacing = 8; s.align = 'left'; s.x = 40; s.fontSize = 10; } })) });
 
 let failed = 0;

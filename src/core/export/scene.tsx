@@ -70,7 +70,8 @@ function mount(project: Project, slide: Slide, width: number, height: number, un
           {slide.layers
             .filter((l) => l.visible)
             .map((l) => (
-              <TextLayerView key={l.id} layer={l} unit={unit} float={0} letters={layerNeedsLetters(l)} />
+              // medido SEM giro: o compositor gira o desenho em torno do centro da caixa (medidas giradas viram caixas tortas)
+              <TextLayerView key={l.id} layer={l.style.rotation ? { ...l, style: { ...l.style, rotation: 0 } } : l} unit={unit} float={0} letters={layerNeedsLetters(l)} />
             ))}
         </div>
       </div>,

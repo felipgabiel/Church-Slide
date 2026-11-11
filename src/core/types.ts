@@ -60,6 +60,8 @@ export interface TextStyle {
    * Em vez de encolher abaixo disso, a linha quebra em duas ou mais. Não limita o tamanho que a pessoa escolhe.
    */
   minFont: number;
+  /** giro da caixa de texto em graus (sentido horário), em torno do centro dela */
+  rotation: number;
 }
 
 export type TextCase = 'none' | 'upper' | 'lower';

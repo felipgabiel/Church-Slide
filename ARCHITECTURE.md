@@ -172,6 +172,14 @@ exatamente onde a palavra estava e com o mesmo tamanho: o tamanho é medido no D
 passam a ser relativas à maior delas (`detachedLayer`). Tudo vira um único passo de desfazer. As funções puras
 (duplicar, remover, reindexar ajustes por palavra) estão cobertas por `tests/layers.test.ts`.
 
+### Alças da caixa de texto (`features/editor/StageArea.tsx`)
+
+Como no Canva: cantos aumentam/diminuem a letra e a largura na mesma proporção; as laterais mudam só a largura
+(medida no eixo da própria caixa, então funciona com ela girada); o botão redondo embaixo gira em torno do centro
+(ímã em 0°/45°/90°…, Shift anda de 15 em 15°, Alt desliga o ímã, clique duplo volta a 0°). O giro fica em
+`TextStyle.rotation`; no palco é um `rotate()` na camada e no vídeo o compositor mede o texto sem giro e gira o
+desenho em torno do mesmo centro (caso "caixa girada" no teste de fidelidade).
+
 ### Troca de cor (`core/anim/colorfx.ts`, `render/colorRun.ts`, `features/editor/panels/ColorChange.tsx`)
 
 A troca de cor é **sempre por palavra** (`WordOverride.colorFx`): só as palavras marcadas mudam de cor, as outras
@@ -260,7 +268,7 @@ Painéis laterais acompanham a largura do monitor (`clamp`), testados de 1280×7
 |---|---|
 | `npm run typecheck` | `tsc --noEmit` (ver limitação na seção 1) |
 | `npm test` | 98 testes unitários: easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção |
-| `npm run build && npm run e2e` | 27 etapas no navegador contra o build de produção (ver abaixo) |
+| `npm run build && npm run e2e` | 28 etapas no navegador contra o build de produção (ver abaixo) |
 | `npm run e2e:fidelity` | compara o desenho em canvas (vídeo) com o DOM do editor (PSNR; exige ffmpeg) |
 
 O e2e (`e2e/run.mjs`) cria um louvor pela interface, edita e confere a persistência após recarregar,

@@ -36,6 +36,8 @@ export function layerCss(style: TextStyle): CSSProperties {
     css.paintOrder = 'stroke fill';
   }
   if (style.blur > 0) css.filter = `blur(${cq(style.blur)})`;
+  // giro em torno do centro da caixa (o translate mantém o centro no ponto x/y)
+  if (style.rotation) css.transform = `translate(-50%, -50%) rotate(${style.rotation}deg)`;
   return css;
 }
 

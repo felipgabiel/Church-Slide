@@ -652,17 +652,123 @@
 .hit[data-drag='1'] {
   cursor: grabbing;
 }
+/* moldura da camada selecionada: gira junto com o texto e carrega as alças (estilo Canva) */
+.sel-wrap {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
 .sel {
   position: absolute;
   pointer-events: none;
   border: 1.5px solid var(--accent);
   border-radius: 2px;
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35), inset 0 0 0 1px rgb(0 0 0 / 0.25);
-  transition: border-color 0.14s;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.3);
 }
-.sel[data-drag='1'] {
+.sel-wrap[data-drag='1'] .sel {
   border-color: var(--accent-hi);
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35), 0 0 0 3px rgb(27 106 115 / 0.35);
+}
+/* enquanto arrasta o texto, as alças somem (não atrapalham ver onde ele vai parar) */
+.sel-wrap[data-drag='1'] .grip,
+.sel-wrap[data-drag='1'] .grip-rot {
+  opacity: 0;
+}
+.grip {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  margin: -7.5px 0 0 -7.5px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1.5px solid var(--accent);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+  pointer-events: auto;
+  transition:
+    transform 0.12s var(--ease),
+    opacity 0.12s;
+}
+.grip:hover {
+  transform: scale(1.25);
+}
+.grip-nw {
+  left: 0;
+  top: 0;
+  cursor: nwse-resize;
+}
+.grip-ne {
+  left: 100%;
+  top: 0;
+  cursor: nesw-resize;
+}
+.grip-sw {
+  left: 0;
+  top: 100%;
+  cursor: nesw-resize;
+}
+.grip-se {
+  left: 100%;
+  top: 100%;
+  cursor: nwse-resize;
+}
+/* laterais: pílula vertical no meio da borda */
+.grip-side {
+  width: 7px;
+  height: 20px;
+  margin: -10px 0 0 -3.5px;
+  border-radius: 4px;
+  top: 50%;
+  cursor: ew-resize;
+}
+.grip-side:hover {
+  transform: scaleY(1.15);
+}
+.grip-w {
+  left: 0;
+}
+.grip-e {
+  left: 100%;
+}
+.grip-rot {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 16px);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-left: -14px;
+  border-radius: 50%;
+  background: #fff;
+  color: #1a1d21;
+  border: 1px solid rgb(0 0 0 / 0.12);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+  font-size: 14px;
+  pointer-events: auto;
+  cursor: grab;
+  transition:
+    transform 0.12s var(--ease),
+    opacity 0.12s;
+}
+.grip-rot:hover {
+  transform: scale(1.1);
+  color: var(--accent);
+}
+.sel-wrap[data-busy='1'] .grip-rot {
+  cursor: grabbing;
+}
+.grip-label {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #1a1d21;
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .sel-tag {
   position: absolute;

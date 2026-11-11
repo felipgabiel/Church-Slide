@@ -753,7 +753,7 @@ await step('tema claro/escuro: botão troca, preferência fica salva e nada fica
       const bad = [];
       for (const el of document.querySelectorAll('body *')) {
         // o slide e as miniaturas (fundo preto atrás do slide) são sempre escuros, em qualquer tema
-        if (el.closest('.stage, .thumb, [class*="thumb"], .swatch, .color-swatch, .cp, .cfx-path, .cp-now, svg')) continue;
+        if (el.closest('.stage, .thumb, [class*="thumb"], .swatch, .color-swatch, .cp, .cfx-path, .cp-now, svg, .sel-wrap')) continue; // alças ficam sobre o slide (sempre claras, como no Canva)
         const r = el.getBoundingClientRect();
         if (!r.width || !r.height || getComputedStyle(el).visibility === 'hidden') continue;
         const L = lum(getComputedStyle(el).backgroundColor);
@@ -878,6 +878,60 @@ await step('menus suspensos: abrem e escolhem pelo teclado, Esc fecha só o menu
   assert(!(await pg.getByRole('listbox').count()), 'Esc não fechou o menu');
   assert(await pg.locator('dialog[open]').count(), 'Esc fechou o diálogo junto');
   await pg.keyboard.press('Escape');
+  await pg.close();
+});
+
+await step('alças da caixa (estilo Canva): canto aumenta/diminui, lateral muda a largura, botão gira, desfazer volta', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'alças');
+  await pg.setViewportSize({ width: 1366, height: 768 });
+  await pg.goto(BASE);
+  await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+  await pg.locator('dialog textarea').first().fill('Vem sobre mim Senhor');
+  await pg.locator('dialog').getByText('Simples', { exact: true }).click();
+  await pg.getByRole('button', { name: /Criar e abrir/i }).click();
+  await pg.waitForURL(/#\/edit\//);
+  await pg.locator('.grip-se').waitFor();
+  const style = () => pg.evaluate(() => { const l = document.querySelector('.surface [data-layer]'); return { fs: parseFloat(getComputedStyle(l).fontSize), w: l.offsetWidth, t: l.style.transform }; });
+  const s0 = await style();
+  // canto: puxa para fora → letra maior
+  let g = await pg.locator('.grip-se').boundingBox();
+  await pg.mouse.move(g.x + 6, g.y + 6);
+  await pg.mouse.down();
+  await pg.mouse.move(g.x + 60, g.y + 30, { steps: 6 });
+  await pg.mouse.up();
+  const s1 = await style();
+  assert(s1.fs > s0.fs * 1.05, `canto não aumentou a letra (${s0.fs} → ${s1.fs})`);
+  // lateral: puxa para dentro → caixa mais estreita, letra igual
+  g = await pg.locator('.grip-e').boundingBox();
+  await pg.mouse.move(g.x + 3, g.y + 10);
+  await pg.mouse.down();
+  await pg.mouse.move(g.x - 120, g.y + 10, { steps: 6 });
+  await pg.mouse.up();
+  const s2 = await style();
+  assert(s2.w < s1.w - 50, `lateral não estreitou a caixa (${s1.w} → ${s2.w})`);
+  assert(Math.abs(s2.fs - s1.fs) < 0.5, 'lateral não deveria mudar o tamanho da letra');
+  // girar: arrasta o botão de baixo para o lado → ângulo diferente de 0
+  const sel = await pg.locator('.sel').boundingBox();
+  const c = { x: sel.x + sel.width / 2, y: sel.y + sel.height / 2 };
+  g = await pg.locator('.grip-rot').boundingBox();
+  await pg.mouse.move(g.x + 14, g.y + 14);
+  await pg.mouse.down();
+  const r = Math.hypot(g.x + 14 - c.x, g.y + 14 - c.y);
+  const a = Math.PI / 2 + (30 * Math.PI) / 180;
+  await pg.mouse.move(c.x + r * Math.cos(a), c.y + r * Math.sin(a), { steps: 10 });
+  await pg.mouse.up();
+  const s3 = await style();
+  const deg = Number(/rotate\((-?[\d.]+)deg\)/.exec(s3.t)?.[1]);
+  assert(deg > 25 && deg < 35, `giro esperado ~30°, veio ${s3.t}`);
+  // clique duplo volta a 0° (depois de uma pausa: gestos seguidos viram um único passo de desfazer)
+  await pg.waitForTimeout(900);
+  await pg.getByRole('button', { name: /Girar o texto/ }).dblclick();
+  assert(!(await style()).t.includes('rotate'), 'clique duplo não voltou a 0°');
+  // desfazer volta o giro
+  await pg.keyboard.press('Control+z');
+  await pg.waitForTimeout(200);
+  assert((await style()).t.includes('rotate'), 'desfazer não trouxe o giro de volta');
   await pg.close();
 });
 

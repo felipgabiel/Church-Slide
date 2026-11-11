@@ -196,6 +196,16 @@ export function createCompositor(scene: Scene): Compositor {
         if (s.opacity <= 0.002) continue;
         const style = layers[wd.layer] ?? layers[0];
         const pieces = piecesOf(wd, tMs, enterMs);
+        // caixa girada: gira o desenho em torno do centro dela, como o CSS faz no palco
+        const turned = !!style.rotation;
+        if (turned) {
+          const cx = (style.x / 100) * W;
+          const cy = (style.y / 100) * H;
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate((style.rotation * Math.PI) / 180);
+          ctx.translate(-cx, -cy);
+        }
         const plain = s.opacity >= 0.999 && s.blurX < 0.1 && s.blurY < 0.1 && style.opacity >= 100 && style.blur <= 0;
         if (plain && s.scale === 1 && s.tx === 0 && s.ty === 0) {
           drawWord(ctx, wd, style, H, pieces); // estado final: desenho vetorial direto, nítido
@@ -210,6 +220,7 @@ export function createCompositor(scene: Scene): Compositor {
         } else {
           drawGrouped(ctx, wd, style, s, pieces);
         }
+        if (turned) ctx.restore();
       }
     },
   };

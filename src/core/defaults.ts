@@ -46,6 +46,7 @@ export function defaultTextStyle(): TextStyle {
     equalizeMin: 30,
     autoWidth: false,
     minFont: MIN_FONT,
+    rotation: 0,
   };
 }
 

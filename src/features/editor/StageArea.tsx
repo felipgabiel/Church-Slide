@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-import { LuChevronLeft, LuChevronRight, LuClipboardPaste, LuGrid3X3, LuRotateCcw } from 'react-icons/lu';
+import { useLayoutEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
+import { LuChevronLeft, LuChevronRight, LuClipboardPaste, LuGrid3X3, LuRotateCcw, LuRotateCw } from 'react-icons/lu';
 import { slideText } from '../../core/defaults';
 import { ASPECT_RATIOS } from '../../core/types';
 import { clamp } from '../../core/util';
@@ -13,11 +13,105 @@ import { ContextMenu, type ContextItem } from '../../ui/ContextMenu';
 import { toast } from '../../ui/toast';
 import { buildStageMenu } from './stageMenu';
 
+/** Caixa da camada selecionada, SEM giro: centro + tamanho (px da superfície) + ângulo. */
 interface Box {
-  l: number;
-  t: number;
+  cx: number;
+  cy: number;
   w: number;
   h: number;
+  rot: number;
+}
+
+type Grip = 'nw' | 'ne' | 'sw' | 'se' | 'w' | 'e' | 'rotate';
+
+/** Tamanho de fonte que as alças podem dar (% da altura do slide). */
+const FONT_MIN = 1;
+const FONT_MAX = 60;
+/** Ímã do giro: 0°, 45°, 90°… grudam quando chega perto (Alt desliga; Shift anda de 15 em 15). */
+const ROT_SNAP = 4;
+
+const norm180 = (a: number) => ((((a + 180) % 360) + 360) % 360) - 180;
+
+/**
+ * Alças estilo Canva em volta da caixa: cantos aumentam/diminuem tudo na mesma proporção (letra e largura),
+ * laterais mudam só a largura (o texto quebra de outro jeito) e o botão de baixo gira em torno do centro.
+ */
+function Handles({ box, layerName, onBusy }: { box: Box; layerName: string; onBusy: (v: boolean) => void }) {
+  const [label, setLabel] = useState<string | null>(null);
+  const start = (grip: Grip) => (e: RPointerEvent<HTMLElement>) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const layer = editorStore.get().project?.slides.find((x) => x.id === editorStore.get().slideId)?.layers.find((l) => l.id === editorStore.get().layerId);
+    const surface = (e.currentTarget.closest('.surface') as HTMLElement | null)?.getBoundingClientRect();
+    if (!layer || !surface) return;
+    const st = layer.style;
+    const C = { x: surface.left + box.cx, y: surface.top + box.cy };
+    const d0 = Math.max(4, Math.hypot(e.clientX - C.x, e.clientY - C.y));
+    const a0 = Math.atan2(e.clientY - C.y, e.clientX - C.x);
+    const rad = (st.rotation * Math.PI) / 180;
+    onBusy(true);
+    const move = (ev: PointerEvent) => {
+      const dx = ev.clientX - C.x;
+      const dy = ev.clientY - C.y;
+      if (grip === 'rotate') {
+        let a = st.rotation + ((Math.atan2(dy, dx) - a0) * 180) / Math.PI;
+        if (ev.shiftKey) a = Math.round(a / 15) * 15;
+        else if (!ev.altKey) {
+          const near = Math.round(a / 45) * 45;
+          if (Math.abs(a - near) < ROT_SNAP) a = near;
+        }
+        a = Math.round(norm180(a) * 10) / 10;
+        editor.patchStyle({ rotation: a === -180 ? 180 : a });
+        setLabel(`${Math.round(a)}°`);
+      } else if (grip === 'w' || grip === 'e') {
+        // distância até o centro medida no eixo da própria caixa (vale com ela girada)
+        const u = Math.abs(dx * Math.cos(rad) + dy * Math.sin(rad));
+        const w = clamp(Math.round(((2 * u) / surface.width) * 1000) / 10, 8, 100);
+        editor.patchStyle({ width: w, autoWidth: false });
+        setLabel(`${String(w).replace('.', ',')}%`);
+      } else {
+        const k = Math.hypot(dx, dy) / d0;
+        const fs = clamp(Math.round(st.fontSize * k * 10) / 10, FONT_MIN, FONT_MAX);
+        const patch: Partial<typeof st> = { fontSize: fs };
+        if (!st.autoWidth) patch.width = clamp(Math.round(st.width * (fs / st.fontSize) * 10) / 10, 8, 100);
+        editor.patchStyle(patch);
+        setLabel(`${String(fs).replace('.', ',')}%`);
+      }
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      setLabel(null);
+      onBusy(false);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+  };
+  const corners: Grip[] = ['nw', 'ne', 'sw', 'se'];
+  return (
+    <div className="sel" style={{ left: box.cx, top: box.cy, width: box.w, height: box.h, transform: `translate(-50%, -50%) rotate(${box.rot}deg)` }}>
+      <span className="sel-tag">{layerName}</span>
+      {corners.map((g) => (
+        <i key={g} className={`grip grip-${g}`} data-grip={g} role="presentation" title="Arraste para aumentar ou diminuir" onPointerDown={start(g)} />
+      ))}
+      <i className="grip grip-side grip-w" data-grip="w" role="presentation" title="Arraste para mudar a largura" onPointerDown={start('w')} />
+      <i className="grip grip-side grip-e" data-grip="e" role="presentation" title="Arraste para mudar a largura" onPointerDown={start('e')} />
+      <button
+        type="button"
+        className="grip-rot"
+        aria-label="Girar o texto (arraste; clique duplo volta a 0°)"
+        title="Arraste para girar · Shift: de 15 em 15° · clique duplo: 0°"
+        onPointerDown={start('rotate')}
+        onDoubleClick={() => editor.patchStyle({ rotation: 0 })}
+      >
+        <LuRotateCw aria-hidden />
+      </button>
+      {label && <span className="grip-label">{label}</span>}
+    </div>
+  );
 }
 
 const SNAP = 1.3;
@@ -35,6 +129,9 @@ function Surface({ guides }: { guides: boolean }) {
   const pendingWord = useRef<{ key: string | null; add: boolean; sx: number; sy: number } | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; items: ContextItem[] } | null>(null);
   const [drag, setDrag] = useState<{ sx: number; sy: number; x0: number; y0: number; snapX: boolean; snapY: boolean } | null>(null);
+  const [busy, setBusy] = useState(false); // usando uma alça (tamanho/giro)
+  const slideRef = useRef(slide);
+  slideRef.current = slide;
 
   // mede a camada selecionada depois que o palco terminou de atualizar
   useLayoutEffect(() => {
@@ -46,8 +143,13 @@ function Surface({ guides }: { guides: boolean }) {
       if (!el) return setBox(null);
       const r = el.getBoundingClientRect();
       const p = root.getBoundingClientRect();
-      const next = { l: r.left - p.left, t: r.top - p.top, w: r.width, h: r.height };
-      setBox((b) => (b && Math.abs(b.l - next.l) < 0.5 && Math.abs(b.t - next.t) < 0.5 && Math.abs(b.w - next.w) < 0.5 && Math.abs(b.h - next.h) < 0.5 ? b : next));
+      // centro: o da caixa na tela (girar não tira o centro do lugar); tamanho: o do layout, sem giro
+      const k = root.offsetWidth ? p.width / root.offsetWidth : 1;
+      const rot = slideRef.current?.layers.find((l) => l.id === layerId)?.style.rotation ?? 0;
+      const next = { cx: r.left + r.width / 2 - p.left, cy: r.top + r.height / 2 - p.top, w: el.offsetWidth * k, h: el.offsetHeight * k, rot };
+      setBox((b) =>
+        b && Math.abs(b.cx - next.cx) < 0.5 && Math.abs(b.cy - next.cy) < 0.5 && Math.abs(b.w - next.w) < 0.5 && Math.abs(b.h - next.h) < 0.5 && b.rot === next.rot ? b : next,
+      );
     });
     return () => cancelAnimationFrame(raf);
   });
@@ -103,11 +205,6 @@ function Surface({ guides }: { guides: boolean }) {
         </div>
       )}
 
-      {box && layer && (
-        <div className="sel" style={{ left: box.l, top: box.t, width: box.w, height: box.h }} data-drag={drag ? '1' : '0'} aria-hidden>
-          <span className="sel-tag">{layer.name}</span>
-        </div>
-      )}
 
       <div
         className="hit"
@@ -173,6 +270,11 @@ function Surface({ guides }: { guides: boolean }) {
           setMenu({ x: e.clientX, y: e.clientY, items: buildStageMenu({ stage: root, slide, word, layerId: id, at, toast }) });
         }}
       />
+      {box && layer && (
+        <div className="sel-wrap" data-drag={drag ? '1' : '0'} data-busy={busy ? '1' : '0'}>
+          <Handles box={box} layerName={layer.name} onBusy={setBusy} />
+        </div>
+      )}
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
     </div>
   );

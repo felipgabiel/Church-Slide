@@ -56,7 +56,7 @@ export function TextPanel() {
           <IconButton label="Enviar fonte do computador (.ttf, .otf, .woff)" icon={<LuUpload />} size="sm" onClick={() => file.current?.click()} />
         </div>
         <input ref={file} type="file" accept=".ttf,.otf,.woff,.woff2,font/*" multiple hidden onChange={(e) => void onFont(e.currentTarget.files)} />
-        <Slider label="Tamanho" value={s.fontSize} min={2} max={24} step={0.1} unit="%" reset={8} onChange={(v) => set({ fontSize: v })} />
+        <Slider label="Tamanho" value={s.fontSize} min={1} max={60} step={0.1} unit="%" reset={8} onChange={(v) => set({ fontSize: v })} />
         <Row label="Cor">
           <ColorField label="Cor do texto" value={s.color} onChange={(v) => set({ color: v })} />
         </Row>
@@ -126,6 +126,7 @@ export function TextPanel() {
       <Section title="Posição e tamanho" defaultOpen={false} hint="Dica: arraste o texto direto no slide. Segure Alt para não grudar nas guias.">
         <Slider label="Horizontal" value={s.x} min={0} max={100} step={0.5} unit="%" reset={50} onChange={(v) => set({ x: v })} />
         <Slider label="Vertical" value={s.y} min={0} max={100} step={0.5} unit="%" reset={50} onChange={(v) => set({ y: v })} />
+        <Slider label="Rotação" value={s.rotation ?? 0} min={-180} max={180} step={1} unit="°" reset={0} onChange={(v) => set({ rotation: v })} />
         <Row label="Caixa do tamanho do texto" hint="Para palavras soltas">
           <Switch checked={!!s.autoWidth} onChange={(v) => set(v ? { autoWidth: true, equalize: false } : { autoWidth: false })} label="Caixa acompanha o texto" />
         </Row>
