@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve } from 'node:path';
 
-const dist = resolve(import.meta.dirname, '../dist');
+const dist = resolve(import.meta.dirname, '../docs');
 const port = Number(process.env.PORT) || 4173;
 
 const MIME = {
@@ -20,12 +20,14 @@ const MIME = {
   '.woff2': 'font/woff2',
 };
 
-export function startPreview(p = port) {
+/** `base`: serve o site dentro de uma subpasta (ex.: "/church-slide/"), como o GitHub Pages faz com o nome do repositório. */
+export function startPreview(p = port, base = '/') {
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url ?? '/', 'http://x');
-      let file = normalize(join(dist, decodeURIComponent(url.pathname)));
-      if (!file.startsWith(dist)) throw new Error('fora do dist');
+      if (!url.pathname.startsWith(base)) throw new Error('fora da subpasta');
+      let file = normalize(join(dist, decodeURIComponent(url.pathname.slice(base.length))));
+      if (!file.startsWith(dist)) throw new Error('fora de docs');
       if ((await stat(file).catch(() => null))?.isDirectory()) file = join(file, 'index.html');
       const body = await readFile(file);
       res.writeHead(200, {
@@ -42,6 +44,7 @@ export function startPreview(p = port) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  await startPreview();
-  console.log(`\n  Church Slide (build)  →  http://localhost:${port}/\n`);
+  const base = process.env.BASE_PATH || '/';
+  await startPreview(port, base);
+  console.log(`\n  Church Slide (build)  →  http://localhost:${port}${base}\n`);
 }

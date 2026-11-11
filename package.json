@@ -10,7 +10,8 @@
     "preview": "node scripts/preview.mjs",
     "typecheck": "node scripts/typecheck.mjs",
     "test": "tsx --test tests/*.test.ts",
-    "e2e": "node e2e/run.mjs"
+    "e2e": "node e2e/run.mjs",
+    "e2e:fidelity": "node e2e/fidelity.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",
