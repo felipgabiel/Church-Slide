@@ -3,8 +3,10 @@
  *
  * Estratégia:
  *  - Instalação: pré-carrega todo o aplicativo (HTML, JS, CSS, ícones).
- *  - Navegação: sempre responde com o index.html do cache (o app usa rotas por #hash).
- *  - Demais GET da mesma origem: cache primeiro, atualiza em segundo plano.
+ *  - Navegação (index.html): REDE primeiro (até 4 s), cache se estiver sem internet. Assim uma versão nova
+ *    publicada aparece no próximo acesso — antes a página vinha sempre do cache e o navegador podia ficar
+ *    preso numa versão antiga (ou pedir arquivos que já não existem no servidor).
+ *  - Demais GET da mesma origem: cache (de qualquer versão guardada) primeiro, senão rede.
  *  - Projetos, letras e mídia ficam no IndexedDB do navegador — não dependem deste cache.
  */
 const VERSION = '__VERSION__';
@@ -41,25 +43,37 @@ self.addEventListener('fetch', (event) => {
 
   if (req.mode === 'navigate') {
     event.respondWith(
-      caches.match('./index.html').then((hit) => hit || fetch(req).catch(() => new Response('Offline', { status: 503 }))),
+      (async () => {
+        const cache = await caches.open(CACHE);
+        try {
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 4000);
+          const res = await fetch('./index.html', { cache: 'no-store', signal: ctrl.signal });
+          clearTimeout(timer);
+          if (res.ok) {
+            cache.put('./index.html', res.clone());
+            return res;
+          }
+        } catch {
+          /* sem internet ou lento: usa o guardado */
+        }
+        return (await caches.match('./index.html')) || new Response('Offline', { status: 503 });
+      })(),
     );
     return;
   }
 
   event.respondWith(
-    caches.open(CACHE).then(async (cache) => {
-      const hit = await cache.match(req, { ignoreSearch: true });
-      const refresh = fetch(req)
-        .then((res) => {
-          if (res && res.ok) cache.put(req, res.clone());
-          return res;
-        })
-        .catch(() => null);
-      if (hit) {
-        event.waitUntil(refresh);
-        return hit;
+    (async () => {
+      const hit = await caches.match(req, { ignoreSearch: true });
+      if (hit) return hit;
+      try {
+        const res = await fetch(req);
+        if (res && res.ok) (await caches.open(CACHE)).put(req, res.clone());
+        return res;
+      } catch {
+        return new Response('Offline', { status: 503 });
       }
-      return (await refresh) || new Response('Offline', { status: 503 });
-    }),
+    })(),
   );
 });

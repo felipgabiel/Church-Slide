@@ -16,5 +16,35 @@
     <div id="root"></div>
     <noscript>O Church Slide precisa de JavaScript para funcionar.</noscript>
     <script type="module" src="./assets/app.js"></script>
+    <!-- Se o aplicativo não abrir (arquivo antigo guardado, extensão bloqueando, erro), em vez de tela vazia
+         aparece um aviso com um botão que limpa a cópia guardada do site e recarrega. Os louvores ficam. -->
+    <div id="boot-fail" style="position:fixed;inset:0;display:none;place-items:center;padding:24px;background:#16171a;color:#e9eaec;font:15px/1.5 system-ui,'Segoe UI',sans-serif;text-align:center">
+      <div style="max-width:440px">
+        <p style="font-size:18px;font-weight:600;margin:0 0 8px">O Church Slide não abriu</p>
+        <p style="margin:0 0 18px;color:#b4b8bf">Provavelmente o navegador guardou uma versão antiga do site. Seus louvores continuam salvos.</p>
+        <button id="boot-fix" type="button" style="font:inherit;font-weight:600;padding:10px 18px;border:0;border-radius:7px;background:#5ab4bc;color:#061f22;cursor:pointer">Atualizar o site</button>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var shown = false;
+        function fail() {
+          if (shown || document.getElementById('root').childElementCount) return;
+          shown = true;
+          document.getElementById('boot-fail').style.display = 'grid';
+        }
+        // arquivo do aplicativo não carregou (ex.: versão antiga pedindo um arquivo que não existe mais)
+        window.addEventListener('error', function (e) { if (e.target && e.target.tagName === 'SCRIPT') fail(); }, true);
+        // carregou mas não desenhou nada (erro ao iniciar): espera a página terminar de carregar + 6 s
+        function watch() { if (document.readyState === 'complete') setTimeout(fail, 6000); else window.addEventListener('load', function () { setTimeout(fail, 6000); }); }
+        watch();
+        document.getElementById('boot-fix').onclick = function () {
+          var jobs = [];
+          if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
+          if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
+          Promise.all(jobs).finally(function () { location.reload(); });
+        };
+      })();
+    </script>
   </body>
 </html>

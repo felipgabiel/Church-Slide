@@ -6,9 +6,13 @@ export function registerServiceWorker() {
   const secure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   if (!secure) return;
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {
-      /* em desenvolvimento não há sw.js: tudo bem */
-    });
+    // updateViaCache 'none': o navegador sempre confere se há sw.js novo (versão nova publicada)
+    navigator.serviceWorker
+      .register('./sw.js', { updateViaCache: 'none' })
+      .then((reg) => reg.update())
+      .catch(() => {
+        /* em desenvolvimento não há sw.js: tudo bem */
+      });
   });
 }
 

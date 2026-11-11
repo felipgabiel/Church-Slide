@@ -233,6 +233,13 @@ pesado (ex.: Montserrat ExtraBold/Black) envie o `.ttf` em *Texto → Família �
 
 ## 10. Publicação (GitHub Pages, sem instalar nada)
 
+**Atualizações:** o service worker busca o `index.html` na rede primeiro (até 4 s) e só usa o guardado sem
+internet, e é registrado com `updateViaCache: 'none'`. Assim uma versão publicada aparece no próximo acesso.
+(Antes o `index.html` vinha sempre do cache: o navegador podia ficar preso numa versão antiga.) Se mesmo assim o
+aplicativo não abrir, o `index.html` mostra "O Church Slide não abriu" com um botão que apaga a cópia guardada
+do site e recarrega — os louvores (IndexedDB) não são tocados.
+
+
 `npm run build` gera o site pronto em `docs/` (com `.nojekyll`), que é a pasta que o GitHub Pages publica em
 *Settings → Pages → Deploy from a branch → main → /docs*. Todos os caminhos são relativos e as rotas usam `#`,
 então o site funciona em `https://usuario.github.io/repositorio/`; o service worker registra com escopo da
