@@ -1041,3 +1041,12 @@
   box-shadow: var(--shadow-pop);
   pointer-events: none;
 }
+
+/* listas e seletores na camada superior (popover): zera o estilo padrão do navegador para popovers */
+.sel-list[popover],
+.popover[popover] {
+  margin: 0;
+  border: 0;
+  inset: auto;
+  color: var(--text);
+}

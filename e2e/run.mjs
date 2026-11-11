@@ -862,7 +862,7 @@ await step('apoio via Pix: convite opcional depois de gerar, QR lido como o cód
   await pg.close();
 });
 
-await step('menus suspensos: abrem e escolhem pelo teclado, Esc fecha só o menu (não o diálogo)', async () => {
+await step('menus suspensos: teclado, escolha dentro de diálogo (por cima e clicável), Esc fecha só o menu', async () => {
   const pg = await ctx.newPage();
   watch(pg, 'menus');
   await pg.goto(BASE);
@@ -876,7 +876,22 @@ await step('menus suspensos: abrem e escolhem pelo teclado, Esc fecha só o menu
   assert((await sort.textContent()).includes(last), `não escolheu a última opção (${last})`);
   // dentro de um diálogo
   await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+  await pg.locator('dialog textarea').first().fill('linha um\nlinha dois\nlinha três\n\nlinha quatro');
   const mode = pg.getByRole('combobox', { name: 'Como dividir a letra' });
+  await mode.click();
+  // a lista precisa aparecer POR CIMA do diálogo (antes ela abria atrás dele e não dava para escolher)
+  const opt = pg.getByRole('option', { name: /linha/i }).first();
+  await opt.waitFor();
+  const onTop = await opt.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return !!hit && el.contains(hit);
+  });
+  assert(onTop, 'a lista de opções ficou escondida atrás do diálogo');
+  const before = await pg.locator('.np-count').textContent();
+  await opt.click();
+  assert(/linha/i.test(await mode.textContent()), `não escolheu "por linha": ${await mode.textContent()}`);
+  assert((await pg.locator('.np-count').textContent()) !== before, 'a contagem de trechos não mudou');
   await mode.click();
   await pg.getByRole('listbox').waitFor();
   await pg.keyboard.press('Escape');

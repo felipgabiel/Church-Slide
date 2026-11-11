@@ -73,6 +73,14 @@ export function Select({ value, onChange, children, label, className = '', optio
   // posição: embaixo do botão; se não couber, em cima; nunca sai da janela
   useLayoutEffect(() => {
     if (!open || !btn.current) return;
+    // camada superior do navegador ("popover"): fica por cima até de diálogos abertos (<dialog> modal),
+    // que senão cobririam a lista — era por isso que o menu "Por estrofe" do Novo louvor não aparecia
+    const el = list.current as (HTMLDivElement & { showPopover?: () => void }) | null;
+    try {
+      el?.showPopover?.();
+    } catch {
+      /* navegador sem popover: segue como elemento fixo comum */
+    }
     const r = btn.current.getBoundingClientRect();
     const below = window.innerHeight - r.bottom - 12;
     const above = r.top - 12;
@@ -185,6 +193,7 @@ export function Select({ value, onChange, children, label, className = '', optio
         createPortal(
           <div
             ref={list}
+            {...{ popover: 'manual' }}
             id={`${id}-list`}
             role="listbox"
             aria-label={label}
@@ -194,7 +203,8 @@ export function Select({ value, onChange, children, label, className = '', optio
           >
             {rendered}
           </div>,
-          document.body,
+          // dentro de um diálogo modal, tudo fora dele fica "inerte" (não recebe clique): a lista mora no próprio diálogo
+          btn.current?.closest('dialog') ?? document.body,
         )}
     </span>
   );

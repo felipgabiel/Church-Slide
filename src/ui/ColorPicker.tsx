@@ -11,6 +11,11 @@ export function Popover({ anchor, onClose, children, label }: { anchor: HTMLElem
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
+    try {
+      (el as HTMLDivElement & { showPopover?: () => void }).showPopover?.(); // por cima de diálogos abertos
+    } catch {
+      /* sem suporte: elemento fixo comum */
+    }
     const a = anchor.getBoundingClientRect();
     const w = el.offsetWidth;
     const h = el.offsetHeight;
@@ -42,10 +47,10 @@ export function Popover({ anchor, onClose, children, label }: { anchor: HTMLElem
     };
   }, [anchor, onClose]);
   return createPortal(
-    <div ref={ref} className="popover" role="dialog" aria-label={label} style={{ left: pos?.left ?? -9999, top: pos?.top ?? -9999, visibility: pos ? 'visible' : 'hidden' }}>
+    <div ref={ref} {...{ popover: 'manual' }} className="popover" role="dialog" aria-label={label} style={{ left: pos?.left ?? -9999, top: pos?.top ?? -9999, visibility: pos ? 'visible' : 'hidden' }}>
       {children}
     </div>,
-    document.body,
+    anchor.closest('dialog') ?? document.body, // fora de um diálogo modal nada recebe clique
   );
 }
 
