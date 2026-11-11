@@ -958,6 +958,49 @@ await step('alças da caixa (estilo Canva): canto aumenta/diminui, lateral muda 
   await pg.close();
 });
 
+await step('ímã na borda: o texto encosta e gruda na borda do slide; continuar arrastando para fora solta', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'ímã');
+  await pg.goto(BASE);
+  await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+  await pg.locator('dialog input').first().fill('Ímã');
+  await pg.locator('dialog textarea').first().fill('Santo');
+  await pg.getByRole('button', { name: /Criar e abrir/i }).click();
+  await pg.waitForURL(/#\/edit\//);
+  const surf = pg.locator('.surface').first();
+  await pg.locator('.surface [data-w]').first().waitFor();
+  const s = await surf.boundingBox();
+  // estreita a caixa para caber folga até a borda
+  await pg.getByRole('tab', { name: /^Texto$/ }).click();
+  const word = await pg.locator('.surface [data-w]').first().boundingBox();
+  await pg.mouse.click(word.x + word.width / 2, word.y + word.height / 2);
+  const sel = pg.locator('.sel').first();
+  await sel.waitFor();
+  const drag = async (dx) => {
+    const b = await pg.locator('.surface [data-w]').first().boundingBox();
+    const x = b.x + b.width / 2;
+    const y = b.y + b.height / 2;
+    await pg.mouse.move(x, y);
+    await pg.mouse.down();
+    await pg.mouse.move(x + dx, y, { steps: 12 });
+    const hot = await pg.locator('.g-edge-l').count();
+    await pg.mouse.up();
+    await pg.waitForTimeout(250);
+    return hot;
+  };
+  const b0 = await sel.boundingBox();
+  // leva a borda esquerda da caixa para 5 px da borda do slide: tem de grudar em 0
+  const hot = await drag(s.x + 5 - b0.x);
+  let b1 = await sel.boundingBox();
+  assert(hot === 1, 'a borda esquerda deveria acender durante o encaixe');
+  assert(Math.abs(b1.x - s.x) <= 1.5, `a caixa deveria encostar na borda (diferença ${(b1.x - s.x).toFixed(1)} px)`);
+  // continua para fora: solta e segue o mouse
+  await drag(-40);
+  b1 = await sel.boundingBox();
+  assert(b1.x < s.x - 25, `continuando para fora, a caixa deveria passar da borda (${(b1.x - s.x).toFixed(1)} px)`);
+  await pg.close();
+});
+
 /* ------------------------------ Estúdio de Fundos ------------------------------ */
 
 /** Lê um registro direto do IndexedDB do app (o que ficou salvo de verdade). */
@@ -1026,6 +1069,17 @@ await step('Estúdio de Fundos: item na barra lateral, modelo abre o estúdio, m
   assert(Math.abs(x1 - 60) < 1.5, `arrastar 10% da largura deveria levar o sol a ~60% (veio ${x1})`);
   await st.keyboard.press('Control+z');
   const x0 = await settle(hx, (v) => v === 50);
+  // ímã no estúdio: o sol (54% da altura) encosta na borda esquerda quando chega perto
+  const sunHalf = (0.54 * box.height) / 2;
+  await st.mouse.move(cx, cy);
+  await st.mouse.down();
+  await st.mouse.move(box.x + sunHalf + 6, cy, { steps: 10 });
+  const edgeHot = await st.locator('.st-surface .g-edge-l').count();
+  await st.mouse.up();
+  const xs = await settle(hx, (v) => Math.abs(v - (sunHalf / box.width) * 100) < 0.3);
+  assert(edgeHot === 1 && Math.abs(xs - (sunHalf / box.width) * 100) < 0.3, `o sol deveria grudar na borda (x=${xs})`);
+  await st.keyboard.press('Control+z');
+  await settle(hx, (v) => v === 50);
   assert(x0 === 50, `desfazer volta para 50% num passo só (veio ${x0})`);
 
   await st.locator('.tb-name').fill('Meu sol');

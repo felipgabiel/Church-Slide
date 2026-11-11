@@ -6,6 +6,7 @@ import { clamp } from '../../core/util';
 import { useSetting, writeSetting } from '../../core/settings';
 import { useWordSelection, wordKey, wordSelection } from '../../store/wordSelection';
 import { FitBox } from '../../render/FitBox';
+import { rotatedHalf, snapAxis, SNAP_PX, type SnapHit } from '../../core/snap';
 import { Stage } from '../../render/Stage';
 import { editor, editorStore, useActiveSlide, useEditor } from '../../store/editor';
 import { Button, IconButton } from '../../ui/Button';
@@ -114,7 +115,6 @@ function Handles({ box, layerName, onBusy }: { box: Box; layerName: string; onBu
   );
 }
 
-const SNAP = 1.3;
 
 /** Palco editável: o mesmo renderizador do telão + seleção e arraste do texto. */
 function Surface({ guides }: { guides: boolean }) {
@@ -128,7 +128,7 @@ function Surface({ guides }: { guides: boolean }) {
   const selectedWords = useWordSelection();
   const pendingWord = useRef<{ key: string | null; add: boolean; sx: number; sy: number } | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; items: ContextItem[] } | null>(null);
-  const [drag, setDrag] = useState<{ sx: number; sy: number; x0: number; y0: number; snapX: boolean; snapY: boolean } | null>(null);
+  const [drag, setDrag] = useState<{ sx: number; sy: number; x0: number; y0: number; hitX: SnapHit; hitY: SnapHit } | null>(null);
   const [busy, setBusy] = useState(false); // usando uma alça (tamanho/giro)
   const slideRef = useRef(slide);
   slideRef.current = slide;
@@ -200,8 +200,12 @@ function Surface({ guides }: { guides: boolean }) {
       {(guides || drag) && (
         <div className="guides" aria-hidden>
           <i className="g-safe" />
-          <i className="g-v" data-hot={drag?.snapX ? '1' : '0'} />
-          <i className="g-h" data-hot={drag?.snapY ? '1' : '0'} />
+          <i className="g-v" data-hot={drag?.hitX === 'center' ? '1' : '0'} />
+          <i className="g-h" data-hot={drag?.hitY === 'center' ? '1' : '0'} />
+          {drag?.hitX === 'start' && <i className="g-edge g-edge-l" />}
+          {drag?.hitX === 'end' && <i className="g-edge g-edge-r" />}
+          {drag?.hitY === 'start' && <i className="g-edge g-edge-t" />}
+          {drag?.hitY === 'end' && <i className="g-edge g-edge-b" />}
         </div>
       )}
 
@@ -220,7 +224,7 @@ function Surface({ guides }: { guides: boolean }) {
           const target = slide?.layers.find((l) => l.id === id);
           if (!target) return;
           e.currentTarget.setPointerCapture(e.pointerId);
-          setDrag({ sx: e.clientX, sy: e.clientY, x0: target.style.x, y0: target.style.y, snapX: false, snapY: false });
+          setDrag({ sx: e.clientX, sy: e.clientY, x0: target.style.x, y0: target.style.y, hitX: null, hitY: null });
         }}
         onPointerMove={(e) => {
           const root = ref.current;
@@ -232,11 +236,19 @@ function Surface({ guides }: { guides: boolean }) {
           const r = root.getBoundingClientRect();
           let x = clamp(drag.x0 + ((e.clientX - drag.sx) / r.width) * 100, 0, 100);
           let y = clamp(drag.y0 + ((e.clientY - drag.sy) / r.height) * 100, 0, 100);
-          const snapX = !e.altKey && Math.abs(x - 50) < SNAP;
-          const snapY = !e.altKey && Math.abs(y - 50) < SNAP;
-          if (snapX) x = 50;
-          if (snapY) y = 50;
-          setDrag((d) => (d ? { ...d, snapX, snapY } : d));
+          // ímã: encosta na borda (ou no centro) quando chega perto; continuar arrastando solta. Alt desliga.
+          let hitX: SnapHit = null;
+          let hitY: SnapHit = null;
+          if (!e.altKey) {
+            const half = box ? rotatedHalf(box.w, box.h, box.rot) : { hw: 0, hh: 0 };
+            const sx = snapAxis(x, (half.hw / r.width) * 100, (SNAP_PX / r.width) * 100, { edges: !!box });
+            const sy = snapAxis(y, (half.hh / r.height) * 100, (SNAP_PX / r.height) * 100, { edges: !!box });
+            x = sx.pos;
+            y = sy.pos;
+            hitX = sx.hit;
+            hitY = sy.hit;
+          }
+          if (hitX !== drag.hitX || hitY !== drag.hitY) setDrag((d) => (d ? { ...d, hitX, hitY } : d));
           editor.patchStyle({ x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 });
         }}
         onPointerUp={(e) => {

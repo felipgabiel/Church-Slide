@@ -5,6 +5,7 @@ import type { BackgroundDesign, DesignLayer } from '../../core/types';
 import { FitBox } from '../../render/FitBox';
 import { DesignCanvas } from '../../render/DesignCanvas';
 import { useSetting } from '../../core/settings';
+import { rotatedHalf, snapAxis, SNAP_PX, type SnapHit } from '../../core/snap';
 import type { StudioApi } from './Studio';
 
 export interface StudioClock {
@@ -197,6 +198,7 @@ function Surface({ api, getTime, sample }: { api: StudioApi; getTime: () => numb
   const ref = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
   const [busy, setBusy] = useState<Drag['mode'] | null>(null);
+  const [hits, setHits] = useState<{ x: SnapHit; y: SnapHit }>({ x: null, y: null });
   const [size, setSize] = useState({ W: 0, H: 0 });
   useEffect(() => {
     const el = ref.current;
@@ -255,8 +257,23 @@ function Surface({ api, getTime, sample }: { api: StudioApi; getTime: () => numb
     if (!d) return;
     const p = local(e);
     if (d.mode === 'move') {
-      const x = d.x0 + ((p.x - d.px) / W) * 100;
-      const y = d.y0 + ((p.y - d.py) / H) * 100;
+      let x = d.x0 + ((p.x - d.px) / W) * 100;
+      let y = d.y0 + ((p.y - d.py) / H) * 100;
+      // ímã: encosta na borda do slide (ou no centro) quando chega perto; continuar arrastando solta. Alt desliga.
+      let hx: SnapHit = null;
+      let hy: SnapHit = null;
+      const l = design.layers.find((q) => q.id === d.id);
+      if (l && !e.altKey) {
+        const b = boxOf(l, W, H);
+        const half = l.kind === 'gradient' ? { hw: 0, hh: 0 } : rotatedHalf(b.bw, b.bh, b.rot);
+        const sx = snapAxis(x, (half.hw / W) * 100, (SNAP_PX / W) * 100, { edges: l.kind === 'shape' || l.kind === 'glow' });
+        const sy = snapAxis(y, (half.hh / H) * 100, (SNAP_PX / H) * 100, { edges: l.kind !== 'gradient' });
+        x = sx.pos;
+        y = sy.pos;
+        hx = sx.hit;
+        hy = sy.hit;
+      }
+      if (hx !== hits.x || hy !== hits.y) setHits({ x: hx, y: hy });
       api.patchLayer(d.id, { x: +x.toFixed(2), y: +y.toFixed(2) }, `move:${d.id}`);
     } else if (d.mode === 'scale') {
       const k = Math.max(0.05, Math.hypot(p.x - d.cx, p.y - d.cy) / d.d0);
@@ -272,6 +289,7 @@ function Surface({ api, getTime, sample }: { api: StudioApi; getTime: () => numb
   const onUp = () => {
     drag.current = null;
     setBusy(null);
+    setHits({ x: null, y: null });
   };
 
   return (
@@ -281,6 +299,16 @@ function Surface({ api, getTime, sample }: { api: StudioApi; getTime: () => numb
         <div className="st-sample" aria-hidden>
           <span className="st-sample-small">vem sobre mim</span>
           <span className="st-sample-big">SENHOR</span>
+        </div>
+      )}
+      {busy === 'move' && (
+        <div className="guides" aria-hidden>
+          <i className="g-v" data-hot={hits.x === 'center' ? '1' : '0'} />
+          <i className="g-h" data-hot={hits.y === 'center' ? '1' : '0'} />
+          {hits.x === 'start' && <i className="g-edge g-edge-l" />}
+          {hits.x === 'end' && <i className="g-edge g-edge-r" />}
+          {hits.y === 'start' && <i className="g-edge g-edge-t" />}
+          {hits.y === 'end' && <i className="g-edge g-edge-b" />}
         </div>
       )}
       {box && sel && (

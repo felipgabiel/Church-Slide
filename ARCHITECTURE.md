@@ -180,6 +180,12 @@ Como no Canva: cantos aumentam/diminuem a letra e a largura na mesma proporção
 `TextStyle.rotation`; no palco é um `rotate()` na camada e no vídeo o compositor mede o texto sem giro e gira o
 desenho em torno do mesmo centro (caso "caixa girada" no teste de fidelidade).
 
+### Ímã nas bordas (`core/snap.ts`)
+
+Ao arrastar o texto (editor) ou uma camada (Estúdio), a caixa gruda alinhada à borda do slide ou ao centro quando
+chega a 10 px de tela; a borda acende. Continuar arrastando para fora passa do ímã e o objeto segue o mouse.
+A caixa girada usa o tamanho que realmente ocupa na tela. Alt desliga o ímã.
+
 ### Troca de cor (`core/anim/colorfx.ts`, `render/colorRun.ts`, `features/editor/panels/ColorChange.tsx`)
 
 A troca de cor é **sempre por palavra** (`WordOverride.colorFx`): só as palavras marcadas mudam de cor, as outras
@@ -294,8 +300,8 @@ Painéis laterais acompanham a largura do monitor (`clamp`), testados de 1280×7
 | Comando | O que faz |
 |---|---|
 | `npm run typecheck` | `tsc --noEmit` (ver limitação na seção 1) |
-| `npm test` | 106 testes unitários: easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
-| `npm run build && npm run e2e` | 33 etapas no navegador contra o build de produção (ver abaixo) |
+| `npm test` | 110 testes unitários: easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
+| `npm run build && npm run e2e` | 34 etapas no navegador contra o build de produção (ver abaixo) |
 | `npm run e2e:fidelity` | compara o desenho em canvas (vídeo) com o DOM do editor (PSNR; exige ffmpeg) |
 
 O e2e (`e2e/run.mjs`) cria um louvor pela interface, edita e confere a persistência após recarregar,
