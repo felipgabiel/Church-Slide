@@ -1649,12 +1649,18 @@
   position: relative;
   width: 100%;
   height: 100%;
+  /* rola só por código (Espaço + arrastar) sem zoom; com zoom, a roda e as barras também rolam */
+  overflow: hidden;
+  /* quem decide a rolagem é o zoom/arrasto, não a "ancoragem" automática do navegador */
+  overflow-anchor: none;
 }
 .zv[data-zoomed='1'] {
   overflow: auto;
   scrollbar-width: thin;
 }
 .zv-track {
+  /* o que passa da folga não estica a área rolável */
+  overflow: clip;
   display: grid;
   place-items: center;
   box-sizing: border-box;

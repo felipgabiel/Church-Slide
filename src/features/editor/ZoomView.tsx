@@ -30,10 +30,19 @@ export function ZoomView({ ratio, padding, zoom, onZoom, children }: { ratio: nu
   const outer = useRef<HTMLDivElement>(null);
   const inner = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState({ w: 0, h: 0 });
+  // folga em volta do palco: deixa "andar" pela vista mesmo sem zoom (Espaço + arrastar)
+  const [slack, setSlack] = useState({ x: 0, y: 0 });
+  const panned = useRef(false);
+  const centerNext = useRef(true);
+  const lastSize = useRef('');
   const anchor = useRef<Anchor | null>(null);
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
   const [space, setSpace] = useState(false);
+  const spaceRef = useRef(false);
+  spaceRef.current = space;
+  const justPanned = useRef(0);
+  const [nudge, setNudge] = useState(0);
   const [panning, setPanning] = useState(false);
   const hover = useRef(false);
 
@@ -51,6 +60,13 @@ export function ZoomView({ ratio, padding, zoom, onZoom, children }: { ratio: nu
         w = ch * ratio;
       }
       setFit((s) => (s.w === Math.floor(w) && s.h === Math.floor(h) ? s : { w: Math.floor(w), h: Math.floor(h) }));
+      const sx = Math.round(el.offsetWidth * 0.5);
+      const sy = Math.round(el.offsetHeight * 0.5);
+      setSlack((s) => (s.x === sx && s.y === sy ? s : { x: sx, y: sy }));
+      // mudou o tamanho da área (abriu, janela, painéis): recentraliza, a não ser que a pessoa tenha movido a vista
+      const key = `${el.offsetWidth}x${el.offsetHeight}`;
+      if (key !== lastSize.current && !panned.current) centerNext.current = true;
+      lastSize.current = key;
     };
     calc();
     const ro = new ResizeObserver(calc);
@@ -73,12 +89,23 @@ export function ZoomView({ ratio, padding, zoom, onZoom, children }: { ratio: nu
     const a = anchor.current;
     const el = outer.current;
     const i = inner.current?.getBoundingClientRect();
-    if (!a || !el || !i) return;
+    if (!el || !i) return;
+    if (!a) {
+      // sem ponto lembrado (abriu, mudou o tamanho da janela, "caber na tela"): palco no centro da vista
+      if (centerNext.current && fit.w > 0) {
+        centerNext.current = false;
+        // pelo próprio palco (não pelo tamanho rolável, que alças ainda no zoom anterior podem esticar)
+        const o = el.getBoundingClientRect();
+        el.scrollLeft += i.left + i.width / 2 - (o.left + el.clientWidth / 2);
+        el.scrollTop += i.top + i.height / 2 - (o.top + el.clientHeight / 2);
+      }
+      return;
+    }
     anchor.current = null;
     const o = el.getBoundingClientRect();
     el.scrollLeft += i.left + a.fx * i.width - (o.left + a.px);
     el.scrollTop += i.top + a.fy * i.height - (o.top + a.py);
-  }, [zoom, fit.w, fit.h]);
+  }, [zoom, fit.w, fit.h, slack.x, slack.y, nudge]);
 
   // botões de lupa / atalhos: zoom pelo centro da vista
   useEffect(() => {
@@ -87,8 +114,20 @@ export function ZoomView({ ratio, padding, zoom, onZoom, children }: { ratio: nu
       remember();
       onZoom(clamp(z, ZOOM_MIN, ZOOM_MAX));
     };
+    // "caber na tela": volta a 100% e recentraliza
+    const fitAll = () => {
+      panned.current = false;
+      centerNext.current = true;
+      anchor.current = null;
+      onZoom(1);
+      setNudge((n) => n + 1);
+    };
     window.addEventListener('cs:stage-zoom', on);
-    return () => window.removeEventListener('cs:stage-zoom', on);
+    window.addEventListener('cs:stage-fit', fitAll);
+    return () => {
+      window.removeEventListener('cs:stage-zoom', on);
+      window.removeEventListener('cs:stage-fit', fitAll);
+    };
   }, [onZoom, remember]);
 
   // Ctrl + roda: o navegador daria zoom na página inteira — aqui vira zoom do palco (precisa de passive: false)
@@ -133,7 +172,8 @@ export function ZoomView({ ratio, padding, zoom, onZoom, children }: { ratio: nu
   }, []);
 
   const startPan = (e: RPointerEvent<HTMLDivElement>) => {
-    if (!space || e.button !== 0) return;
+    // Espaço + botão esquerdo ou direito; o botão do meio (rodinha) arrasta sempre
+    if (!(e.button === 1 || (space && (e.button === 0 || e.button === 2)))) return;
     // nada do palco recebe este clique: só a vista se move
     e.preventDefault();
     e.stopPropagation();
@@ -143,12 +183,19 @@ export function ZoomView({ ratio, padding, zoom, onZoom, children }: { ratio: nu
     const sl = el.scrollLeft;
     const st = el.scrollTop;
     setPanning(true);
+    panned.current = true;
+    try {
+      el.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
     const move = (ev: PointerEvent) => {
       el.scrollLeft = sl - (ev.clientX - sx);
       el.scrollTop = st - (ev.clientY - sy);
     };
     const end = () => {
       setPanning(false);
+      justPanned.current = Date.now();
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', end);
       window.removeEventListener('pointercancel', end);
@@ -176,8 +223,16 @@ export function ZoomView({ ratio, padding, zoom, onZoom, children }: { ratio: nu
       onPointerEnter={() => (hover.current = true)}
       onPointerLeave={() => (hover.current = false)}
       onPointerDownCapture={startPan}
+      onContextMenuCapture={(e: { preventDefault(): void; stopPropagation(): void }) => {
+        // com Espaço (ou logo depois de arrastar com o botão direito) não abre o menu do palco
+        if (spaceRef.current || Date.now() - justPanned.current < 400) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
+      onAuxClick={(e: { button: number; preventDefault(): void }) => e.button === 1 && e.preventDefault()}
     >
-      <div className="zv-track" style={{ padding }}>
+      <div className="zv-track" style={{ padding: `${padding + slack.y}px ${padding + slack.x}px` }}>
         <div ref={inner} className="fitbox-inner" style={{ width: w, height: h }}>
           {w > 0 && children}
         </div>

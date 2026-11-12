@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type CSSProperties, type MutableRefObject } from 'react';
 import { ThemeToggle } from '../../ui/ThemeToggle';
+import { SettingsButton } from '../settings/Settings';
 import {
   LuArrowDown,
   LuArrowUp,
@@ -337,6 +338,7 @@ export function Operator({ id }: { id: string }) {
         <div className="op-top-r">
           <OutputControls bus={busRef} link={link} />
           <IconButton label={tr('Atalhos de teclado')} icon={<LuKeyboard />} onClick={() => setDialog('keys')} />
+          <SettingsButton initial="present" />
           <ThemeToggle />
         </div>
       </header>

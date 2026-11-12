@@ -211,3 +211,77 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Configurações (engrenagem) ===== */
+.setx .modal-body {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+}
+.setx-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 178px minmax(0, 1fr);
+  height: min(520px, calc(100vh - 220px));
+  border-top: 1px solid var(--line);
+}
+.setx-nav {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  padding: 12px 8px;
+  border-right: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.setx-nav button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  font-size: 13px;
+  text-align: left;
+}
+.setx-nav button svg {
+  flex: none;
+  color: var(--text-3);
+  font-size: 15px;
+}
+.setx-nav button:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+.setx-nav button[data-on='1'] {
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 600;
+}
+.setx-nav button[data-on='1'] svg {
+  color: var(--accent);
+}
+.setx-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 14px 22px 22px;
+}
+.setx-body > .field-hint {
+  margin: 0 0 8px;
+}
+.setx-tip {
+  margin-top: 16px !important;
+}
+@media (max-width: 640px) {
+  .setx-grid {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .setx-nav {
+    grid-auto-flow: column;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}

@@ -39,12 +39,14 @@ Use **Chrome ou Edge** atualizados: foi neles que tudo foi testado. A geração 
   louvor guarda a própria cópia) ou *Exportar vídeo* para levar só o fundo, em MP4 que repete sem emenda, para o Holyrics.
 - **Alinhar e mover vários:** arrastando, o texto gruda nas bordas, na margem segura e no centro (botão *Ímã* liga e
   desliga; Alt solta na hora). Ctrl + clique seleciona vários textos (ou camadas no Estúdio) para mover e ajustar juntos.
-- **Idioma:** Português, English ou Español. No primeiro acesso o site pergunta o idioma e o tema; depois, use o botão
-  de idioma na biblioteca ou *Configurações* no editor.
+- **Configurações (engrenagem):** idioma, tema, ímã, guias, painéis, ajuste no telão, avanço automático, atalhos da
+  apresentação, padrão dos vídeos e armazenamento.
+- **Idioma:** Português, English ou Español. No primeiro acesso o site pergunta o idioma e o tema; depois, use a engrenagem
+  (*Configurações*), que fica no alto da biblioteca, do editor, do Estúdio e da apresentação.
 - **Camadas:** embaixo do palco, ao lado do texto do trecho. Clique para escolher, duplo clique para renomear, arraste
   para mudar a ordem; o olho oculta e o "…" tem duplicar, frente/trás e excluir.
-- **Zoom no palco:** Ctrl + roda do mouse (ou as lupas na barra embaixo do palco). Com zoom, segure Espaço e arraste para
-  andar pela tela sem mexer no texto. Clique na porcentagem para voltar a caber na tela.
+- **Zoom no palco:** Ctrl + roda do mouse (ou as lupas na barra embaixo do palco). Segure Espaço e arraste (botão esquerdo ou
+  direito) para andar pela tela sem mexer no texto. Clique na porcentagem para voltar a caber na tela.
 - **Editar no palco:** dois cliques no texto abrem a edição ali mesmo. O botão *Texto* (barra de cima) cria um texto livre.
 - **Gerar vídeos sem esperar:** depois de *Gerar*, clique em *Continuar em segundo plano*; um aviso no canto mostra o
   progresso em qualquer tela e baixa o .zip no fim.

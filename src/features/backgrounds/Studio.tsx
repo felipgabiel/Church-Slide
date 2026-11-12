@@ -9,6 +9,7 @@ import type { BackgroundDesign, DesignLayer, DesignLayerKind } from '../../core/
 import { debounce } from '../../core/util';
 import { Button, IconButton } from '../../ui/Button';
 import { ThemeToggle } from '../../ui/ThemeToggle';
+import { SettingsButton } from '../settings/Settings';
 import { toast, toastError } from '../../ui/toast';
 import { ApplyDialog } from './ApplyDialog';
 import { ExportLoopDialog } from './ExportLoopDialog';
@@ -377,6 +378,7 @@ export function Studio({ id, from }: { id: string; from?: string }) {
         <div className="tb-right">
           <IconButton label={tr('Desfazer (Ctrl+Z)')} icon={<LuUndo2 />} size="sm" disabled={!past.current.length} onClick={undo} />
           <IconButton label={tr('Refazer (Ctrl+Shift+Z)')} icon={<LuRedo2 />} size="sm" disabled={!future.current.length} onClick={redo} />
+          <SettingsButton />
           <ThemeToggle />
           <Button variant="ghost" size="sm" icon={<LuFilm />} onClick={() => setExporting(true)} title={tr('Exportar só o fundo, sem letra, em MP4')}>
             {tr('Exportar vídeo')}

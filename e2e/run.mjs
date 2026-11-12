@@ -1565,10 +1565,39 @@ await step('zoom no palco: Ctrl + roda no ponto do mouse, lupas, Espaço + arras
   const after = (await idbGet(pg, 'projects', pid)).slides[0].layers.map((l) => [l.style.x, l.style.y]);
   assert(JSON.stringify(before) === JSON.stringify(after), 'nenhuma camada se moveu');
 
+  // Espaço + botão DIREITO também move a vista, sem abrir o menu do palco
+  const sc2 = await pg.locator('.zv').evaluate((e) => [e.scrollLeft, e.scrollTop]);
+  await pg.mouse.move(view.x + view.width / 2, view.y + view.height / 2);
+  await pg.keyboard.down('Space');
+  await pg.mouse.down({ button: 'right' });
+  await pg.mouse.move(view.x + view.width / 2 + 80, view.y + view.height / 2 + 30, { steps: 5 });
+  await pg.mouse.up({ button: 'right' });
+  await pg.keyboard.up('Space');
+  await pg.waitForTimeout(200);
+  const sc3 = await pg.locator('.zv').evaluate((e) => [e.scrollLeft, e.scrollTop]);
+  assert(sc3[0] < sc2[0] - 40 && sc3[1] < sc2[1] - 10, `botão direito moveu a vista (${sc2} → ${sc3})`);
+  assert((await pg.locator('[role=menu]').count()) === 0, 'o menu do botão direito não abriu durante o arraste');
+
   // lupas e "caber na tela"
   await pg.locator('.sa-zoom-val').click();
   await pg.waitForTimeout(200);
   assert((await pg.locator('.sa-zoom-val').textContent()) === '100%' && Math.abs((await surf.boundingBox()).width - w0) < 2, 'clicar na porcentagem volta a caber na tela');
+  // sem zoom também dá para andar com Espaço + arrastar (e "caber na tela" recentraliza)
+  const c0 = await surf.boundingBox();
+  await pg.mouse.move(view.x + 200, view.y + 200);
+  await pg.keyboard.down('Space');
+  await pg.mouse.down({ button: 'right' });
+  await pg.mouse.move(view.x + 300, view.y + 240, { steps: 5 });
+  await pg.mouse.up({ button: 'right' });
+  await pg.keyboard.up('Space');
+  await pg.waitForTimeout(200);
+  const c1 = await surf.boundingBox();
+  assert(Math.abs(c1.x - c0.x - 100) < 3 && Math.abs(c1.y - c0.y - 40) < 3, `a 100% a vista também anda (${c0.x},${c0.y} → ${c1.x},${c1.y})`);
+  assert(JSON.stringify(after) === JSON.stringify((await idbGet(pg, 'projects', pid)).slides[0].layers.map((l) => [l.style.x, l.style.y])), 'nada saiu do lugar no slide');
+  await pg.locator('.sa-zoom-val').click();
+  await pg.waitForTimeout(150);
+  const c2 = await surf.boundingBox();
+  assert(Math.abs(c2.x - c0.x) < 2 && Math.abs(c2.y - c0.y) < 2, `clicar na porcentagem recentraliza (${c0.x},${c0.y} → ${c1.x},${c1.y} → ${c2.x},${c2.y})`);
   await pg.getByRole('button', { name: /Aumentar zoom/ }).click();
   assert((await pg.locator('.sa-zoom-val').textContent()) === '125%', 'lupa + aumenta um degrau');
   await pg.getByRole('button', { name: /Diminuir zoom/ }).click();
@@ -1665,17 +1694,60 @@ await step('primeiro acesso: boas-vindas pede idioma e tema (prévias), o site i
   const body = await pg.locator('body').innerText();
   for (const pt of ['Trecho', 'Exportar vídeos', 'Camadas', 'Animação', 'Fundo']) assert(!body.includes(pt), `sobrou "${pt}" em português no editor`);
   // trocar para espanhol pelas configurações
-  await pg.getByRole('button', { name: 'More options' }).click();
-  await pg.getByRole('menuitem', { name: /Settings/ }).click();
+  await pg.getByRole('button', { name: 'Settings', exact: true }).click();
   await Promise.all([pg.waitForEvent('load'), pg.locator('dialog[open]').getByRole('radio', { name: 'Español' }).click()]);
   await pg.getByRole('button', { name: 'Exportar videos' }).first().waitFor();
   await pg.getByRole('tab', { name: 'Animación', exact: true }).waitFor();
   // e de volta ao português pela biblioteca
   await pg.goto(BASE);
-  await pg.getByRole('button', { name: 'Idioma' }).click();
-  await Promise.all([pg.waitForEvent('load'), pg.getByRole('menuitem', { name: /Português/ }).click()]);
+  await pg.getByRole('button', { name: 'Configuración', exact: true }).click();
+  await Promise.all([pg.waitForEvent('load'), pg.locator('dialog[open]').getByRole('radio', { name: 'Português' }).click()]);
   await pg.getByRole('button', { name: /Novo louvor/ }).first().waitFor();
   await c.close();
+});
+
+await step('engrenagem: configurações com idioma, tema, editor, apresentação, vídeos e armazenamento valendo no app', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'configurações');
+  await pg.goto(BASE);
+  await pg.getByRole('button', { name: 'Configurações', exact: true }).click();
+  const dlg = pg.locator('dialog[open]');
+  await dlg.getByRole('heading', { name: 'Configurações' }).waitFor();
+  for (const t of ['Geral', 'Editor', 'Apresentação', 'Vídeos', 'Armazenamento']) await dlg.getByRole('tab', { name: t }).waitFor();
+  // tema: escuro e automático
+  await dlg.getByRole('radio', { name: 'Escuro' }).click();
+  assert((await pg.evaluate(() => document.documentElement.dataset.theme)) === 'dark', 'tema escuro aplicado');
+  await dlg.getByRole('radio', { name: 'Claro' }).click();
+  assert((await pg.evaluate(() => document.documentElement.dataset.theme)) === 'light', 'tema claro aplicado');
+  // editor: ímã desligado aqui aparece desligado no palco
+  await dlg.getByRole('tab', { name: 'Editor' }).click();
+  await dlg.getByRole('switch', { name: 'Ímã' }).click();
+  // vídeos: padrão 720p e 8 s parados
+  await dlg.getByRole('tab', { name: 'Vídeos' }).click();
+  await dlg.getByRole('radio', { name: '720p' }).click();
+  // apresentação: atalhos editáveis estão aqui
+  await dlg.getByRole('tab', { name: 'Apresentação' }).click();
+  await dlg.getByRole('button', { name: /Adicionar tecla para Tela preta/ }).waitFor();
+  await dlg.getByRole('tab', { name: 'Armazenamento' }).click();
+  await dlg.getByText('Espaço usado').waitFor();
+  await pg.keyboard.press('Escape');
+  // no editor
+  await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+  await pg.locator('dialog[open] input').first().fill('Engrenagem');
+  await pg.locator('dialog[open] textarea').first().fill('Santo');
+  await pg.getByRole('button', { name: /Criar e abrir/i }).click();
+  await pg.waitForURL(/#\/edit\//);
+  assert((await pg.getByRole('switch', { name: /Ímã|Alinhamento magnético/ }).first().getAttribute('aria-checked')) === 'false', 'o ímã veio desligado das configurações');
+  await pg.getByRole('button', { name: 'Exportar vídeos' }).click();
+  assert((await pg.locator('dialog[open]').getByRole('radio', { name: '720p' }).getAttribute('aria-checked')) === 'true', 'exportação abre com o padrão escolhido');
+  await pg.keyboard.press('Escape');
+  // a engrenagem também está no editor; volta o ímã
+  await pg.getByRole('button', { name: 'Configurações', exact: true }).click();
+  await pg.locator('dialog[open]').getByRole('tab', { name: 'Editor' }).click();
+  await pg.locator('dialog[open]').getByRole('switch', { name: 'Ímã' }).click();
+  await pg.keyboard.press('Escape');
+  await pg.evaluate(() => localStorage.removeItem('cs:export'));
+  await pg.close();
 });
 
 await step('nenhum erro de console durante todo o fluxo', async () => {

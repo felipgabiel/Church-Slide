@@ -1,5 +1,6 @@
-import { LuCheck, LuChevronLeft, LuCloudOff, LuDownload, LuEllipsis, LuFilm, LuHistory, LuInfo, LuKeyboard, LuLayoutTemplate, LuLoaderCircle, LuMonitorPlay, LuPanelLeft, LuPanelRight, LuRedo2, LuSettings, LuUndo2, LuClipboardPaste, LuType } from 'react-icons/lu';
+import { LuCheck, LuChevronLeft, LuCloudOff, LuDownload, LuEllipsis, LuFilm, LuHistory, LuInfo, LuKeyboard, LuLayoutTemplate, LuLoaderCircle, LuMonitorPlay, LuPanelLeft, LuPanelRight, LuRedo2, LuUndo2, LuClipboardPaste, LuType } from 'react-icons/lu';
 import { ThemeToggle } from '../../ui/ThemeToggle';
+import { SettingsButton } from '../settings/Settings';
 import { navigate, paths } from '../../app/router';
 import { slideText } from '../../core/defaults';
 import { downloadBlob, exportFileName, exportProject } from '../../core/storage/exchange';
@@ -15,7 +16,7 @@ import { confirmDialog, promptDialog, toast, toastError, useNow } from '../../ui
 import { startPresenting } from './useEditorShortcuts';
 import { tr } from '../../core/i18n';
 
-export type DialogName = 'lyrics' | 'info' | 'settings' | 'shortcuts' | 'export';
+export type DialogName = 'lyrics' | 'info' | 'shortcuts' | 'export';
 
 function SaveStatus() {
   const status = useEditor((s) => s.status);
@@ -98,6 +99,7 @@ export function Topbar({ left, right, onToggleLeft, onToggleRight, open }: Props
       </div>
 
       <div className="tb-right">
+        <SettingsButton />
         <ThemeToggle />
         <IconButton label={left ? tr('Ocultar painel esquerdo') : tr('Mostrar painel esquerdo')} icon={<LuPanelLeft />} active={left} onClick={onToggleLeft} />
         <IconButton label={right ? tr('Ocultar painel direito') : tr('Mostrar painel direito')} icon={<LuPanelRight />} active={right} onClick={onToggleRight} />
@@ -152,7 +154,6 @@ export function Topbar({ left, right, onToggleLeft, onToggleRight, open }: Props
               },
             },
             { divider: true },
-            { label: tr('Configurações…'), icon: <LuSettings />, onClick: () => open('settings') },
             { label: tr('Atalhos de teclado…'), icon: <LuKeyboard />, onClick: () => open('shortcuts') },
           ]}
           trigger={(isOpen, toggle) => <IconButton label={tr('Mais opções')} icon={<LuEllipsis />} active={isOpen} aria-haspopup="menu" aria-expanded={isOpen} onClick={toggle} />}

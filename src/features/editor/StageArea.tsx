@@ -498,7 +498,7 @@ export function StageArea({ onLyrics }: { onLyrics: () => void }) {
           </Button>
           <div className="sa-zoom" role="group" aria-label={tr('Zoom do palco')}>
             <IconButton label={tr('Diminuir zoom (Ctrl + roda do mouse)')} icon={<LuZoomOut />} size="sm" onClick={() => zoomTo(stepZoom(zoom, -1))} disabled={zoom <= ZOOM_MIN} />
-            <button type="button" className="sa-zoom-val" onClick={() => zoomTo(1)} title={tr('Caber na tela')} aria-label={tr('Zoom {0}%. Clique para caber na tela', Math.round(zoom * 100))}>
+            <button type="button" className="sa-zoom-val" onClick={() => window.dispatchEvent(new Event('cs:stage-fit'))} title={tr('Caber na tela')} aria-label={tr('Zoom {0}%. Clique para caber na tela', Math.round(zoom * 100))}>
               {Math.round(zoom * 100)}%
             </button>
             <IconButton label={tr('Aumentar zoom (Ctrl + roda do mouse)')} icon={<LuZoomIn />} size="sm" onClick={() => zoomTo(stepZoom(zoom, 1))} disabled={zoom >= ZOOM_MAX} />

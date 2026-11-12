@@ -218,8 +218,11 @@ desenho em torno do mesmo centro (caso "caixa girada" no teste de fidelidade).
 - **Zoom (`features/editor/ZoomView.tsx`):** o palco fica de fato maior (sem `transform`) dentro de uma área com
   rolagem, então cliques, alças e medidas continuam batendo. Ctrl + roda (com `passive: false`, para o navegador não dar
   zoom na página) mantém sob o mouse o mesmo ponto do slide; as lupas da barra seguem degraus (50%–400%) pelo centro
-  (`cs:stage-zoom`); clicar na porcentagem volta a caber na tela. Espaço com o mouse sobre o palco ativa a mãozinha:
-  o `pointerdown` é tomado na fase de captura (nada do slide recebe o clique) e o `click` seguinte é descartado.
+  (`cs:stage-zoom`); clicar na porcentagem volta a caber na tela e recentraliza (`cs:stage-fit`). Espaço com o mouse
+  sobre o palco ativa a mãozinha: arrastar com o botão esquerdo ou direito (ou só o botão do meio) move a vista. O
+  `pointerdown` é tomado na fase de captura (nada do slide recebe o clique), o `click` seguinte é descartado e o menu do
+  botão direito não abre. Há uma folga de meia tela em volta do palco, então a vista anda mesmo sem zoom; sem zoom a
+  área não rola com a roda (só pelo arrasto).
 - **Letra completa com palavras soltas:** a camada criada por "Soltar" guarda `detached` (`DetachOrigin`: camada de
   origem, linha/coluna de cada palavra e linhas que ficaram vazias). `slideFullText` (em `core/layers.ts`) devolve as
   palavras ao lugar ao montar a "Letra completa", então a frase continua inteira no texto.
@@ -311,6 +314,14 @@ então funciona sem internet e sem biblioteca. Para trocar o Pix: substituir `PI
   muda pelo botão de idioma da biblioteca ou em *Configurações* no editor.
 - O que a pessoa digita (letras, nomes de louvores, camadas já criadas) nunca é traduzido.
 
+### Configurações (`features/settings/Settings.tsx`)
+
+Botão de engrenagem na biblioteca, no editor, no Estúdio e no operador (que abre direto em *Apresentação*). Seções:
+**Geral** (idioma; tema claro, escuro ou automático pelo sistema), **Editor** (ímã, guias, painéis laterais),
+**Apresentação** (ajuste no telão, avanço automático e os atalhos editáveis), **Vídeos** (resolução, quadros, qualidade e
+tempo parado usados ao abrir "Exportar vídeos") e **Armazenamento** (espaço usado e proteção contra limpeza). Tudo
+grava nas mesmas preferências `cs:*` que as telas já usam, então muda na hora onde estiver aberto.
+
 ## 9. Fontes embutidas
 
 Poppins 400/500/700 (SIL OFL 1.1, recortada para caracteres latinos, ~11 KB cada) está em `src/assets/fonts/`
@@ -358,7 +369,7 @@ Painéis laterais acompanham a largura do monitor (`clamp`), testados de 1280×7
 |---|---|
 | `npm run typecheck` | `tsc --noEmit` (ver limitação na seção 1) |
 | `npm test` | 118 testes unitários: idiomas (marcadores e cobertura do dicionário), easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
-| `npm run build && npm run e2e` | 42 etapas no navegador contra o build de produção (ver abaixo) |
+| `npm run build && npm run e2e` | 43 etapas no navegador contra o build de produção (ver abaixo) |
 | `npm run e2e:fidelity` | compara o desenho em canvas (vídeo) com o DOM do editor (PSNR; exige ffmpeg) |
 
 O e2e (`e2e/run.mjs`) cria um louvor pela interface, edita e confere a persistência após recarregar,
@@ -374,9 +385,9 @@ ordem da sequência, início no tempo escolhido, telão e vídeo iguais), legibi
 biblioteca, editor, menus, diálogos e operador) e o Estúdio de Fundos (criar a partir de modelo, mover no palco, desfazer,
 salvar sozinho, camadas e movimentos, vídeo só do fundo com 360 quadros e emenda invisível, cópia no louvor, "Atualizar" e a
 ida e volta editor ↔ estúdio), o painel de camadas (adicionar, renomear, ocultar, reordenar, excluir), a palavra solta
-que continua na "Letra completa", o zoom (Ctrl + roda no ponto do mouse, lupas, Espaço + arrastar sem mover o texto), o aviso
+que continua na "Letra completa", o zoom (Ctrl + roda no ponto do mouse, lupas, Espaço + arrastar com o botão esquerdo ou direito, com e sem zoom, sem mover o texto), o aviso
 de louvor repetido, as miniaturas da lixeira e o primeiro acesso (boas-vindas, prévias de tema, site em inglês e espanhol
-e a volta ao português). Termina conferindo que não houve erros de console.
+e a volta ao português) e a engrenagem (cada seção das configurações valendo no editor e na exportação). Termina conferindo que não houve erros de console.
 
 O build **falha** se `sw.js` sair com marcadores sem substituir — um bug anterior fazia o service
 worker não registrar e o modo offline nunca funcionava, sem nenhum aviso.

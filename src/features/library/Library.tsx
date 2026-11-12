@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { SupportCard } from '../support/SupportCard';
 import { ThemeToggle } from '../../ui/ThemeToggle';
-import { LangMenu } from '../../ui/LangMenu';
+import { SettingsButton } from '../settings/Settings';
 import {
   LuArchive,
   LuClock3,
@@ -257,7 +257,7 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
           </label>
           <div className="lib-bar-actions">
             <input ref={fileRef} type="file" accept=".json,application/json" multiple hidden onChange={(e) => void doImport(e.currentTarget.files)} />
-            <LangMenu />
+            <SettingsButton />
             <ThemeToggle />
             {inBg ? (
               <Button variant="primary" icon={<LuPlus />} onClick={() => void startFromStarter(STARTERS[STARTERS.length - 1])}>
