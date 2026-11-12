@@ -1,6 +1,7 @@
 import { cubicBezier } from '../anim/easing';
 import { BOKEH } from '../bokeh';
 import { DesignPainter } from '../design/paint';
+import { ExportMedia } from '../design/mediaFrames';
 import { getMedia } from '../storage/media';
 import type { Background } from '../types';
 import { clear, rgba } from './color';
@@ -213,6 +214,7 @@ export class BackgroundPainter {
   private video: HTMLVideoElement | null = null;
   private videoUrl: string | null = null;
   private design: DesignPainter | null = null;
+  private designMedia: ExportMedia | null = null;
   /** true se a mídia pedida não pôde ser carregada: o fundo cai para a cor/gradiente */
   mediaMissing = false;
 
@@ -235,6 +237,10 @@ export class BackgroundPainter {
   }
 
   private async load() {
+    if (this.design && this.bg.design) {
+      this.designMedia = await ExportMedia.load([this.bg.design]);
+      this.design.media = this.designMedia;
+    }
     const { kind, mediaId } = this.bg;
     if ((kind !== 'image' && kind !== 'video') || !mediaId) return;
     try {
@@ -275,7 +281,9 @@ export class BackgroundPainter {
     let isMedia = false;
     if (this.design && bg.design) {
       // fundo do Estúdio: o mesmo desenho do editor e do telão
-      this.design.draw(lctx, bg.design, t * Math.max(0.1, bg.speed));
+      const dt = t * Math.max(0.1, bg.speed);
+      await this.designMedia?.seek(dt);
+      this.design.draw(lctx, bg.design, dt);
       isMedia = true;
     } else if (bg.kind === 'animated') {
       paintAnimated(lctx, bg, w, h, t);
@@ -324,5 +332,6 @@ export class BackgroundPainter {
       this.video.load();
     }
     if (this.videoUrl) URL.revokeObjectURL(this.videoUrl);
+    this.designMedia?.dispose();
   }
 }

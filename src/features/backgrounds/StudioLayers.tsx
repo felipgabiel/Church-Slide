@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { LuArrowDown, LuArrowUp, LuBlend, LuCopy, LuEllipsis, LuEye, LuEyeOff, LuGrid3X3, LuLock, LuLockOpen, LuPlus, LuShapes, LuSparkles, LuSun, LuTrash2, LuWaves } from 'react-icons/lu';
+import { useRef, useState, type ReactNode } from 'react';
+import { LuArrowDown, LuArrowUp, LuBlend, LuCopy, LuEllipsis, LuEye, LuEyeOff, LuGrid3X3, LuImage, LuLock, LuLockOpen, LuPlus, LuShapes, LuSparkles, LuSun, LuTrash2, LuWaves } from 'react-icons/lu';
 import { LAYER_KINDS } from '../../core/design/model';
 import type { DesignLayerKind } from '../../core/types';
 import { IconButton } from '../../ui/Button';
@@ -14,6 +14,7 @@ export const KIND_ICON: Record<DesignLayerKind, ReactNode> = {
   waves: <LuWaves />,
   texture: <LuGrid3X3 />,
   particles: <LuSparkles />,
+  media: <LuImage />,
 };
 
 /** Lista de camadas como a pilha real: a de cima da lista é a que fica na frente. */
@@ -24,10 +25,24 @@ export function StudioLayers({ api }: { api: StudioApi }) {
   const top = [...design.layers].reverse(); // índice visual 0 = topo da pilha
   const n = design.layers.length;
 
-  const addItems: MenuItem[] = LAYER_KINDS.map((k) => ({ label: k.label, desc: k.hint, icon: KIND_ICON[k.kind], onClick: () => api.addLayer(k.kind) }));
+  const fileRef = useRef<HTMLInputElement>(null);
+  // "Imagem ou vídeo" pede o arquivo primeiro (ele fica guardado em "Meus arquivos")
+  const addItems: MenuItem[] = LAYER_KINDS.map((k) => ({ label: k.label, desc: k.hint, icon: KIND_ICON[k.kind], onClick: () => (k.kind === 'media' ? fileRef.current?.click() : api.addLayer(k.kind)) }));
 
   return (
     <div className="sl-panel">
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*,video/*"
+        hidden
+        data-testid="studio-media-input"
+        onChange={(e) => {
+          const f = e.currentTarget.files?.[0];
+          e.currentTarget.value = '';
+          if (f) void api.addMediaLayer(f);
+        }}
+      />
       <div className="sl-panel-head">
         <h2>{tr('Camadas')}</h2>
         <Menu

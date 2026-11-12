@@ -1,4 +1,5 @@
 import { DesignPainter } from '../design/paint';
+import { ExportMedia } from '../design/mediaFrames';
 import type { BackgroundDesign } from '../types';
 import { bitrateFor, type Quality } from './exportSong';
 import { encodeMp4 } from './encode';
@@ -27,18 +28,27 @@ export function loopVideoSize(height: number) {
 export async function exportDesignVideo(design: BackgroundDesign, o: LoopVideoOptions): Promise<Blob> {
   const { width, height } = loopVideoSize(o.height);
   const painter = new DesignPainter(width, height);
+  const media = await ExportMedia.load([design]);
+  painter.media = media;
   const frames = Math.round(design.loopSec * o.fps) * Math.max(1, o.repeats);
-  return encodeMp4({
+  try {
+    return await encodeMp4({
     width,
     height,
     fps: o.fps,
     // duração ligeiramente menor que N quadros inteiros: o codificador arredonda para cima
     durationMs: ((frames - 0.5) * 1000) / o.fps,
     bitrate: bitrateFor(width, height, o.fps, o.quality),
-    renderFrame: (ctx, tMs) => painter.draw(ctx, design, tMs / 1000),
+    renderFrame: async (ctx, tMs) => {
+      await media.seek(tMs / 1000);
+      painter.draw(ctx, design, tMs / 1000);
+    },
     onProgress: o.onProgress,
     signal: o.signal,
   });
+  } finally {
+    media.dispose();
+  }
 }
 
 export const loopFileName = (d: BackgroundDesign) =>

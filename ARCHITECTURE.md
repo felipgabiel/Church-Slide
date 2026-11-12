@@ -291,6 +291,26 @@ O tamanho que a pessoa escolhe à mão não é limitado. O vídeo mede o mesmo D
   "Atualizar". "Aplicar neste louvor" (vindo do editor) troca só as cópias daquele fundo, mantendo os ajustes do louvor.
 - **Modelos de louvor** levam o fundo junto (é só mais um fundo dentro do projeto); "Usar num louvor" lista modelos também.
 
+### Imagem ou vídeo no Estúdio, fundo em arquivo e backup de tudo
+
+- **Camada "Imagem ou vídeo" (`DesignLayer.kind = 'media'`):** guarda só o id do arquivo em "Meus arquivos" (`mediaId`,
+  `mediaKind`) e o encaixe (`fit`): `cover` cobre o slide como foto de fundo; `free` é uma caixa que se arrasta e
+  redimensiona, criada na proporção do arquivo. Aceita movimento (derivar, respirar, girar, cintilar), desfoque,
+  opacidade, mistura e recorte, como as outras camadas.
+- **De onde vem o quadro:** o `DesignPainter` pede a mídia a um `DesignMediaSource`. Na tela, `render/designMedia.ts`
+  carrega cada arquivo uma vez e os vídeos tocam em loop sem som (miniaturas redesenham quando o arquivo chega). No
+  gerador de vídeo, `core/design/mediaFrames.ts` leva cada vídeo ao instante exato antes de cada quadro (tempo módulo a
+  duração do vídeo), então o MP4 é determinístico. Se o loop do fundo não for múltiplo da duração do vídeo, o painel
+  avisa e oferece "Igualar o loop ao vídeo".
+- **Fundo em arquivo (`core/storage/designFile.ts`):** "Salvar em arquivo" gera um `.csfundo.json` com o fundo e as
+  imagens/vídeos embutidos; "Importar" (na galeria de fundos) cria um fundo novo e reaproveita a mídia que já existe.
+- **Backup de tudo (`core/storage/backup.ts`):** um `.zip` (sem compressão, com o gerador de ZIP do app) com
+  `church-slide-backup.json` (louvores com modelos e lixeira, "Meus fundos", preferências `cs:*` e a lista da mídia),
+  `media/` e `thumbs/`. A restauração lê o diretório central do ZIP (aceita também "deflate", se alguém recompactou) e
+  **mescla**: mídia que falta entra com o mesmo id; louvor/fundo que existe nos dois fica com o `updatedAt` mais novo;
+  preferências só entram se ainda não existem. Nada é apagado; restaurar duas vezes não duplica. Fica em
+  *Configurações → Backup e armazenamento*, e a biblioteca mostra um lembrete quando não há backup há mais de 2 semanas.
+
 ### Apoio opcional via Pix (`core/support.ts`, `features/support/SupportCard.tsx`)
 
 O site é gratuito. Depois de gerar os vídeos, o diálogo de exportação mostra um convite discreto com o QR Code e o
@@ -368,8 +388,8 @@ Painéis laterais acompanham a largura do monitor (`clamp`), testados de 1280×7
 | Comando | O que faz |
 |---|---|
 | `npm run typecheck` | `tsc --noEmit` (ver limitação na seção 1) |
-| `npm test` | 118 testes unitários: idiomas (marcadores e cobertura do dicionário), easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
-| `npm run build && npm run e2e` | 43 etapas no navegador contra o build de produção (ver abaixo) |
+| `npm test` | 123 testes unitários: backup (ZIP de ida e volta, deflate), camada de mídia, idiomas (marcadores e cobertura do dicionário), easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
+| `npm run build && npm run e2e` | 45 etapas no navegador contra o build de produção (ver abaixo) |
 | `npm run e2e:fidelity` | compara o desenho em canvas (vídeo) com o DOM do editor (PSNR; exige ffmpeg) |
 
 O e2e (`e2e/run.mjs`) cria um louvor pela interface, edita e confere a persistência após recarregar,
@@ -387,7 +407,9 @@ salvar sozinho, camadas e movimentos, vídeo só do fundo com 360 quadros e emen
 ida e volta editor ↔ estúdio), o painel de camadas (adicionar, renomear, ocultar, reordenar, excluir), a palavra solta
 que continua na "Letra completa", o zoom (Ctrl + roda no ponto do mouse, lupas, Espaço + arrastar com o botão esquerdo ou direito, com e sem zoom, sem mover o texto), o aviso
 de louvor repetido, as miniaturas da lixeira e o primeiro acesso (boas-vindas, prévias de tema, site em inglês e espanhol
-e a volta ao português) e a engrenagem (cada seção das configurações valendo no editor e na exportação). Termina conferindo que não houve erros de console.
+e a volta ao português) a engrenagem (cada seção das configurações valendo no editor e na exportação), a camada "Imagem ou vídeo" (foto cobrindo o
+palco, caixa livre, vídeo com loop igualado e exportado em 75 quadros, fundo salvo e importado em arquivo) e o backup (baixar,
+restaurar num navegador vazio com tudo igual, restaurar de novo sem duplicar). Termina conferindo que não houve erros de console.
 
 O build **falha** se `sw.js` sair com marcadores sem substituir — um bug anterior fazia o service
 worker não registrar e o modo offline nunca funcionava, sem nenhum aviso.
@@ -398,7 +420,7 @@ worker não registrar e o modo offline nunca funcionava, sem nenhum aviso.
   ou pareamento WebRTC manual por QR code). Fica para uma próxima etapa; a camada `LiveBus` já isola o
   transporte, então um canal de rede entra no lugar do `BroadcastChannel` sem tocar nas telas.
 - **Biblioteca de fundos em vídeo embutida** (o app traz fundos animados e gradientes gerados por código, que não pesam; vídeos e imagens são enviados pelo usuário).
-- **Estúdio de Fundos:** imagem/vídeo como camada, importar/exportar um fundo em arquivo `.json` e degradê em malha ficam para uma próxima etapa.
+- **Estúdio de Fundos:** degradê em malha fica para uma próxima etapa.
 - **Contas, nuvem e sincronização entre computadores** — fora do escopo desta etapa por decisão do briefing.
 - Verificação em hardware real com **dois monitores físicos**: o fluxo é testado com duas janelas, mas a
   Window Management API só pode ser exercitada de verdade em máquina com mais de um monitor.

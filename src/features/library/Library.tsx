@@ -50,6 +50,9 @@ import { NewProjectDialog } from './NewProjectDialog';
 import { TrashDialog } from './TrashDialog';
 import { useProjects } from './useProjects';
 import { Gallery, startFromStarter } from '../backgrounds/Gallery';
+import { importDesignFile } from '../../core/storage/designFile';
+import { LAST_BACKUP_SETTING } from '../../core/storage/backup';
+import { downloadBackup } from '../settings/backupActions';
 import { useDesigns } from '../backgrounds/useDesigns';
 import { STARTERS } from '../../core/design/starters';
 import { tr } from '../../core/i18n';
@@ -105,6 +108,12 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
     let last: Project | null = null;
     for (const f of Array.from(files)) {
       try {
+        // fundo do Estúdio (.csfundo.json) ou louvor (.churchslide.json): o próprio arquivo diz o que é
+        if (/"format"\s*:\s*"church-slide-background"/.test(await f.slice(0, 200).text())) {
+          const d = await importDesignFile(f);
+          toast(tr('Fundo “{0}” importado para Meus fundos', d.name));
+          continue;
+        }
         last = await importProjectFile(f);
         toast(tr('“{0}” importado', last.name));
       } catch (err) {
@@ -240,6 +249,7 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
             <span className="lib-nav-label">{tr('Lixeira')}</span>
             {trashed.length > 0 && <span className="lib-nav-count">{trashed.length}</span>}
           </button>
+          <BackupNudge show={songs.length > 0} />
           <p className="lib-status" data-state={storageMode === 'memory' ? 'bad' : offline === 'ready' ? 'ok' : 'idle'}>
             <i aria-hidden />
             {storageMode === 'memory' ? tr('Armazenamento indisponível') : offline === 'ready' ? tr('Neste computador · funciona offline') : tr('Guardado neste computador')}
@@ -260,9 +270,14 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
             <SettingsButton />
             <ThemeToggle />
             {inBg ? (
-              <Button variant="primary" icon={<LuPlus />} onClick={() => void startFromStarter(STARTERS[STARTERS.length - 1])}>
-                {tr('Novo fundo')}
-              </Button>
+              <>
+                <Button variant="ghost" icon={<LuUpload />} onClick={() => fileRef.current?.click()} title={tr('Importar um fundo salvo em arquivo (.csfundo.json)')}>
+                  {tr('Importar')}
+                </Button>
+                <Button variant="primary" icon={<LuPlus />} onClick={() => void startFromStarter(STARTERS[STARTERS.length - 1])}>
+                  {tr('Novo fundo')}
+                </Button>
+              </>
             ) : (
               <>
                 <Button variant="ghost" icon={<LuUpload />} onClick={() => fileRef.current?.click()}>
@@ -615,5 +630,32 @@ function ProjectCard({ project: p, onOpen, items, template, onUseTemplate }: { p
         )}
       </div>
     </article>
+  );
+}
+
+/** Lembrete discreto: sem backup (ou o último tem mais de 2 semanas), um clique baixa tudo. */
+function BackupNudge({ show }: { show: boolean }) {
+  const [last] = useSetting<number | null>(LAST_BACKUP_SETTING, null);
+  const [busy, setBusy] = useState(false);
+  const old = !last || Date.now() - last > 14 * 24 * 3600 * 1000;
+  if (!show || !old) return null;
+  return (
+    <button
+      type="button"
+      className="lib-backup"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        await downloadBackup();
+        setBusy(false);
+      }}
+      title={tr('Baixa um .zip com todos os louvores, fundos e arquivos deste computador')}
+    >
+      <LuDownload aria-hidden />
+      <span>
+        <b>{busy ? tr('Preparando o backup…') : tr('Fazer backup')}</b>
+        <small>{last ? tr('Último: {0}', timeAgo(last)) : tr('Nenhum backup ainda')}</small>
+      </span>
+    </button>
   );
 }

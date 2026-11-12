@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { LuCopy, LuEllipsis, LuFilm, LuPalette, LuPencil, LuPlus, LuSparkles, LuTrash2 } from 'react-icons/lu';
+import { LuCopy, LuDownload, LuEllipsis, LuFilm, LuPalette, LuPencil, LuPlus, LuSparkles, LuTrash2 } from 'react-icons/lu';
 import { navigate, paths } from '../../app/router';
 import { copyDesign } from '../../core/design/model';
 import { STARTERS, type Starter } from '../../core/design/starters';
@@ -14,6 +14,8 @@ import { DesignThumb } from './DesignThumb';
 import { ExportLoopDialog } from './ExportLoopDialog';
 import { useDesigns } from './useDesigns';
 import { tr } from '../../core/i18n';
+import { designFileName, exportDesignFile } from '../../core/storage/designFile';
+import { downloadBlob } from '../../core/storage/exchange';
 
 /** Cria um fundo a partir de um modelo de partida, salva e abre o estúdio. */
 export async function startFromStarter(s: Starter) {
@@ -54,6 +56,18 @@ export function Gallery({ query }: { query: string }) {
       },
     },
     { label: tr('Exportar vídeo (só o fundo)'), icon: <LuFilm />, hint: '.mp4', onClick: () => setExporting(d) },
+    {
+      label: tr('Salvar em arquivo (para outra igreja)'),
+      icon: <LuDownload />,
+      hint: '.json',
+      onClick: async () => {
+        try {
+          downloadBlob(await exportDesignFile(d), designFileName(d));
+        } catch {
+          toastError(tr('Não foi possível salvar o fundo em arquivo.'));
+        }
+      },
+    },
     { divider: true },
     {
       label: tr('Excluir'),

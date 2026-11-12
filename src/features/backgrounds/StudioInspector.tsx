@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from 'react';
 import { LuArrowLeftRight, LuMinus, LuPlus, LuX } from 'react-icons/lu';
+import { loadMedia, mediaSize } from '../../render/designMedia';
 import { BLEND_LABEL, KIND_LABEL, LOOP_OPTIONS, MAX_STOPS, MOTION_HINT, MOTION_LABEL, motionsFor, SHAPE_LABEL } from '../../core/design/model';
 import type { DesignBlend, DesignFill, DesignFillType, DesignLayer, DesignMotion, DesignShape, DesignTexture } from '../../core/types';
 import { Button, IconButton } from '../../ui/Button';
@@ -22,7 +24,7 @@ export function StudioInspector({ api }: { api: StudioApi }) {
   // com várias selecionadas (Ctrl + clique), cada ajuste vale para todas
   const set = (patch: Partial<DesignLayer>, key?: string) => api.patchSelected(patch, key);
   const many = api.selectedIds.length > 1;
-  const placed = l.kind === 'shape' || l.kind === 'glow' || l.kind === 'waves' || (l.kind === 'gradient' && l.fill.type !== 'linear' && l.fill.type !== 'solid');
+  const placed = l.kind === 'shape' || l.kind === 'glow' || l.kind === 'waves' || (l.kind === 'gradient' && l.fill.type !== 'linear' && l.fill.type !== 'solid') || (l.kind === 'media' && l.fit === 'free');
   const idx = api.design.layers.findIndex((x) => x.id === l.id);
 
   return (
@@ -42,6 +44,8 @@ export function StudioInspector({ api }: { api: StudioApi }) {
           </button>
         </div>
       )}
+
+      {l.kind === 'media' && <MediaSection api={api} layer={l} />}
 
       {l.kind === 'shape' && (
         <Section title={tr('Forma')}>
@@ -105,14 +109,16 @@ export function StudioInspector({ api }: { api: StudioApi }) {
         </Section>
       )}
 
-      <Section title={l.kind === 'texture' || l.kind === 'glow' ? tr('Cor') : tr('Cores')}>
-        <FillEditor
-          fill={l.fill}
-          types={l.kind === 'gradient' || l.kind === 'shape' ? FILL_TYPES : l.kind === 'waves' || l.kind === 'particles' || l.kind === 'glow' ? null : 'single'}
-          onChange={(fill, key) => set({ fill }, key ? `fill:${l.id}:${key}` : undefined)}
-          allowAngle={l.kind === 'gradient' || l.kind === 'shape'}
-        />
-      </Section>
+      {l.kind !== 'media' && (
+        <Section title={l.kind === 'texture' || l.kind === 'glow' ? tr('Cor') : tr('Cores')}>
+          <FillEditor
+            fill={l.fill}
+            types={l.kind === 'gradient' || l.kind === 'shape' ? FILL_TYPES : l.kind === 'waves' || l.kind === 'particles' || l.kind === 'glow' ? null : 'single'}
+            onChange={(fill, key) => set({ fill }, key ? `fill:${l.id}:${key}` : undefined)}
+            allowAngle={l.kind === 'gradient' || l.kind === 'shape'}
+          />
+        </Section>
+      )}
 
       <Section title={tr('Movimento')} hint={tr('Tudo se repete sem emenda no fim do loop, no telão e no vídeo.')}>
         <MotionList layer={l} onChange={(motions, key) => set({ motions }, key)} />
@@ -148,6 +154,78 @@ export function StudioInspector({ api }: { api: StudioApi }) {
         </Button>
       </div>
     </div>
+  );
+}
+
+/** Camada "Imagem ou vídeo": arquivo, encaixe e (vídeo) loop sem emenda. */
+function MediaSection({ api, layer: l }: { api: StudioApi; layer: DesignLayer }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [size, setSize] = useState(() => (l.mediaId ? mediaSize(l.mediaId) : null));
+  const [loading, setLoading] = useState(() => !!l.mediaId && !size);
+  useEffect(() => {
+    if (!l.mediaId) return;
+    let alive = true;
+    setLoading(true);
+    void loadMedia(l.mediaId).then((s) => {
+      if (!alive) return;
+      setSize(s);
+      setLoading(false);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [l.mediaId]);
+  const dur = l.mediaKind === 'video' ? size?.duration : undefined;
+  const loop = api.design.loopSec;
+  const fits = dur ? Math.abs(loop / dur - Math.round(loop / dur)) < 0.02 && loop >= dur - 0.05 : true;
+  const target = dur ? Math.min(60, Math.max(2, Math.round(dur * 10) / 10)) : 0;
+  return (
+    <Section title={l.mediaKind === 'video' ? tr('Vídeo') : tr('Imagem')}>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*,video/*"
+        hidden
+        onChange={(e) => {
+          const f = e.currentTarget.files?.[0];
+          e.currentTarget.value = '';
+          if (f) void api.replaceMedia(l.id, f);
+        }}
+      />
+      {loading ? (
+        <p className="props-note">{tr('Carregando o arquivo…')}</p>
+      ) : !size ? (
+        <p className="props-note">{tr('O arquivo desta camada não está neste computador. Escolha outro.')}</p>
+      ) : (
+        <p className="props-note">
+          {size.w} × {size.h}
+          {dur ? ` · ${dur.toFixed(1)} s` : ''}
+        </p>
+      )}
+      <Button size="sm" onClick={() => fileRef.current?.click()}>
+        {tr('Trocar arquivo…')}
+      </Button>
+      <Row label={tr('Encaixe')}>
+        <Segmented<'cover' | 'free'>
+          size="sm"
+          label={tr('Encaixe')}
+          value={l.fit ?? 'cover'}
+          onChange={(v) => api.patchSelected({ fit: v })}
+          options={[
+            { value: 'cover', label: tr('Tela inteira'), title: tr('Cobre o slide todo, como uma foto de fundo') },
+            { value: 'free', label: tr('Livre'), title: tr('Uma caixa que dá para arrastar e redimensionar no palco') },
+          ]}
+        />
+      </Row>
+      {dur && !fits && (
+        <div className="props-note">
+          {tr('O loop do fundo ({0} s) não bate com o vídeo ({1} s): no vídeo exportado pode aparecer um pulo na emenda.', loop, dur.toFixed(1))}{' '}
+          <button type="button" className="xd-link" onClick={() => api.update((d) => void (d.loopSec = target))}>
+            {tr('Igualar o loop ao vídeo ({0} s)', target)}
+          </button>
+        </div>
+      )}
+    </Section>
   );
 }
 

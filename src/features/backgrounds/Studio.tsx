@@ -12,6 +12,8 @@ import { ThemeToggle } from '../../ui/ThemeToggle';
 import { SettingsButton } from '../settings/Settings';
 import { toast, toastError } from '../../ui/toast';
 import { ApplyDialog } from './ApplyDialog';
+import { addMedia, detectKind } from '../../core/storage/media';
+import { loadMedia } from '../../render/designMedia';
 import { ExportLoopDialog } from './ExportLoopDialog';
 import { StudioInspector } from './StudioInspector';
 import { StudioLayers } from './StudioLayers';
@@ -36,6 +38,10 @@ export interface StudioApi {
   update: (fn: (d: BackgroundDesign) => void, key?: string) => void;
   patchLayer: (id: string, patch: Partial<DesignLayer>, key?: string) => void;
   addLayer: (kind: DesignLayerKind, patch?: Partial<DesignLayer>) => void;
+  /** guarda o arquivo em "Meus arquivos" e cria a camada "Imagem ou vídeo" com ele */
+  addMediaLayer: (file: File) => Promise<void>;
+  /** troca o arquivo de uma camada "Imagem ou vídeo" */
+  replaceMedia: (id: string, file: File) => Promise<void>;
   removeLayer: (id: string) => void;
   duplicateLayer: (id: string) => void;
   /** move a camada para a posição `to` da pilha (0 = a de baixo) */
@@ -46,6 +52,28 @@ const COALESCE_MS = 800;
 const HISTORY = 100;
 
 type Status = 'saved' | 'saving' | 'error';
+
+type StoredMedia = { id: string; kind: 'image' | 'video'; name: string; w: number; h: number; duration?: number };
+
+/** Guarda a imagem/vídeo em "Meus arquivos" e mede o tamanho (para a caixa nascer na proporção certa). */
+async function storeMediaFile(file: File): Promise<StoredMedia | null> {
+  const kind = detectKind(file);
+  if (kind !== 'image' && kind !== 'video') {
+    toast(tr('“{0}” não é um formato aceito aqui.', file.name), 'info');
+    return null;
+  }
+  try {
+    const rec = await addMedia(file);
+    const size = await loadMedia(rec.id);
+    return { id: rec.id, kind, name: rec.name, w: size?.w || 16, h: size?.h || 9, duration: size?.duration };
+  } catch {
+    toastError(tr('Não foi possível guardar “{0}”. Verifique o espaço disponível.', file.name));
+    return null;
+  }
+}
+
+/** Caixa "livre" com 60% da altura do slide na proporção do arquivo. */
+const freeBox = (m: StoredMedia) => ({ h: 60, w: Math.round(60 * (m.w / m.h) * 10) / 10 });
 
 export function Studio({ id, from }: { id: string; from?: string }) {
   const [design, setDesign] = useState<BackgroundDesign | null>(null);
@@ -139,7 +167,7 @@ export function Studio({ id, from }: { id: string; from?: string }) {
       commit(next, key);
     };
     const ids = selectedIds.filter((x) => design.layers.some((l) => l.id === x));
-    return {
+    const a: StudioApi = {
       design,
       selected: design.layers.find((l) => l.id === selectedId) ?? null,
       selectedIds: ids,
@@ -208,6 +236,16 @@ export function Studio({ id, from }: { id: string; from?: string }) {
         });
         setSelectedId(layer.id);
       },
+      addMediaLayer: async (file) => {
+        const info = await storeMediaFile(file);
+        if (!info) return;
+        a.addLayer('media', { mediaId: info.id, mediaKind: info.kind, name: info.name.slice(0, 60), fit: 'cover', ...freeBox(info) });
+      },
+      replaceMedia: async (lid, file) => {
+        const info = await storeMediaFile(file);
+        if (!info) return;
+        a.patchLayer(lid, { mediaId: info.id, mediaKind: info.kind, name: info.name.slice(0, 60), ...freeBox(info) });
+      },
       removeLayer: (lid) => {
         update((d) => {
           d.layers = d.layers.filter((l) => l.id !== lid);
@@ -232,6 +270,7 @@ export function Studio({ id, from }: { id: string; from?: string }) {
           d.layers.splice(Math.max(0, Math.min(d.layers.length, to)), 0, l);
         }),
     };
+    return a;
   }, [design, selectedIds, selectedId, commit]);
 
   const undo = useCallback(() => {

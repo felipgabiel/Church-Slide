@@ -4,6 +4,7 @@ import { DesignPainter, isPlaced, layerBox } from '../../core/design/paint';
 import type { BackgroundDesign, DesignLayer } from '../../core/types';
 import { FitBox } from '../../render/FitBox';
 import { DesignCanvas } from '../../render/DesignCanvas';
+import { liveMedia } from '../../render/designMedia';
 import { useSetting } from '../../core/settings';
 import { rotatedHalf, SAFE_MARGIN, snapAxis, SNAP_PX, SNAP_SETTING, type SnapHit } from '../../core/snap';
 import { SnapToggle } from '../../ui/SnapToggle';
@@ -135,6 +136,7 @@ function ContrastMeter({ design, getTime, onFix }: { design: BackgroundDesign; g
     const W = 96;
     const H = 54;
     const painter = new DesignPainter(W, H);
+    painter.media = liveMedia;
     const cv = document.createElement('canvas');
     cv.width = W;
     cv.height = H;

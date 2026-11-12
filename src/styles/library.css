@@ -844,3 +844,36 @@
   border: 1px solid var(--line);
   background: var(--bg-3);
 }
+
+/* lembrete de backup na barra lateral */
+.lib-backup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px dashed var(--line-3);
+  border-radius: var(--r-md);
+  color: var(--text-2);
+  text-align: left;
+  transition: border-color 0.12s, background-color 0.12s;
+}
+.lib-backup:hover:not(:disabled) {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.lib-backup svg {
+  flex: none;
+  color: var(--accent);
+  font-size: 16px;
+}
+.lib-backup b {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.lib-backup small {
+  display: block;
+  color: var(--text-3);
+  font-size: 11.5px;
+}

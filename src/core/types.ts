@@ -202,7 +202,7 @@ export interface Background {
 
 /* ------------------------- Estúdio de Fundos ------------------------- */
 
-export type DesignLayerKind = 'gradient' | 'shape' | 'glow' | 'waves' | 'texture' | 'particles';
+export type DesignLayerKind = 'gradient' | 'shape' | 'glow' | 'waves' | 'texture' | 'particles' | 'media';
 export type DesignShape = 'circle' | 'rounded' | 'arch' | 'band' | 'polygon';
 export type DesignFillType = 'solid' | 'linear' | 'radial' | 'conic';
 export type DesignBlend = 'normal' | 'screen' | 'overlay' | 'multiply' | 'lighter' | 'difference';
@@ -267,6 +267,11 @@ export interface DesignLayer {
   /** recorta a camada pelo formato da camada logo abaixo (listras só dentro do sol) */
   clip: boolean;
   motions: DesignMotion[];
+  /** camada "Imagem ou vídeo": arquivo de "Meus arquivos" */
+  mediaId?: string;
+  mediaKind?: 'image' | 'video';
+  /** `cover` ocupa a tela inteira (como foto de fundo); `free` é uma caixa que se arrasta e redimensiona */
+  fit?: 'cover' | 'free';
 }
 
 export interface BackgroundDesign {

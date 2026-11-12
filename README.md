@@ -39,6 +39,11 @@ Use **Chrome ou Edge** atualizados: foi neles que tudo foi testado. A geração 
   louvor guarda a própria cópia) ou *Exportar vídeo* para levar só o fundo, em MP4 que repete sem emenda, para o Holyrics.
 - **Alinhar e mover vários:** arrastando, o texto gruda nas bordas, na margem segura e no centro (botão *Ímã* liga e
   desliga; Alt solta na hora). Ctrl + clique seleciona vários textos (ou camadas no Estúdio) para mover e ajustar juntos.
+- **Backup:** *Configurações → Backup e armazenamento → Baixar backup de tudo* gera um .zip com todos os louvores, fundos,
+  imagens, vídeos e fontes. Guarde num pendrive ou na nuvem. Em outro computador, *Restaurar de um backup* junta tudo
+  (nada é apagado).
+- **Foto ou vídeo no fundo:** no Estúdio de Fundos, *+ → Imagem ou vídeo*. Pode cobrir a tela toda ou virar uma caixa
+  que se arrasta. Para mandar um fundo para outra igreja: *… → Salvar em arquivo*; quem recebe usa *Importar* em Fundos.
 - **Configurações (engrenagem):** idioma, tema, ímã, guias, painéis, ajuste no telão, avanço automático, atalhos da
   apresentação, padrão dos vídeos e armazenamento.
 - **Idioma:** Português, English ou Español. No primeiro acesso o site pergunta o idioma e o tema; depois, use a engrenagem

@@ -22,6 +22,20 @@ const COMPOSITE: Record<DesignBlend, GlobalCompositeOperation> = {
 
 type Ctx = CanvasRenderingContext2D;
 
+/** Quadro atual de uma imagem ou vídeo usado numa camada "Imagem ou vídeo". */
+export interface MediaFrame {
+  src: CanvasImageSource;
+  w: number;
+  h: number;
+}
+/**
+ * De onde vêm as imagens e vídeos das camadas. Na tela, os vídeos tocam sozinhos (`render/designMedia.ts`);
+ * no gerador de vídeo, cada quadro é buscado no instante exato (`core/design/mediaFrames.ts`).
+ */
+export interface DesignMediaSource {
+  frame(id: string): MediaFrame | null;
+}
+
 function canvas(w: number, h: number): HTMLCanvasElement {
   const c = document.createElement('canvas');
   c.width = Math.max(1, Math.round(w));
@@ -110,13 +124,19 @@ export function layerBox(layer: DesignLayer, w: number, h: number) {
 }
 
 /** Camadas que têm posição e tamanho próprios (dá para arrastar no palco). */
-export const isPlaced = (l: DesignLayer) => l.kind === 'shape' || l.kind === 'glow' || l.kind === 'waves' || (l.kind === 'gradient' && l.fill.type !== 'linear');
+export const isPlaced = (l: DesignLayer) =>
+  l.kind === 'shape' || l.kind === 'glow' || l.kind === 'waves' || (l.kind === 'gradient' && l.fill.type !== 'linear') || (l.kind === 'media' && l.fit === 'free');
+
+/** Ids de imagens e vídeos usados pelas camadas de um fundo. */
+export const designMediaIds = (d: BackgroundDesign): string[] => [...new Set(d.layers.filter((l) => l.kind === 'media' && l.mediaId).map((l) => l.mediaId!))];
 
 export class DesignPainter {
   private a: HTMLCanvasElement;
   private b: HTMLCanvasElement;
   private small: HTMLCanvasElement;
   private noise: HTMLCanvasElement | null = null;
+  /** imagens e vídeos das camadas "Imagem ou vídeo" (sem fonte, elas não aparecem) */
+  media: DesignMediaSource | null = null;
 
   constructor(
     public readonly w: number,
@@ -291,6 +311,26 @@ export class DesignPainter {
           c.globalCompositeOperation = 'source-in';
           c.fillStyle = sortedStops(st.fill)[0].color;
           c.fillRect(0, 0, w, h);
+        }
+        break;
+      }
+      case 'media': {
+        const f = layer.mediaId ? this.media?.frame(layer.mediaId) : null;
+        if (!f || !f.w || !f.h) break;
+        if (layer.fit === 'free') {
+          // caixa própria (arrasta e redimensiona no palco)
+          const bw = layer.w * U;
+          const bh = layer.h * U;
+          c.translate(cx, cy);
+          c.rotate(rot);
+          c.scale(st.scale, st.scale);
+          c.drawImage(f.src, -bw / 2, -bh / 2, bw, bh);
+        } else {
+          // tela inteira, como uma foto de fundo (object-fit: cover)
+          const k = Math.max(w / f.w, h / f.h) * st.scale;
+          c.translate(w / 2 + st.dx * U, h / 2 + st.dy * U);
+          c.rotate(rot);
+          c.drawImage(f.src, (-f.w * k) / 2, (-f.h * k) / 2, f.w * k, f.h * k);
         }
         break;
       }

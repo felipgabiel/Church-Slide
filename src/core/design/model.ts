@@ -32,6 +32,7 @@ export const LAYER_KINDS: { kind: DesignLayerKind; label: string; hint: string }
   { kind: 'waves', label: tr('Ondas'), hint: tr('Fios de luz ondulados') },
   { kind: 'texture', label: tr('Textura'), hint: tr('Listras diagonais ou grão') },
   { kind: 'particles', label: tr('Partículas'), hint: tr('Pontos de luz subindo') },
+  { kind: 'media', label: tr('Imagem ou vídeo'), hint: tr('Uma foto ou um vídeo seu, com movimento e desfoque') },
 ];
 
 export const KIND_LABEL: Record<DesignLayerKind, string> = Object.fromEntries(LAYER_KINDS.map((k) => [k.kind, k.label])) as Record<DesignLayerKind, string>;
@@ -77,6 +78,8 @@ export function motionsFor(kind: DesignLayerKind): DesignMotionKind[] {
       return ['flow', 'twinkle', 'spin'];
     case 'particles':
       return ['twinkle', 'drift', 'colors'];
+    case 'media':
+      return ['drift', 'breathe', 'spin', 'twinkle'];
   }
 }
 
@@ -89,7 +92,7 @@ export const BLEND_LABEL: Record<DesignBlend, string> = {
   difference: tr('Inverter cores (diferença)'),
 };
 
-const KINDS: DesignLayerKind[] = ['gradient', 'shape', 'glow', 'waves', 'texture', 'particles'];
+const KINDS: DesignLayerKind[] = ['gradient', 'shape', 'glow', 'waves', 'texture', 'particles', 'media'];
 const SHAPES: DesignShape[] = ['circle', 'rounded', 'arch', 'band', 'polygon'];
 const FILLS: DesignFillType[] = ['solid', 'linear', 'radial', 'conic'];
 const BLENDS: DesignBlend[] = ['normal', 'screen', 'overlay', 'multiply', 'lighter', 'difference'];
@@ -137,6 +140,7 @@ export function newDesignLayer(kind: DesignLayerKind, patch: Partial<DesignLayer
     glow: { w: 70, h: 70, opacity: 85, blend: 'screen', fill: fill('solid', ['#ef4444']) },
     waves: { y: 62, w: 100, h: 40, count: 6, amplitude: 9, thickness: 6, blur: 6, blend: 'screen', fill: fill('linear', ['#f43f5e', '#a78bfa', '#38bdf8'], 90), motions: [{ kind: 'flow', amount: 60, cycles: 1 }] },
     texture: { w: 100, h: 100, texture: 'stripes', scale: 3, thickness: 45, rotation: -35, opacity: 40, blend: 'overlay', fill: fill('solid', ['#ffffff']) },
+    media: { w: 100, h: 56.25, fit: 'cover' },
     particles: { w: 100, h: 100, count: 28, scale: 3, opacity: 80, blur: 4, blend: 'screen', fill: fill('linear', ['#fde68a', '#f9a8d4'], 90), motions: [{ kind: 'twinkle', amount: 50, cycles: 2 }] },
   };
   return {
@@ -209,6 +213,13 @@ export function sanitizeLayer(raw: unknown): DesignLayer | null {
     scale: num(raw.scale, def.scale, 0.5, 30),
     clip: raw.clip === true,
     motions,
+    ...(kind === 'media'
+      ? {
+          mediaId: typeof raw.mediaId === 'string' && /^m_[a-z0-9]+$/i.test(raw.mediaId) ? raw.mediaId : undefined,
+          mediaKind: raw.mediaKind === 'video' ? ('video' as const) : ('image' as const),
+          fit: raw.fit === 'free' ? ('free' as const) : ('cover' as const),
+        }
+      : {}),
   };
 }
 

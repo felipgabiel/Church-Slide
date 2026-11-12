@@ -1,5 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { LuClapperboard, LuGlobe, LuHardDrive, LuMonitorPlay, LuPenLine, LuSettings } from 'react-icons/lu';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { LuClapperboard, LuDownload, LuGlobe, LuHardDrive, LuMonitorPlay, LuPenLine, LuSettings, LuUpload } from 'react-icons/lu';
+import { LAST_BACKUP_SETTING } from '../../core/storage/backup';
+import { downloadBackup, restoreFromFile } from './backupActions';
 import { LANG, LANGS, setLang, tr, type Lang } from '../../core/i18n';
 import { DEFAULT_SETTINGS, type ExportSettings } from '../../core/export/exportSong';
 import type { FitMode } from '../../core/present/channel';
@@ -38,7 +40,7 @@ export function SettingsDialog({ open, onClose, initial = 'general' }: { open: b
     { id: 'editor', label: tr('Editor'), icon: <LuPenLine /> },
     { id: 'present', label: tr('Apresentação'), icon: <LuMonitorPlay /> },
     { id: 'video', label: tr('Vídeos'), icon: <LuClapperboard /> },
-    { id: 'storage', label: tr('Armazenamento'), icon: <LuHardDrive /> },
+    { id: 'storage', label: tr('Backup e armazenamento'), icon: <LuHardDrive /> },
   ];
   return (
     <Modal open={open} onClose={onClose} title={tr('Configurações')} width={720} className="setx" footer={<Button onClick={onClose}>{tr('Fechar')}</Button>}>
@@ -176,6 +178,60 @@ function VideoPrefsPane() {
   );
 }
 
+/** Backup de tudo num .zip (louvores, modelos, lixeira, fundos, mídia, fontes e preferências) e restauração. */
+function BackupPane() {
+  const [last] = useSetting<number | null>(LAST_BACKUP_SETTING, null);
+  const [busy, setBusy] = useState<'save' | 'restore' | null>(null);
+  const [pct, setPct] = useState(0);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const progress = (f: number) => setPct(Math.round(f * 100));
+  return (
+    <>
+      <h3>{tr('Cópia de segurança')}</h3>
+      <p className="field-hint">
+        {tr('Um arquivo .zip com tudo: louvores, modelos, lixeira, Meus fundos, imagens, vídeos, fontes e preferências. Guarde num pendrive ou na nuvem, e use para levar tudo a outro computador.')}
+      </p>
+      <Row label={tr('Último backup')} hint={last ? new Date(last).toLocaleString(LANG) : tr('Nenhum backup feito neste computador')}>
+        <Button
+          size="sm"
+          variant="primary"
+          icon={<LuDownload />}
+          disabled={!!busy}
+          onClick={async () => {
+            setBusy('save');
+            setPct(0);
+            await downloadBackup(progress);
+            setBusy(null);
+          }}
+        >
+          {busy === 'save' ? tr('Preparando… {0}%', pct) : tr('Baixar backup de tudo')}
+        </Button>
+      </Row>
+      <Row label={tr('Restaurar de um backup')} hint={tr('Junta com o que já existe aqui; nada é apagado')}>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".zip,application/zip"
+          hidden
+          data-testid="restore-input"
+          onChange={async (e) => {
+            const f = e.currentTarget.files?.[0];
+            e.currentTarget.value = '';
+            if (!f) return;
+            setBusy('restore');
+            setPct(0);
+            await restoreFromFile(f, progress);
+            setBusy(null);
+          }}
+        />
+        <Button size="sm" icon={<LuUpload />} disabled={!!busy} onClick={() => fileRef.current?.click()}>
+          {busy === 'restore' ? tr('Restaurando… {0}%', pct) : tr('Escolher arquivo…')}
+        </Button>
+      </Row>
+    </>
+  );
+}
+
 function StorageInfo() {
   const [info, setInfo] = useState<{ usage: number; quota: number; persisted: boolean } | null>(null);
   const load = async () => {
@@ -192,6 +248,7 @@ function StorageInfo() {
   }, []);
   return (
     <>
+      <BackupPane />
       <h3>{tr('Armazenamento')}</h3>
       <p className="field-hint">{tr('Tudo fica guardado neste navegador, neste computador. Use “Exportar arquivo” num louvor para levar a outro computador.')}</p>
       {!info ? (

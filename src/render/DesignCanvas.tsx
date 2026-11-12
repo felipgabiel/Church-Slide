@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef } from 'react';
 import { DesignPainter } from '../core/design/paint';
+import { liveMedia, onMediaReady } from './designMedia';
 import type { BackgroundDesign } from '../core/types';
 
 interface Props {
@@ -47,6 +48,7 @@ export const DesignCanvas = memo(function DesignCanvas({ design, mode, getTime, 
       cv.width = w;
       cv.height = h;
       painterRef.current = new DesignPainter(w, h);
+      painterRef.current.media = liveMedia;
       drawRef.current();
     };
     const ro = new ResizeObserver(fit);
@@ -86,10 +88,11 @@ export const DesignCanvas = memo(function DesignCanvas({ design, mode, getTime, 
     return () => cancelAnimationFrame(raf);
   }, [mode, at]);
 
-  // no modo estático, redesenha quando o fundo muda
+  // no modo estático, redesenha quando o fundo muda (ou quando uma imagem/vídeo da camada termina de carregar)
   useEffect(() => {
     if (mode === 'static') drawRef.current();
   }, [design, mode]);
+  useEffect(() => (mode === 'static' ? onMediaReady(() => drawRef.current()) : undefined), [mode]);
 
   return <canvas ref={ref} className={className} aria-hidden />;
 });

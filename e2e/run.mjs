@@ -7,6 +7,7 @@ import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
+import { deflateSync } from 'node:zlib';
 import { startPreview } from '../scripts/preview.mjs';
 
 const require = createRequire(import.meta.url);
@@ -1748,6 +1749,189 @@ await step('engrenagem: configurações com idioma, tema, editor, apresentação
   await pg.keyboard.press('Escape');
   await pg.evaluate(() => localStorage.removeItem('cs:export'));
   await pg.close();
+});
+
+// imagem PNG vermelha feita aqui mesmo (sem arquivos de teste no repositório)
+const redPng = () => {
+  const w = 64;
+  const h = 36;
+  const row = Buffer.concat([Buffer.from([0]), Buffer.alloc(w * 3, Buffer.from([230, 20, 30]))]);
+  const raw = Buffer.concat(Array.from({ length: h }, () => row));
+  const crcT = new Int32Array(256).map((_, n) => {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    return c;
+  });
+  const crc = (b) => {
+    let c = -1;
+    for (const x of b) c = crcT[(c ^ x) & 0xff] ^ (c >>> 8);
+    return (c ^ -1) >>> 0;
+  };
+  const chunk = (t, d) => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(d.length);
+    const td = Buffer.concat([Buffer.from(t), d]);
+    const c = Buffer.alloc(4);
+    c.writeUInt32BE(crc(td));
+    return Buffer.concat([len, td, c]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0);
+  ihdr.writeUInt32BE(h, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 2;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
+};
+const centerPixel = (pg) =>
+  pg.locator('.st-view canvas').first().evaluate((cv) => {
+    const c = cv.getContext('2d');
+    return [...c.getImageData(Math.floor(cv.width / 2), Math.floor(cv.height / 2), 1, 1).data].slice(0, 3);
+  });
+
+await step('Estúdio: camada "Imagem ou vídeo" (foto e vídeo), encaixe livre, loop igual ao vídeo, salvar e importar o fundo em arquivo', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'mídia no estúdio');
+  await pg.goto(BASE + '#/fundos');
+  await pg.getByRole('button', { name: /Em branco/ }).first().click();
+  await pg.waitForURL(/#\/fundos\/.+/);
+  const designId = pg.url().split('#/fundos/')[1].split('/')[0];
+  await pg.locator('.st-view canvas').first().waitFor();
+  // pelo menu "+": escolhe o arquivo
+  await pg.getByRole('button', { name: 'Adicionar camada' }).click();
+  const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.getByRole('menuitem', { name: /Imagem ou vídeo/ }).click()]);
+  await chooser.setFiles({ name: 'vermelho.png', mimeType: 'image/png', buffer: redPng() });
+  await pg.getByRole('button', { name: 'vermelho', exact: true }).waitFor();
+  await pg.waitForTimeout(500);
+  const px = await centerPixel(pg);
+  assert(px[0] > 180 && px[1] < 80 && px[2] < 90, `a foto cobre o palco (centro ${px})`);
+  // encaixe livre: vira uma caixa na proporção da foto
+  await pg.locator('.studio-props').getByRole('radio', { name: 'Livre' }).click();
+  await pg.waitForTimeout(1200);
+  let d = await idbGet(pg, 'designs', designId);
+  let ml = d.layers.find((l) => l.kind === 'media');
+  assert(ml && ml.fit === 'free' && ml.mediaKind === 'image' && /^m_/.test(ml.mediaId), `camada salva: ${JSON.stringify(ml)}`);
+  assert(Math.abs(ml.w / ml.h - 64 / 36) < 0.05, `caixa na proporção da foto (${ml.w}×${ml.h})`);
+
+  // vídeo (webm gerado pelo ffmpeg): mostra a diferença de loop e iguala
+  const dir = mkdtempSync(join(tmpdir(), 'cs-media-'));
+  const webm = join(dir, 'luzes.webm');
+  const ff = spawnSync('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=30:duration=2.5', '-c:v', 'libvpx', '-b:v', '300k', webm]);
+  if (ff.status === 0) {
+    await pg.getByTestId('studio-media-input').setInputFiles(webm);
+    await pg.getByRole('button', { name: 'luzes', exact: true }).waitFor();
+    const fix = pg.getByRole('button', { name: /Igualar o loop ao vídeo \(2.5 s\)/ });
+    await fix.waitFor({ timeout: 10000 });
+    await fix.click();
+    await pg.waitForTimeout(1200);
+    d = await idbGet(pg, 'designs', designId);
+    assert(d.loopSec === 2.5, `loop igual ao vídeo (${d.loopSec})`);
+    assert(d.layers.some((l) => l.kind === 'media' && l.mediaKind === 'video'), 'camada de vídeo salva');
+    // vídeo só do fundo: 2,5 s × 30 qps, com o vídeo dentro
+    await pg.getByRole('button', { name: 'Exportar vídeo', exact: true }).click();
+    await pg.locator('dialog').getByRole('radio', { name: '720p' }).click();
+    await pg.locator('dialog').getByRole('button', { name: 'Gerar vídeo' }).click();
+    await pg.locator('dialog').getByRole('button', { name: 'Baixar vídeo' }).waitFor({ timeout: 120000 });
+    const [dl] = await Promise.all([pg.waitForEvent('download'), pg.locator('dialog').getByRole('button', { name: 'Baixar vídeo' }).click()]);
+    const f = join(dir, 'loop.mp4');
+    await dl.saveAs(f);
+    const probe = spawnSync('ffprobe', ['-v', 'error', '-count_frames', '-select_streams', 'v:0', '-show_entries', 'stream=nb_read_frames', '-of', 'json', f], { encoding: 'utf8' });
+    if (probe.status === 0) assert(Number(JSON.parse(probe.stdout).streams[0].nb_read_frames) === 75, 'loop de 2,5 s = 75 quadros');
+    await pg.keyboard.press('Escape');
+  } else console.log('      (ffmpeg ausente: pulei a parte do vídeo)');
+
+  // salvar em arquivo e importar de volta
+  await pg.goto(BASE + '#/fundos');
+  const card = pg.getByRole('button', { name: /Mais ações para Novo fundo/ }).first();
+  await card.click();
+  const [file] = await Promise.all([pg.waitForEvent('download'), pg.getByRole('menuitem', { name: /Salvar em arquivo/ }).click()]);
+  assert(/\.csfundo\.json$/.test(file.suggestedFilename()), `nome do arquivo: ${file.suggestedFilename()}`);
+  const fpath = join(dir, file.suggestedFilename());
+  await file.saveAs(fpath);
+  const json = JSON.parse(readFileSync(fpath, 'utf8'));
+  assert(json.format === 'church-slide-background' && Object.keys(json.media).length >= 1, 'o arquivo leva a mídia junto');
+  const before = (await pg.locator('.dcard').count());
+  await pg.locator('.lib-bar-actions input[type=file]').setInputFiles(fpath);
+  await pg.getByText(/importado para Meus fundos/).waitFor();
+  await pg.waitForTimeout(500);
+  assert((await pg.locator('.dcard').count()) === before + 1, 'o fundo importado aparece em Meus fundos');
+  await pg.close();
+});
+
+await step('backup de tudo: baixa um .zip e, num navegador vazio, restaura louvores, fundos e mídia', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'backup');
+  await pg.goto(BASE);
+  const total = (await pg.evaluate(() => new Promise((res) => {
+    const r = indexedDB.open('church-slide');
+    r.onsuccess = () => {
+      const t = r.result.transaction(['projects', 'designs', 'media'], 'readonly');
+      const out = {};
+      let n = 0;
+      for (const s of ['projects', 'designs', 'media']) {
+        const q = t.objectStore(s).getAll();
+        q.onsuccess = () => {
+          out[s] = s === 'projects' ? q.result.filter((p) => !p.deletedAt && !p.isTemplate).length : q.result.length;
+          if (++n === 3) res(out);
+        };
+      }
+    };
+  })));
+  // lembrete na barra lateral
+  await pg.locator('.lib-backup').waitFor();
+  await pg.getByRole('button', { name: 'Configurações', exact: true }).click();
+  await pg.locator('dialog[open]').getByRole('tab', { name: /Backup/ }).click();
+  const [dl] = await Promise.all([pg.waitForEvent('download'), pg.locator('dialog[open]').getByRole('button', { name: 'Baixar backup de tudo' }).click()]);
+  assert(/^church-slide-backup-\d{4}-\d\d-\d\d\.zip$/.test(dl.suggestedFilename()), dl.suggestedFilename());
+  const dir = mkdtempSync(join(tmpdir(), 'cs-bk-'));
+  const zip = join(dir, dl.suggestedFilename());
+  await dl.saveAs(zip);
+  await pg.locator('dialog[open]').getByText(/Último backup/).waitFor();
+  await pg.keyboard.press('Escape');
+  assert((await pg.locator('.lib-backup').count()) === 0, 'o lembrete some depois do backup');
+  await pg.close();
+
+  // "outro computador": contexto novo, banco vazio
+  const c2 = await browser.newContext({ viewport: { width: 1600, height: 900 }, locale: 'pt-BR' });
+  await c2.addInitScript(PT);
+  const p2 = await c2.newPage();
+  watch(p2, 'restaurar');
+  await p2.goto(BASE);
+  await p2.getByRole('button', { name: 'Configurações', exact: true }).click();
+  await p2.locator('dialog[open]').getByRole('tab', { name: /Backup/ }).click();
+  await p2.getByTestId('restore-input').setInputFiles(zip);
+  await p2.getByText('Restaurar este backup?').waitFor();
+  await p2.getByRole('button', { name: 'Restaurar', exact: true }).click();
+  await p2.getByText('Backup restaurado').waitFor({ timeout: 60000 }).catch(async (e) => {
+    throw new Error(`não restaurou; avisos: ${(await p2.locator('[role=status], [role=alert], .toast').allInnerTexts()).join(' | ')} · erros: ${consoleErrors.slice(-3).join(' | ')}`);
+  });
+  const msg = await p2.locator('dialog[open]').last().innerText();
+  assert(msg.includes(`${total.projects} louvores novos`) || new RegExp(`(\\d+) louvores novos`).test(msg), `resumo: ${msg}`);
+  await Promise.all([p2.waitForEvent('load'), p2.getByRole('button', { name: 'Recarregar a página' }).click()]);
+  const after = await p2.evaluate(() => new Promise((res) => {
+    const r = indexedDB.open('church-slide');
+    r.onsuccess = () => {
+      const t = r.result.transaction(['projects', 'designs', 'media'], 'readonly');
+      const out = {};
+      let n = 0;
+      for (const s of ['projects', 'designs', 'media']) {
+        const q = t.objectStore(s).getAll();
+        q.onsuccess = () => {
+          out[s] = s === 'projects' ? q.result.filter((p) => !p.deletedAt && !p.isTemplate).length : q.result.length;
+          if (++n === 3) res(out);
+        };
+      }
+    };
+  }));
+  assert(JSON.stringify(after) === JSON.stringify(total), `restaurou tudo: antes ${JSON.stringify(total)}, depois ${JSON.stringify(after)}`);
+  // restaurar de novo não duplica nada
+  await p2.getByRole('button', { name: 'Configurações', exact: true }).click();
+  await p2.locator('dialog[open]').getByRole('tab', { name: /Backup/ }).click();
+  await p2.getByTestId('restore-input').setInputFiles(zip);
+  await p2.getByText('Restaurar este backup?').waitFor();
+  await p2.getByRole('button', { name: 'Restaurar', exact: true }).click();
+  await p2.getByText('Backup restaurado').waitFor({ timeout: 60000 });
+  assert((await p2.locator('dialog[open]').last().innerText()).includes('0 louvores novos e 0 atualizados'), 'a segunda vez não muda nada');
+  await c2.close();
 });
 
 await step('nenhum erro de console durante todo o fluxo', async () => {
