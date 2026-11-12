@@ -15,6 +15,7 @@ import { ExportLoopDialog } from './ExportLoopDialog';
 import { StudioInspector } from './StudioInspector';
 import { StudioLayers } from './StudioLayers';
 import { StudioStage, type StudioClock } from './StudioStage';
+import { tr } from '../../core/i18n';
 
 export interface StudioApi {
   design: BackgroundDesign;
@@ -183,7 +184,7 @@ export function Studio({ id, from }: { id: string; from?: string }) {
           for (const sid of ids) {
             const i = d.layers.findIndex((l) => l.id === sid);
             if (i < 0) continue;
-            const copy = { ...structuredClone(d.layers[i]), id: newDesignLayer(d.layers[i].kind).id, name: `${d.layers[i].name} (cópia)` };
+            const copy = { ...structuredClone(d.layers[i]), id: newDesignLayer(d.layers[i].kind).id, name: tr('{0} (cópia)', d.layers[i].name) };
             d.layers.splice(i + 1, 0, copy);
             copies.push(copy.id);
           }
@@ -197,7 +198,7 @@ export function Studio({ id, from }: { id: string; from?: string }) {
           if (l) Object.assign(l, patch);
         }, key ?? `layer:${lid}:${Object.keys(patch).join(',')}`),
       addLayer: (kind, patch) => {
-        if ((cur.current?.layers.length ?? 0) >= MAX_LAYERS) return toast(`Use no máximo ${MAX_LAYERS} camadas por fundo.`, 'info');
+        if ((cur.current?.layers.length ?? 0) >= MAX_LAYERS) return toast(tr('Use no máximo {0} camadas por fundo.', MAX_LAYERS), 'info');
         const layer = newDesignLayer(kind, patch);
         const sel = cur.current?.layers.findIndex((l) => l.id === selectedId) ?? -1;
         update((d) => {
@@ -215,7 +216,7 @@ export function Studio({ id, from }: { id: string; from?: string }) {
       duplicateLayer: (lid) => {
         const src = cur.current?.layers.find((l) => l.id === lid);
         if (!src) return;
-        const copy = { ...structuredClone(src), id: newDesignLayer(src.kind).id, name: `${src.name} (cópia)` };
+        const copy = { ...structuredClone(src), id: newDesignLayer(src.kind).id, name: tr('{0} (cópia)', src.name) };
         update((d) => {
           const i = d.layers.findIndex((l) => l.id === lid);
           d.layers.splice(i + 1, 0, copy);
@@ -318,16 +319,16 @@ export function Studio({ id, from }: { id: string; from?: string }) {
     return (
       <div className="studio studio-missing">
         <div className="lib-empty">
-          <h3>Este fundo não está mais aqui</h3>
-          <p>Ele pode ter sido excluído, ou foi criado em outro navegador.</p>
+          <h3>{tr('Este fundo não está mais aqui')}</h3>
+          <p>{tr('Ele pode ter sido excluído, ou foi criado em outro navegador.')}</p>
           <Button variant="primary" onClick={() => navigate(paths.backgrounds)}>
-            Ver meus fundos
+            {tr('Ver meus fundos')}
           </Button>
         </div>
       </div>
     );
   }
-  if (!design || !api) return <div className="studio studio-loading">Carregando…</div>;
+  if (!design || !api) return <div className="studio studio-loading">{tr('Carregando…')}</div>;
 
   const applyHere = async () => {
     if (!from) return setApplying(true);
@@ -335,10 +336,10 @@ export function Studio({ id, from }: { id: string; from?: string }) {
       save.cancel();
       const saved = await saveDesign(design);
       await updateDesignInProject(from, saved);
-      toast(`Fundo aplicado em “${fromName ?? 'louvor'}”`);
+      toast(tr('Fundo aplicado em “{0}”', fromName ?? tr('louvor')));
       navigate(paths.edit(from));
     } catch {
-      toastError('Não foi possível aplicar o fundo.');
+      toastError(tr('Não foi possível aplicar o fundo.'));
     }
   };
 
@@ -346,15 +347,15 @@ export function Studio({ id, from }: { id: string; from?: string }) {
     <div className="studio">
       <header className="tb studio-tb">
         <div className="tb-left">
-          <Button variant="ghost" size="sm" icon={<LuChevronLeft />} onClick={back} title="Voltar (Esc)">
-            {from ? (fromName ? `Voltar para “${fromName}”` : 'Voltar ao louvor') : 'Fundos'}
+          <Button variant="ghost" size="sm" icon={<LuChevronLeft />} onClick={back} title={tr('Voltar (Esc)')}>
+            {from ? (fromName ? tr('Voltar para “{0}”', fromName) : tr('Voltar ao louvor')) : tr('Fundos')}
           </Button>
         </div>
         <div className="tb-center">
           <input
             className="tb-name"
             value={design.name}
-            aria-label="Nome do fundo"
+            aria-label={tr('Nome do fundo')}
             spellCheck={false}
             onChange={(e) => {
               const v = e.currentTarget.value;
@@ -365,40 +366,40 @@ export function Studio({ id, from }: { id: string; from?: string }) {
             onBlur={(e) => {
               if (!e.currentTarget.value.trim())
                 api.update((d) => {
-                  d.name = 'Fundo sem nome';
+                  d.name = tr('Fundo sem nome');
                 });
             }}
           />
           <span className="studio-status" data-state={status} role="status">
-            {status === 'saved' ? 'Salvo' : status === 'saving' ? 'Salvando…' : 'Não foi possível salvar'}
+            {status === 'saved' ? tr('Salvo') : status === 'saving' ? tr('Salvando…') : tr('Não foi possível salvar')}
           </span>
         </div>
         <div className="tb-right">
-          <IconButton label="Desfazer (Ctrl+Z)" icon={<LuUndo2 />} size="sm" disabled={!past.current.length} onClick={undo} />
-          <IconButton label="Refazer (Ctrl+Shift+Z)" icon={<LuRedo2 />} size="sm" disabled={!future.current.length} onClick={redo} />
+          <IconButton label={tr('Desfazer (Ctrl+Z)')} icon={<LuUndo2 />} size="sm" disabled={!past.current.length} onClick={undo} />
+          <IconButton label={tr('Refazer (Ctrl+Shift+Z)')} icon={<LuRedo2 />} size="sm" disabled={!future.current.length} onClick={redo} />
           <ThemeToggle />
-          <Button variant="ghost" size="sm" icon={<LuFilm />} onClick={() => setExporting(true)} title="Exportar só o fundo, sem letra, em MP4">
-            Exportar vídeo
+          <Button variant="ghost" size="sm" icon={<LuFilm />} onClick={() => setExporting(true)} title={tr('Exportar só o fundo, sem letra, em MP4')}>
+            {tr('Exportar vídeo')}
           </Button>
           <Button variant="primary" size="sm" icon={<LuSparkles />} onClick={() => void applyHere()}>
-            {from ? 'Aplicar neste louvor' : 'Usar num louvor'}
+            {from ? tr('Aplicar neste louvor') : tr('Usar num louvor')}
           </Button>
         </div>
       </header>
 
       {status === 'error' && (
         <div className="studio-alert" role="alert">
-          Não foi possível salvar neste navegador. Exporte o fundo em vídeo para não perder o trabalho.
+          {tr('Não foi possível salvar neste navegador. Exporte o fundo em vídeo para não perder o trabalho.')}
         </div>
       )}
 
-      <aside className="studio-left" aria-label="Camadas">
+      <aside className="studio-left" aria-label={tr('Camadas')}>
         <StudioLayers api={api} />
       </aside>
       <main className="studio-center">
         <StudioStage api={api} clockRef={clock} />
       </main>
-      <aside className="studio-right" aria-label="Ajustes">
+      <aside className="studio-right" aria-label={tr('Ajustes')}>
         <StudioInspector api={api} />
       </aside>
 

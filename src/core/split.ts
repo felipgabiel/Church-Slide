@@ -1,5 +1,6 @@
 import type { Slide, SplitMode } from './types';
 import { slideFullText } from './layers';
+import { tr } from './i18n';
 
 export interface LyricPart {
   label: string;
@@ -118,8 +119,8 @@ export function slidesToLyrics(slides: Slide[], mode: SplitMode): string {
 }
 
 export const SPLIT_MODE_LABELS: Record<SplitMode, { title: string; hint: string }> = {
-  stanza: { title: 'Por estrofe', hint: 'Uma estrofe (bloco separado por linha em branco) por trecho. Estrofes longas são divididas.' },
-  line: { title: 'Por linha', hint: 'Cada linha vira um trecho.' },
-  pairs: { title: 'De 2 em 2 linhas', hint: 'Duas linhas por trecho dentro de cada estrofe.' },
-  manual: { title: 'Manual', hint: 'Só divide onde houver uma linha com --- . Linhas em branco ficam dentro do trecho.' },
+  stanza: { title: tr('Por estrofe'), hint: tr('Uma estrofe (bloco separado por linha em branco) por trecho. Estrofes longas são divididas.') },
+  line: { title: tr('Por linha'), hint: tr('Cada linha vira um trecho.') },
+  pairs: { title: tr('De 2 em 2 linhas'), hint: tr('Duas linhas por trecho dentro de cada estrofe.') },
+  manual: { title: tr('Manual'), hint: tr('Só divide onde houver uma linha com --- . Linhas em branco ficam dentro do trecho.') },
 };

@@ -14,6 +14,7 @@ import {
 } from '../../core/present/shortcuts';
 import { useSetting } from '../../core/settings';
 import { Button } from '../../ui/Button';
+import { tr } from '../../core/i18n';
 
 /**
  * Editor de atalhos da apresentação.
@@ -50,11 +51,11 @@ export function ShortcutsEditor() {
         return;
       }
       if (e.ctrlKey || e.metaKey || e.altKey) {
-        setNote({ kind: 'error', text: 'Combinações com Ctrl, Alt ou ⌘ não são suportadas. Use uma tecla simples.' });
+        setNote({ kind: 'error', text: tr('Combinações com Ctrl, Alt ou ⌘ não são suportadas. Use uma tecla simples.') });
         return;
       }
       const action = capturing;
-      const ok = apply(assignKey(bindings, action, e.key), (r) => (r.stolenFrom ? `“${keyLabel(e.key)}” deixou de ser “${ACTION_LABELS[r.stolenFrom]}” e agora é “${ACTION_LABELS[action]}”.` : null));
+      const ok = apply(assignKey(bindings, action, e.key), (r) => (r.stolenFrom ? tr('“{0}” deixou de ser “{1}” e agora é “{2}”.', keyLabel(e.key), ACTION_LABELS[r.stolenFrom], ACTION_LABELS[action]) : null));
       if (ok) setCapturing(null);
     };
     window.addEventListener('keydown', onKey, true);
@@ -73,18 +74,18 @@ export function ShortcutsEditor() {
               {bindings[a].map((k) => (
                 <span key={k} className="sce-chip">
                   <kbd className="kbd">{keyLabel(k)}</kbd>
-                  <button type="button" aria-label={`Remover a tecla ${keyLabel(k)} de ${ACTION_LABELS[a]}`} onClick={() => apply(removeKey(bindings, a, k))}>
+                  <button type="button" aria-label={tr('Remover a tecla {0} de {1}', keyLabel(k), ACTION_LABELS[a])} onClick={() => apply(removeKey(bindings, a, k))}>
                     <LuX aria-hidden />
                   </button>
                 </span>
               ))}
-              {bindings[a].length === 0 && capturing !== a && <span className="sce-none">sem tecla</span>}
+              {bindings[a].length === 0 && capturing !== a && <span className="sce-none">{tr('sem tecla')}</span>}
               {capturing === a ? (
                 <span className="sce-wait" role="status">
-                  Pressione uma tecla… <small>(Esc cancela)</small>
+                  {tr('Pressione uma tecla…')}{' '}<small>{tr('(Esc cancela)')}</small>
                 </span>
               ) : (
-                <button type="button" className="sce-add" aria-label={`Adicionar tecla para ${ACTION_LABELS[a]}`} onClick={() => { setNote(null); setCapturing(a); }}>
+                <button type="button" className="sce-add" aria-label={tr('Adicionar tecla para {0}', ACTION_LABELS[a])} onClick={() => { setNote(null); setCapturing(a); }}>
                   <LuPlus aria-hidden />
                 </button>
               )}
@@ -92,12 +93,12 @@ export function ShortcutsEditor() {
           </li>
         ))}
         <li className="sce-row sce-fixed">
-          <span className="sce-label">Ir direto ao trecho</span>
+          <span className="sce-label">{tr('Ir direto ao trecho')}</span>
           <span className="sce-keys">
             <kbd className="kbd">1</kbd>
             <span className="sce-none">a</span>
             <kbd className="kbd">9</kbd>
-            <span className="sce-none">fixo</span>
+            <span className="sce-none">{tr('fixo')}</span>
           </span>
         </li>
       </ul>
@@ -114,12 +115,12 @@ export function ShortcutsEditor() {
           onClick={() => {
             resetBindings();
             setCapturing(null);
-            setNote({ kind: 'info', text: 'Atalhos restaurados ao padrão.' });
+            setNote({ kind: 'info', text: tr('Atalhos restaurados ao padrão.') });
           }}
         >
-          Restaurar padrão
+          {tr('Restaurar padrão')}
         </Button>
-        <span className="op-keys-note">Os atalhos valem também com a janela do telão em foco.</span>
+        <span className="op-keys-note">{tr('Os atalhos valem também com a janela do telão em foco.')}</span>
       </div>
     </div>
   );

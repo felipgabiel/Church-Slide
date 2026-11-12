@@ -5,6 +5,7 @@ import type { DesignLayerKind } from '../../core/types';
 import { IconButton } from '../../ui/Button';
 import { Menu, type MenuItem } from '../../ui/Menu';
 import type { StudioApi } from './Studio';
+import { tr } from '../../core/i18n';
 
 export const KIND_ICON: Record<DesignLayerKind, ReactNode> = {
   gradient: <LuBlend />,
@@ -28,13 +29,13 @@ export function StudioLayers({ api }: { api: StudioApi }) {
   return (
     <div className="sl-panel">
       <div className="sl-panel-head">
-        <h2>Camadas</h2>
+        <h2>{tr('Camadas')}</h2>
         <Menu
           align="end"
           width={280}
           items={addItems}
           trigger={(open, toggle) => (
-            <button type="button" className="ibtn ibtn-sm" data-active={open ? '1' : undefined} aria-label="Adicionar camada" aria-haspopup="menu" aria-expanded={open} onClick={toggle} title="Adicionar camada">
+            <button type="button" className="ibtn ibtn-sm" data-active={open ? '1' : undefined} aria-label={tr('Adicionar camada')} aria-haspopup="menu" aria-expanded={open} onClick={toggle} title={tr('Adicionar camada')}>
               <LuPlus />
             </button>
           )}
@@ -43,19 +44,19 @@ export function StudioLayers({ api }: { api: StudioApi }) {
 
       {n === 0 ? (
         <div className="sl-panel-empty">
-          <p>Sem camadas: aparece só a cor de base.</p>
-          <p>Use o + para adicionar um degradê, uma forma ou uma luz.</p>
+          <p>{tr('Sem camadas: aparece só a cor de base.')}</p>
+          <p>{tr('Use o + para adicionar um degradê, uma forma ou uma luz.')}</p>
         </div>
       ) : (
-        <ol className="dl-list" aria-label="Camadas, da frente para trás" onDragLeave={() => setDrag((d) => (d ? { ...d, over: null } : d))}>
+        <ol className="dl-list" aria-label={tr('Camadas, da frente para trás')} onDragLeave={() => setDrag((d) => (d ? { ...d, over: null } : d))}>
           {top.map((l, vi) => {
             const idx = n - 1 - vi; // índice real na pilha
             const items: MenuItem[] = [
-              { label: 'Duplicar', icon: <LuCopy />, hint: 'Ctrl+D', onClick: () => api.duplicateLayer(l.id) },
-              { label: 'Trazer para frente', icon: <LuArrowUp />, disabled: idx === n - 1, onClick: () => api.moveLayer(l.id, idx + 1) },
-              { label: 'Enviar para trás', icon: <LuArrowDown />, disabled: idx === 0, onClick: () => api.moveLayer(l.id, idx - 1) },
+              { label: tr('Duplicar'), icon: <LuCopy />, hint: 'Ctrl+D', onClick: () => api.duplicateLayer(l.id) },
+              { label: tr('Trazer para frente'), icon: <LuArrowUp />, disabled: idx === n - 1, onClick: () => api.moveLayer(l.id, idx + 1) },
+              { label: tr('Enviar para trás'), icon: <LuArrowDown />, disabled: idx === 0, onClick: () => api.moveLayer(l.id, idx - 1) },
               { divider: true },
-              { label: 'Excluir', icon: <LuTrash2 />, danger: true, hint: 'Del', onClick: () => api.removeLayer(l.id) },
+              { label: tr('Excluir'), icon: <LuTrash2 />, danger: true, hint: 'Del', onClick: () => api.removeLayer(l.id) },
             ];
             return (
               <li
@@ -90,7 +91,7 @@ export function StudioLayers({ api }: { api: StudioApi }) {
                   onClick={(e) => api.select(l.id, e.ctrlKey || e.metaKey || e.shiftKey)}
                   onDoubleClick={() => setRenaming(l.id)}
                   aria-pressed={api.selectedIds.includes(l.id)}
-                  title="Ctrl + clique seleciona várias"
+                  title={tr('Ctrl + clique seleciona várias')}
                 >
                   <span className="dl-ico" aria-hidden>
                     {KIND_ICON[l.kind]}
@@ -100,7 +101,7 @@ export function StudioLayers({ api }: { api: StudioApi }) {
                       className="dl-rename"
                       defaultValue={l.name}
                       autoFocus
-                      aria-label="Nome da camada"
+                      aria-label={tr('Nome da camada')}
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') e.currentTarget.blur();
@@ -114,19 +115,19 @@ export function StudioLayers({ api }: { api: StudioApi }) {
                       }}
                     />
                   ) : (
-                    <span className="dl-name" title={l.clip ? `${l.name}: recortada pela camada de baixo` : l.name}>
+                    <span className="dl-name" title={l.clip ? tr('{0}: recortada pela camada de baixo', l.name) : l.name}>
                       {l.name}
                     </span>
                   )}
                 </button>
                 <span className="dl-tools">
-                  <IconButton label={l.locked ? 'Destravar' : 'Travar no palco'} icon={l.locked ? <LuLock /> : <LuLockOpen />} size="sm" active={l.locked} className="dl-lock" onClick={() => api.patchLayer(l.id, { locked: !l.locked })} />
-                  <IconButton label={l.visible ? 'Ocultar' : 'Mostrar'} icon={l.visible ? <LuEye /> : <LuEyeOff />} size="sm" className="dl-eye" onClick={() => api.patchLayer(l.id, { visible: !l.visible })} />
+                  <IconButton label={l.locked ? tr('Destravar') : tr('Travar no palco')} icon={l.locked ? <LuLock /> : <LuLockOpen />} size="sm" active={l.locked} className="dl-lock" onClick={() => api.patchLayer(l.id, { locked: !l.locked })} />
+                  <IconButton label={l.visible ? tr('Ocultar') : tr('Mostrar')} icon={l.visible ? <LuEye /> : <LuEyeOff />} size="sm" className="dl-eye" onClick={() => api.patchLayer(l.id, { visible: !l.visible })} />
                   <Menu
                     align="end"
                     items={items}
                     trigger={(open, toggle) => (
-                      <button type="button" className="ibtn ibtn-sm dl-more" data-active={open ? '1' : undefined} aria-label={`Mais ações para ${l.name}`} aria-haspopup="menu" aria-expanded={open} onClick={toggle}>
+                      <button type="button" className="ibtn ibtn-sm dl-more" data-active={open ? '1' : undefined} aria-label={tr('Mais ações para {0}', l.name)} aria-haspopup="menu" aria-expanded={open} onClick={toggle}>
                         <LuEllipsis />
                       </button>
                     )}
@@ -137,12 +138,12 @@ export function StudioLayers({ api }: { api: StudioApi }) {
           })}
         </ol>
       )}
-      <p className="sl-panel-hint">Arraste para mudar a ordem. Ctrl + clique seleciona várias. Duplo clique renomeia.</p>
+      <p className="sl-panel-hint">{tr('Arraste para mudar a ordem. Ctrl + clique seleciona várias. Duplo clique renomeia.')}</p>
       <button type="button" className="dl-base" data-on={!selected ? '1' : undefined} onClick={() => api.select(null)}>
         <span className="dl-swatch" style={{ background: design.base }} aria-hidden />
         <span>
-          <b>Fundo inteiro</b>
-          <small>Cor de base e duração do loop</small>
+          <b>{tr('Fundo inteiro')}</b>
+          <small>{tr('Cor de base e duração do loop')}</small>
         </span>
       </button>
     </div>

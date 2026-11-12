@@ -3,6 +3,7 @@ import { LuCircleAlert, LuCircleCheck, LuInfo } from 'react-icons/lu';
 import { createStore, useStore } from '../store/createStore';
 import { Button } from './Button';
 import { Modal } from './Modal';
+import { tr } from '../core/i18n';
 
 /* ------------------------------- toasts ------------------------------- */
 
@@ -43,11 +44,11 @@ interface PromptReq {
 const dialogs = createStore<{ req: ConfirmReq | PromptReq | null }>({ req: null });
 
 export function confirmDialog(opts: { title: string; message?: ReactNode; confirmLabel?: string; danger?: boolean }): Promise<boolean> {
-  return new Promise((resolve) => dialogs.set({ req: { type: 'confirm', title: opts.title, message: opts.message, confirmLabel: opts.confirmLabel ?? 'Confirmar', danger: !!opts.danger, resolve } }));
+  return new Promise((resolve) => dialogs.set({ req: { type: 'confirm', title: opts.title, message: opts.message, confirmLabel: opts.confirmLabel ?? tr('Confirmar'), danger: !!opts.danger, resolve } }));
 }
 
 export function promptDialog(opts: { title: string; label: string; value?: string; confirmLabel?: string }): Promise<string | null> {
-  return new Promise((resolve) => dialogs.set({ req: { type: 'prompt', title: opts.title, label: opts.label, value: opts.value ?? '', confirmLabel: opts.confirmLabel ?? 'Salvar', resolve } }));
+  return new Promise((resolve) => dialogs.set({ req: { type: 'prompt', title: opts.title, label: opts.label, value: opts.value ?? '', confirmLabel: opts.confirmLabel ?? tr('Salvar'), resolve } }));
 }
 
 function PromptBody({ req, done }: { req: PromptReq; done: (v: string | null) => void }) {
@@ -64,7 +65,7 @@ function PromptBody({ req, done }: { req: PromptReq; done: (v: string | null) =>
       </label>
       <input id="prompt-input" className="input" autoFocus value={v} onChange={(e) => setV(e.currentTarget.value)} onFocus={(e) => e.currentTarget.select()} />
       <div className="modal-actions">
-        <Button onClick={() => done(null)}>Cancelar</Button>
+        <Button onClick={() => done(null)}>{tr('Cancelar')}</Button>
         <Button variant="primary" type="submit" disabled={!v.trim()}>
           {req.confirmLabel}
         </Button>
@@ -88,7 +89,7 @@ export function DialogHost() {
           <>
             {req.message && <div className="modal-text">{req.message}</div>}
             <div className="modal-actions">
-              <Button onClick={() => done(false)}>Cancelar</Button>
+              <Button onClick={() => done(false)}>{tr('Cancelar')}</Button>
               <Button variant={req.danger ? 'danger' : 'primary'} autoFocus onClick={() => done(true)}>
                 {req.confirmLabel}
               </Button>

@@ -7,6 +7,7 @@ import { useMediaUrl } from '../../render/useMedia';
 import { Button } from '../../ui/Button';
 import { confirmDialog, toast, toastError } from '../../ui/toast';
 import { bumpMedia, useMediaList } from './hooks';
+import { tr } from '../../core/i18n';
 
 const BIG_VIDEO = 250 * 1024 * 1024;
 
@@ -16,18 +17,18 @@ export async function uploadFiles(files: FileList | File[], allowed: MediaRecord
   for (const file of Array.from(files)) {
     const kind = detectKind(file);
     if (!kind || !allowed.includes(kind)) {
-      toastError(`“${file.name}” não é um formato aceito aqui.`);
+      toastError(tr('“{0}” não é um formato aceito aqui.', file.name));
       continue;
     }
     try {
       const rec = await addMedia(file);
       out.push(rec);
       if (kind === 'video' && file.size > BIG_VIDEO) {
-        toast('Vídeo grande: em computadores mais simples prefira 1080p em H.264 (MP4) para evitar travamentos.', 'info', 6000);
+        toast(tr('Vídeo grande: em computadores mais simples prefira 1080p em H.264 (MP4) para evitar travamentos.'), 'info', 6000);
       }
     } catch (err) {
       console.error(err);
-      toastError(`Não foi possível guardar “${file.name}”. Verifique o espaço disponível.`);
+      toastError(tr('Não foi possível guardar “{0}”. Verifique o espaço disponível.', file.name));
     }
   }
   if (out.length) bumpMedia();
@@ -42,7 +43,7 @@ function Thumb({ rec, selected, onPick }: { rec: MediaRecord; selected: boolean;
         {url ? <img src={url} alt="" draggable={false} /> : <span className="mg-ph">{rec.kind === 'video' ? <LuFilm /> : <LuImage />}</span>}
         {rec.kind === 'video' && (
           <span className="mg-badge">
-            <LuFilm aria-hidden /> vídeo
+            <LuFilm aria-hidden />{' '}{tr('vídeo')}
           </span>
         )}
         <span className="mg-name">{rec.name}</span>
@@ -50,13 +51,13 @@ function Thumb({ rec, selected, onPick }: { rec: MediaRecord; selected: boolean;
       <button
         type="button"
         className="mg-del"
-        aria-label={`Remover ${rec.name} da biblioteca`}
-        title="Remover da biblioteca"
+        aria-label={tr('Remover {0} da biblioteca', rec.name)}
+        title={tr('Remover da biblioteca')}
         onClick={async () => {
           const ok = await confirmDialog({
-            title: 'Remover da biblioteca?',
-            message: `“${rec.name}” será apagado deste computador. Trechos que usam esse arquivo passam a mostrar a cor de fundo.`,
-            confirmLabel: 'Remover',
+            title: tr('Remover da biblioteca?'),
+            message: tr('“{0}” será apagado deste computador. Trechos que usam esse arquivo passam a mostrar a cor de fundo.', rec.name),
+            confirmLabel: tr('Remover'),
             danger: true,
           });
           if (!ok) return;
@@ -79,7 +80,7 @@ interface Props {
 }
 
 /** Biblioteca de imagens e vídeos do usuário, com envio. */
-export function MediaGrid({ kinds = ['image', 'video'], selectedId = null, onPick, uploadLabel = 'Enviar imagem ou vídeo' }: Props) {
+export function MediaGrid({ kinds = ['image', 'video'], selectedId = null, onPick, uploadLabel = tr('Enviar imagem ou vídeo') }: Props) {
   const { items, loading } = useMediaList(kinds);
   const input = useRef<HTMLInputElement>(null);
   const accept = kinds.includes('image') && kinds.includes('video') ? 'image/*,video/*' : kinds.includes('video') ? 'video/*' : 'image/*';
@@ -105,9 +106,9 @@ export function MediaGrid({ kinds = ['image', 'video'], selectedId = null, onPic
         {uploadLabel}
       </Button>
       {loading ? (
-        <p className="mg-empty">Carregando…</p>
+        <p className="mg-empty">{tr('Carregando…')}</p>
       ) : items.length === 0 ? (
-        <p className="mg-empty">Nada aqui ainda. Envie ou arraste arquivos para esta área. Eles ficam guardados neste computador e funcionam sem internet.</p>
+        <p className="mg-empty">{tr('Nada aqui ainda. Envie ou arraste arquivos para esta área. Eles ficam guardados neste computador e funcionam sem internet.')}</p>
       ) : (
         <div className="mg-grid">
           {items.map((m) => (

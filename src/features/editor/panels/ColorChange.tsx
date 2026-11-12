@@ -11,6 +11,7 @@ import { Button } from '../../../ui/Button';
 import { SwatchButton } from '../../../ui/ColorPicker';
 import { Row, Segmented, Slider, Switch } from '../../../ui/Controls';
 import { selectedTargets, useDebouncedReplay } from '../hooks';
+import { tr } from '../../../core/i18n';
 
 /** Segundos com uma casa, no jeito brasileiro ("1,5 s"). */
 export const fmtSec = (ms: number) => `${(ms / 1000).toFixed(1).replace('.', ',')} s`;
@@ -69,28 +70,28 @@ export function ColorChange() {
         {targets.length ? (
           <>
             <span>
-              <b>{targets.length === 1 ? '1 palavra marcada' : `${targets.length} palavras marcadas`}</b>
+              <b>{targets.length === 1 ? tr('1 palavra marcada') : tr('{0} palavras marcadas', targets.length)}</b>
               <em>
                 {names.join(', ')}
                 {targets.length > 4 ? '…' : ''}
               </em>
             </span>
             <button type="button" className="link" onClick={() => wordSelection.clear()}>
-              Desmarcar
+              {tr('Desmarcar')}
             </button>
           </>
         ) : (
-          <span>Clique nas palavras do slide para marcar quais trocam de cor. Shift ou Ctrl soma mais palavras.</span>
+          <span>{tr('Clique nas palavras do slide para marcar quais trocam de cor. Shift ou Ctrl soma mais palavras.')}</span>
         )}
       </div>
       <div className="cfx-quick">
         <button type="button" className="link" onClick={() => wordSelection.set(allKeys)} disabled={!allKeys.length}>
-          Marcar todas do trecho
+          {tr('Marcar todas do trecho')}
         </button>
         {coloredKeys.length > 0 && (
           <>
             <button type="button" className="link" onClick={() => wordSelection.set(coloredKeys)}>
-              Marcar as que trocam de cor ({coloredKeys.length})
+              {tr('Marcar as que trocam de cor (')}{coloredKeys.length})
             </button>
             <button
               type="button"
@@ -100,28 +101,28 @@ export function ColorChange() {
                 replay();
               }}
             >
-              Tirar de todas
+              {tr('Tirar de todas')}
             </button>
           </>
         )}
       </div>
 
       {targets.length > 0 && (
-        <Row label="Trocar a cor" hint={withFx.length && !all ? 'Só parte das marcadas troca' : undefined}>
-          <Switch checked={all} label="Trocar a cor das palavras marcadas" onChange={(on) => apply(on ? { ...(fx ?? DEFAULT_COLOR_FX) } : null)} />
+        <Row label={tr('Trocar a cor')} hint={withFx.length && !all ? tr('Só parte das marcadas troca') : undefined}>
+          <Switch checked={all} label={tr('Trocar a cor das palavras marcadas')} onChange={(on) => apply(on ? { ...(fx ?? DEFAULT_COLOR_FX) } : null)} />
         </Row>
       )}
 
       {targets.length > 0 && fx && (
         <>
           <div className="cfx-colors">
-            <span className="row-label">Cores</span>
-            <div className="cfx-seq" role="list" aria-label="Sequência de cores">
+            <span className="row-label">{tr('Cores')}</span>
+            <div className="cfx-seq" role="list" aria-label={tr('Sequência de cores')}>
               {fx.from ? (
                 <SwatchButton
                   value={fx.from}
                   onChange={(c) => set({ from: c })}
-                  label="Cor de partida"
+                  label={tr('Cor de partida')}
                   className="cfx-from"
                   footer={(close) => (
                     <button
@@ -134,12 +135,12 @@ export function ColorChange() {
                         close();
                       }}
                     >
-                      Partir da cor do texto
+                      {tr('Partir da cor do texto')}
                     </button>
                   )}
                 />
               ) : (
-                <button type="button" className="swatch cfx-from cfx-auto" style={{ background: base }} title="Parte da cor do texto. Clique para escolher outra." aria-label="Cor de partida: a do texto" onClick={() => set({ from: base })} />
+                <button type="button" className="swatch cfx-from cfx-auto" style={{ background: base }} title={tr('Parte da cor do texto. Clique para escolher outra.')} aria-label={tr('Cor de partida: a do texto')} onClick={() => set({ from: base })} />
               )}
               {fx.colors.map((c, i) => (
                 <span key={i} className="cfx-step" role="listitem">
@@ -147,7 +148,7 @@ export function ColorChange() {
                   <SwatchButton
                     value={c}
                     onChange={(v) => setColor(i, v)}
-                    label={`Cor ${i + 1}`}
+                    label={tr('Cor {0}', i + 1)}
                     footer={(close) =>
                       fx.colors.length > 1 ? (
                         <button
@@ -158,7 +159,7 @@ export function ColorChange() {
                             close();
                           }}
                         >
-                          <LuX /> Remover esta cor
+                          <LuX />{' '}{tr('Remover esta cor')}
                         </button>
                       ) : null
                     }
@@ -166,7 +167,7 @@ export function ColorChange() {
                 </span>
               ))}
               {fx.colors.length < MAX_COLORS && (
-                <button type="button" className="cfx-add" aria-label="Adicionar cor à sequência" title="Adicionar cor" onClick={() => set({ colors: [...fx.colors, fx.colors[fx.colors.length - 1]] })}>
+                <button type="button" className="cfx-add" aria-label={tr('Adicionar cor à sequência')} title={tr('Adicionar cor')} onClick={() => set({ colors: [...fx.colors, fx.colors[fx.colors.length - 1]] })}>
                   <LuPlus />
                 </button>
               )}
@@ -175,7 +176,7 @@ export function ColorChange() {
           </div>
 
           <Slider
-            label="Começa em"
+            label={tr('Começa em')}
             value={(fx.start ?? enterEnd + (fx.delay ?? 0)) / 1000}
             min={0}
             max={15}
@@ -189,26 +190,26 @@ export function ColorChange() {
             }}
           />
           <p className="props-note">
-            Contado de quando o trecho aparece. A entrada termina em {fmtSec(enterEnd)}
-            {colorStart(fx, enterEnd) > (fx.start ?? 0) && fx.start !== undefined ? `; antes disso a cor espera, então começa em ${fmtSec(colorStart(fx, enterEnd))}.` : '.'}
+            {tr('Contado de quando o trecho aparece. A entrada termina em')}{' '}{fmtSec(enterEnd)}
+            {colorStart(fx, enterEnd) > (fx.start ?? 0) && fx.start !== undefined ? tr('; antes disso a cor espera, então começa em {0}.', fmtSec(colorStart(fx, enterEnd))) : '.'}
           </p>
-          <Slider label="Tempo da troca" value={fx.duration / 1000} min={0.1} max={10} step={0.1} unit="s" reset={DEFAULT_COLOR_FX.duration / 1000} onChange={(v) => set({ duration: Math.round(v * 1000) })} />
-          <Row label="Como">
+          <Slider label={tr('Tempo da troca')} value={fx.duration / 1000} min={0.1} max={10} step={0.1} unit="s" reset={DEFAULT_COLOR_FX.duration / 1000} onChange={(v) => set({ duration: Math.round(v * 1000) })} />
+          <Row label={tr('Como')}>
             <Segmented<ColorMode>
               size="sm"
-              label="Como a cor anda pelas palavras"
+              label={tr('Como a cor anda pelas palavras')}
               value={fx.mode}
               onChange={(mode) => set({ mode, stagger: mode === 'all' ? 0 : fx.stagger || (mode === 'letter' ? 55 : 260) })}
               options={[
-                { value: 'all', label: 'Juntas', title: 'Todas as palavras marcadas ao mesmo tempo' },
-                { value: 'word', label: 'Uma por vez', title: 'Uma palavra marcada depois da outra' },
-                { value: 'letter', label: 'Letra a letra', title: 'A cor corre pelas letras' },
+                { value: 'all', label: tr('Juntas'), title: tr('Todas as palavras marcadas ao mesmo tempo') },
+                { value: 'word', label: tr('Uma por vez'), title: tr('Uma palavra marcada depois da outra') },
+                { value: 'letter', label: tr('Letra a letra'), title: tr('A cor corre pelas letras') },
               ]}
             />
           </Row>
           {fx.mode !== 'all' && (
             <Slider
-              label={fx.mode === 'letter' ? 'Intervalo entre letras' : 'Intervalo entre palavras'}
+              label={fx.mode === 'letter' ? tr('Intervalo entre letras') : tr('Intervalo entre palavras')}
               value={fx.stagger / 1000}
               min={0}
               max={1}
@@ -218,11 +219,11 @@ export function ColorChange() {
               onChange={(v) => set({ stagger: Math.round(v * 1000) })}
             />
           )}
-          <Row label="Voltar à cor original" hint="Brilho que passa">
-            <Switch checked={!!fx.back} onChange={(back) => apply(back ? { ...fx, back: true } : (({ back: _b, ...r }) => (void _b, r))(fx))} label="Voltar à cor original" />
+          <Row label={tr('Voltar à cor original')} hint={tr('Brilho que passa')}>
+            <Switch checked={!!fx.back} onChange={(back) => apply(back ? { ...fx, back: true } : (({ back: _b, ...r }) => (void _b, r))(fx))} label={tr('Voltar à cor original')} />
           </Row>
           <Button size="sm" variant="ghost" icon={<LuRotateCcw />} className="props-upload" onClick={() => editor.replay()}>
-            Ver de novo
+            {tr('Ver de novo')}
           </Button>
         </>
       )}

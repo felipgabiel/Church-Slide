@@ -1,3 +1,4 @@
+import { tr } from '../core/i18n';
 /** Marca: um slide com três linhas de letra centralizadas. */
 export function LogoMark({ size = 22 }: { size?: number }) {
   return (
@@ -12,7 +13,7 @@ export function Wordmark() {
   return (
     <span className="wordmark">
       <LogoMark />
-      <span>Church Slide</span>
+      <span>{tr('Church Slide')}</span>
     </span>
   );
 }

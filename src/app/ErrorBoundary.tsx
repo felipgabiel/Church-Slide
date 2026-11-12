@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from 'react';
 import { Button } from '../ui/Button';
+import { tr } from '../core/i18n';
 
 interface State {
   error: Error | null;
@@ -23,8 +24,8 @@ export class ErrorBoundary extends Component<{ children?: ReactNode }, State> {
     return (
       <div className="fatal" role="alert">
         <div className="fatal-box">
-          <h1>Algo deu errado nesta tela</h1>
-          <p>Seus projetos continuam salvos neste computador. Volte à biblioteca ou recarregue a página para tentar de novo.</p>
+          <h1>{tr('Algo deu errado nesta tela')}</h1>
+          <p>{tr('Seus projetos continuam salvos neste computador. Volte à biblioteca ou recarregue a página para tentar de novo.')}</p>
           <pre>{error.message}</pre>
           <div style={{ display: 'flex', gap: 8 }}>
             <Button
@@ -34,9 +35,9 @@ export class ErrorBoundary extends Component<{ children?: ReactNode }, State> {
                 location.reload();
               }}
             >
-              Voltar à biblioteca
+              {tr('Voltar à biblioteca')}
             </Button>
-            <Button onClick={() => location.reload()}>Recarregar</Button>
+            <Button onClick={() => location.reload()}>{tr('Recarregar')}</Button>
           </div>
         </div>
       </div>

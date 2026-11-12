@@ -18,6 +18,7 @@ import { clone, deepMerge, fillDefaults } from './util';
 import { sanitizeColorFx } from './anim/colorfx';
 import { sanitizeDesign } from './design/model';
 import { patchWord, sanitizeWords, tokenizeText } from './words';
+import { tr } from './i18n';
 
 export const SYSTEM_SANS = 'Inter, "Segoe UI", "Helvetica Neue", Roboto, system-ui, sans-serif';
 
@@ -79,10 +80,10 @@ export function defaultTheme(): Theme {
 }
 
 const ROLE_NAMES: Record<LayerRole, string> = {
-  lyrics: 'Letra',
-  title: 'Título',
-  credit: 'Crédito',
-  free: 'Texto livre',
+  lyrics: tr('Letra'),
+  title: tr('Título'),
+  credit: tr('Crédito'),
+  free: tr('Texto livre'),
 };
 
 /** Ajustes de estilo de cada tipo de camada em relação ao estilo base da letra. */
@@ -235,7 +236,7 @@ export function normalizeProject(raw: unknown): Project {
   return {
     id: r.id || uid('p'),
     schema: SCHEMA_VERSION,
-    name: r.name || 'Sem título',
+    name: r.name || tr('Sem título'),
     artist: r.artist ?? '',
     category: r.category ?? '',
     createdAt: r.createdAt ?? now,

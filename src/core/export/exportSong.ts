@@ -7,6 +7,7 @@ import { createCompositor } from './compose';
 import { encodeMp4, ExportAbort } from './encode';
 import { measureScene } from './scene';
 import { buildZip } from './zip';
+import { tr } from '../i18n';
 
 export type Quality = 'high' | 'medium' | 'low';
 
@@ -48,7 +49,7 @@ export function clipFileName(index: number, total: number, slide: Slide): string
   const digits = Math.max(2, String(total).length);
   const num = String(index + 1).padStart(digits, '0');
   const words = clean(slideText(slide).replace(/\n+/g, ' ')).split(' ').slice(0, 6).join(' ');
-  return `${num} - ${(words || slide.label || 'trecho').slice(0, 48).trim()}.mp4`;
+  return `${num} - ${(words || slide.label || tr('trecho')).slice(0, 48).trim()}.mp4`;
 }
 
 export interface ClipResult {
@@ -71,7 +72,7 @@ export async function exportClips(project: Project, s: ExportSettings, hooks: Ex
   const chosen = new Set(s.slideIds);
   const all = exportableSlides(project);
   const slides = all.filter((x) => chosen.has(x.id));
-  if (!slides.length) throw new Error('Nenhum trecho com texto para exportar.');
+  if (!slides.length) throw new Error(tr('Nenhum trecho com texto para exportar.'));
   const { width, height } = videoSize(project, s.height);
   await loadCustomFonts().catch(() => undefined);
 
@@ -115,4 +116,4 @@ export async function zipClips(clips: ClipResult[]): Promise<Blob> {
   return buildZip(clips.map((c) => ({ name: c.name, data: c.blob })));
 }
 
-export const zipFileName = (project: Project) => `${clean(project.name) || 'louvor'} - videos.zip`;
+export const zipFileName = (project: Project) => `${clean(project.name) || tr('louvor')} - ${tr('videos')}.zip`;

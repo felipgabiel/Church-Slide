@@ -1,10 +1,10 @@
 import { LuMoon, LuSun } from 'react-icons/lu';
 import { useThemeMode } from '../app/theme';
 import { IconButton } from './Button';
+import { tr } from '../core/i18n';
 
 /** Botão de tema: mostra o tema para o qual vai trocar. */
 export function ThemeToggle() {
   const [mode, toggle] = useThemeMode();
-  const next = mode === 'dark' ? 'claro' : 'escuro';
-  return <IconButton label={`Usar tema ${next}`} icon={mode === 'dark' ? <LuSun /> : <LuMoon />} onClick={toggle} />;
+  return <IconButton label={mode === 'dark' ? tr('Usar tema claro') : tr('Usar tema escuro')} icon={mode === 'dark' ? <LuSun /> : <LuMoon />} onClick={toggle} />;
 }

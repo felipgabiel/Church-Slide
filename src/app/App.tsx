@@ -8,6 +8,7 @@ import { Operator } from '../features/present/Operator';
 import { Output } from '../features/present/Output';
 import { Studio } from '../features/backgrounds/Studio';
 import { ExportPill } from '../features/export/ExportPill';
+import { Welcome } from '../features/onboarding/Welcome';
 
 export function App() {
   const route = useRoute();
@@ -24,6 +25,7 @@ export function App() {
         {route.name === 'output' && <Output />}
       </ErrorBoundary>
       {route.name !== 'output' && <ExportPill />}
+      {route.name !== 'output' && <Welcome />}
       <DialogHost />
     </div>
   );

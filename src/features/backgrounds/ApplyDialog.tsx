@@ -9,6 +9,7 @@ import { SlideThumb } from '../../render/SlideThumb';
 import { LazyMount } from '../../ui/LazyMount';
 import { Modal } from '../../ui/Modal';
 import { toast, toastError } from '../../ui/toast';
+import { tr } from '../../core/i18n';
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -31,25 +32,25 @@ export function ApplyDialog({ design, onClose }: { design: BackgroundDesign | nu
     setBusy(true);
     try {
       await applyDesignToProject(p.id, design);
-      toast(`Fundo aplicado em “${p.name}”`);
+      toast(tr('Fundo aplicado em “{0}”', p.name));
       onClose();
       navigate(paths.edit(p.id));
     } catch {
-      toastError('Não foi possível aplicar o fundo.');
+      toastError(tr('Não foi possível aplicar o fundo.'));
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Modal open={!!design} onClose={onClose} title="Usar num louvor" description="O fundo vai para todos os trechos do louvor escolhido. Cada louvor guarda a própria cópia." width={560}>
+    <Modal open={!!design} onClose={onClose} title={tr('Usar num louvor')} description={tr('O fundo vai para todos os trechos do louvor escolhido. Cada louvor guarda a própria cópia.')} width={560}>
       <label className="apply-search">
         <LuSearch aria-hidden />
-        <input type="search" placeholder="Buscar louvor" value={q} onChange={(e) => setQ(e.currentTarget.value)} aria-label="Buscar louvor" autoFocus />
+        <input type="search" placeholder={tr('Buscar louvor')} value={q} onChange={(e) => setQ(e.currentTarget.value)} aria-label={tr('Buscar louvor')} autoFocus />
       </label>
       <ul className="apply-list" aria-busy={busy}>
-        {items === null && <li className="apply-empty">Carregando…</li>}
-        {items && visible.length === 0 && <li className="apply-empty">{items.length ? 'Nenhum louvor encontrado.' : 'Você ainda não tem louvores. Crie um na biblioteca.'}</li>}
+        {items === null && <li className="apply-empty">{tr('Carregando…')}</li>}
+        {items && visible.length === 0 && <li className="apply-empty">{items.length ? tr('Nenhum louvor encontrado.') : tr('Você ainda não tem louvores. Crie um na biblioteca.')}</li>}
         {visible.map((p) => (
           <li key={p.id}>
             <button type="button" className="apply-item" disabled={busy} onClick={() => void apply(p)}>
@@ -61,7 +62,7 @@ export function ApplyDialog({ design, onClose }: { design: BackgroundDesign | nu
               <span className="apply-names">
                 <b>{p.name}</b>
                 <span>
-                  {p.isTemplate ? 'Modelo' : p.artist || 'Sem artista'} · {timeAgo(p.updatedAt)}
+                  {p.isTemplate ? tr('Modelo') : p.artist || tr('Sem artista')} · {timeAgo(p.updatedAt)}
                 </span>
               </span>
             </button>

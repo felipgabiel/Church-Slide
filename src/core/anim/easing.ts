@@ -1,4 +1,5 @@
 import type { EasingName } from '../types';
+import { tr } from '../i18n';
 
 /** Curvas de movimento como cubic-bezier (mesma semântica do CSS). */
 export const EASING_CURVES: Record<EasingName, [number, number, number, number]> = {
@@ -11,12 +12,12 @@ export const EASING_CURVES: Record<EasingName, [number, number, number, number]>
 };
 
 export const EASING_LABELS: Record<EasingName, string> = {
-  linear: 'Linear',
-  'ease-out': 'Saída suave',
-  'ease-in-out': 'Entrada e saída',
-  smooth: 'Padrão',
-  back: 'Elástica leve',
-  expo: 'Rápida e suave',
+  linear: tr('Linear'),
+  'ease-out': tr('Saída suave'),
+  'ease-in-out': tr('Entrada e saída'),
+  smooth: tr('Padrão'),
+  back: tr('Elástica leve'),
+  expo: tr('Rápida e suave'),
 };
 
 export type EaseFn = (t: number) => number;

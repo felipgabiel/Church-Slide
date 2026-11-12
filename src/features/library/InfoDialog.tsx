@@ -4,11 +4,12 @@ import type { Project } from '../../core/types';
 import { Button } from '../../ui/Button';
 import { Modal } from '../../ui/Modal';
 import { toastError } from '../../ui/toast';
+import { tr } from '../../core/i18n';
 
 /** Renomear e reclassificar um louvor (nome, artista e categoria). */
 export function InfoDialog({ project, categories, onClose, onSaved }: { project: Project | null; categories: string[]; onClose: () => void; onSaved: () => void }) {
   return (
-    <Modal open={!!project} onClose={onClose} title="Informações do louvor" width={460}>
+    <Modal open={!!project} onClose={onClose} title={tr('Informações do louvor')} width={460}>
       {project && <InfoForm key={project.id} project={project} categories={categories} onClose={onClose} onSaved={onSaved} />}
     </Modal>
   );
@@ -27,25 +28,25 @@ function InfoForm({ project, categories, onClose, onSaved }: { project: Project;
           onSaved();
           onClose();
         } catch {
-          toastError('Não foi possível salvar as alterações.');
+          toastError(tr('Não foi possível salvar as alterações.'));
         }
       }}
     >
       <div className="field">
         <label className="field-label" htmlFor="inf-name">
-          Nome
+          {tr('Nome')}
         </label>
         <input id="inf-name" className="input" autoFocus value={name} onChange={(e) => setName(e.currentTarget.value)} />
       </div>
       <div className="field">
         <label className="field-label" htmlFor="inf-artist">
-          Artista ou ministério
+          {tr('Artista ou ministério')}
         </label>
         <input id="inf-artist" className="input" value={artist} onChange={(e) => setArtist(e.currentTarget.value)} />
       </div>
       <div className="field">
         <label className="field-label" htmlFor="inf-cat">
-          Categoria
+          {tr('Categoria')}
         </label>
         <input id="inf-cat" className="input" list="inf-cats" value={category} onChange={(e) => setCategory(e.currentTarget.value)} />
         <datalist id="inf-cats">
@@ -55,9 +56,9 @@ function InfoForm({ project, categories, onClose, onSaved }: { project: Project;
         </datalist>
       </div>
       <div className="modal-actions">
-        <Button onClick={onClose}>Cancelar</Button>
+        <Button onClick={onClose}>{tr('Cancelar')}</Button>
         <Button variant="primary" type="submit">
-          Salvar
+          {tr('Salvar')}
         </Button>
       </div>
     </form>

@@ -4,6 +4,7 @@ import { DesignPainter } from '../design/paint';
 import { getMedia } from '../storage/media';
 import type { Background } from '../types';
 import { clear, rgba } from './color';
+import { tr } from '../i18n';
 
 /**
  * Fundo do vídeo, desenhado em canvas como função do TEMPO (determinístico: o quadro N é sempre igual).
@@ -238,7 +239,7 @@ export class BackgroundPainter {
     if ((kind !== 'image' && kind !== 'video') || !mediaId) return;
     try {
       const rec = await getMedia(mediaId);
-      if (!rec) throw new Error('mídia ausente');
+      if (!rec) throw new Error(tr('mídia ausente'));
       if (kind === 'image') {
         this.image = await createImageBitmap(rec.blob);
         return;
@@ -251,7 +252,7 @@ export class BackgroundPainter {
       v.src = this.videoUrl;
       await new Promise<void>((res, rej) => {
         v.onloadeddata = () => res();
-        v.onerror = () => rej(new Error('vídeo de fundo não carregou'));
+        v.onerror = () => rej(new Error(tr('vídeo de fundo não carregou')));
       });
       this.video = v;
     } catch (err) {

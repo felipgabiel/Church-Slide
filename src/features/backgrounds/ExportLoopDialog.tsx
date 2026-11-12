@@ -13,6 +13,7 @@ import { formatBytes } from '../../core/util';
 import { Button } from '../../ui/Button';
 import { Row, Segmented } from '../../ui/Controls';
 import { Modal } from '../../ui/Modal';
+import { tr } from '../../core/i18n';
 
 type Prefs = Pick<LoopVideoOptions, 'height' | 'fps' | 'quality' | 'repeats'>;
 const DEFAULT_PREFS: Prefs = { height: 1080, fps: 30, quality: 'medium', repeats: 1 };
@@ -20,7 +21,7 @@ const DEFAULT_PREFS: Prefs = { height: 1080, fps: 30, quality: 'medium', repeats
 /** Exporta SÓ o fundo, sem letra, num MP4 que repete sem emenda (para usar de fundo no Holyrics). */
 export function ExportLoopDialog({ design, onClose }: { design: BackgroundDesign | null; onClose: () => void }) {
   return (
-    <Modal open={!!design} onClose={onClose} title="Exportar fundo em vídeo" description="Só o fundo, sem letra, em MP4 que repete sem emenda." width={520}>
+    <Modal open={!!design} onClose={onClose} title={tr('Exportar fundo em vídeo')} description={tr('Só o fundo, sem letra, em MP4 que repete sem emenda.')} width={520}>
       {design && <ExportLoop design={design} />}
     </Modal>
   );
@@ -62,30 +63,30 @@ function ExportLoop({ design }: { design: BackgroundDesign }) {
       const blob = await exportDesignVideo(snapshot, { ...p, signal: r.signal, onProgress: (fraction) => r.progress({ index: 0, total: 1, name: snapshot.name, fraction }) });
       return [{ name: loopFileName(snapshot), blob }];
     });
-    if (!ok) toast('Já há vídeos sendo gerados. Espere terminar ou cancele.', 'info');
+    if (!ok) toast(tr('Já há vídeos sendo gerados. Espere terminar ou cancele.'), 'info');
   };
 
   return (
     <div className="xd">
       {!supported && (
         <p className="xd-warn" role="alert">
-          <LuTriangleAlert aria-hidden /> Este navegador não consegue gerar vídeo. Abra o Church Slide no Google Chrome ou no Microsoft Edge.
+          <LuTriangleAlert aria-hidden />{' '}{tr('Este navegador não consegue gerar vídeo. Abra o Church Slide no Google Chrome ou no Microsoft Edge.')}
         </p>
       )}
       <fieldset className="xd-opts" disabled={phase === 'running'}>
-        <Row label="Resolução" hint={`${size.width} × ${size.height}`}>
-          <Segmented<string> size="sm" label="Resolução" value={String(p.height)} onChange={(v) => set({ height: Number(v) as Prefs['height'] })} options={[{ value: '720', label: '720p' }, { value: '1080', label: '1080p' }, { value: '2160', label: '4K' }]} />
+        <Row label={tr('Resolução')} hint={`${size.width} × ${size.height}`}>
+          <Segmented<string> size="sm" label={tr('Resolução')} value={String(p.height)} onChange={(v) => set({ height: Number(v) as Prefs['height'] })} options={[{ value: '720', label: '720p' }, { value: '1080', label: '1080p' }, { value: '2160', label: '4K' }]} />
         </Row>
-        <Row label="Quadros por segundo">
-          <Segmented<string> size="sm" label="Quadros por segundo" value={String(p.fps)} onChange={(v) => set({ fps: Number(v) as 30 | 60 })} options={[{ value: '30', label: '30' }, { value: '60', label: '60' }]} />
+        <Row label={tr('Quadros por segundo')}>
+          <Segmented<string> size="sm" label={tr('Quadros por segundo')} value={String(p.fps)} onChange={(v) => set({ fps: Number(v) as 30 | 60 })} options={[{ value: '30', label: '30' }, { value: '60', label: '60' }]} />
         </Row>
-        <Row label="Qualidade">
-          <Segmented<Quality> size="sm" label="Qualidade" value={p.quality} onChange={(v) => set({ quality: v })} options={[{ value: 'low', label: 'Leve' }, { value: 'medium', label: 'Média' }, { value: 'high', label: 'Alta' }]} />
+        <Row label={tr('Qualidade')}>
+          <Segmented<Quality> size="sm" label={tr('Qualidade')} value={p.quality} onChange={(v) => set({ quality: v })} options={[{ value: 'low', label: tr('Leve') }, { value: 'medium', label: tr('Média') }, { value: 'high', label: tr('Alta') }]} />
         </Row>
-        <Row label="Duração" hint="O Holyrics repete o vídeo sozinho; 1 volta basta">
+        <Row label={tr('Duração')} hint={tr('O Holyrics repete o vídeo sozinho; 1 volta basta')}>
           <Segmented<string>
             size="sm"
-            label="Duração"
+            label={tr('Duração')}
             value={String(p.repeats)}
             onChange={(v) => set({ repeats: Number(v) })}
             options={[1, 2, 5].map((n) => ({ value: String(n), label: `${design.loopSec * n} s` }))}
@@ -98,12 +99,12 @@ function ExportLoop({ design }: { design: BackgroundDesign }) {
           <div className="xd-bar">
             <i style={{ width: `${progress * 100}%` }} />
           </div>
-          <span>Gerando “{design.name}”… {Math.round(progress * 100)}%</span>
+          <span>{tr('Gerando “')}{design.name}”… {Math.round(progress * 100)}%</span>
         </div>
       )}
       {file && url && (
         <div className="xd-preview">
-          <video src={url} controls autoPlay loop muted playsInline aria-label={`Prévia de ${design.name}`} />
+          <video src={url} controls autoPlay loop muted playsInline aria-label={tr('Prévia de {0}', design.name)} />
           <small>
             {file.name} · {formatBytes(file.blob.size)}
           </small>
@@ -111,7 +112,7 @@ function ExportLoop({ design }: { design: BackgroundDesign }) {
       )}
       {otherRunning && job && (
         <p className="xd-warn" role="status">
-          <LuTriangleAlert aria-hidden /> Já há vídeos sendo gerados (“{job.title}”). Espere terminar ou cancele.
+          <LuTriangleAlert aria-hidden />{' '}{tr('Já há vídeos sendo gerados (“')}{job.title}{tr('”). Espere terminar ou cancele.')}
         </p>
       )}
       {phase === 'done' && showSupport && <SupportCard onDismiss={() => setShowSupport(false)} />}
@@ -124,25 +125,25 @@ function ExportLoop({ design }: { design: BackgroundDesign }) {
       <div className="xd-foot">
         {phase === 'idle' && (
           <>
-            <span className="xd-est">{seconds} s de vídeo · sem letra</span>
+            <span className="xd-est">{seconds}{' '}{tr('s de vídeo · sem letra')}</span>
             <Button variant="primary" icon={<LuDownload />} disabled={!supported || otherRunning} onClick={start}>
-              Gerar vídeo
+              {tr('Gerar vídeo')}
             </Button>
           </>
         )}
         {phase === 'running' && (
           <>
-            <span className="xd-est">Pode fechar esta janela: o vídeo segue sendo gerado.</span>
+            <span className="xd-est">{tr('Pode fechar esta janela: o vídeo segue sendo gerado.')}</span>
             <Button icon={<LuX />} onClick={() => cancelJob()}>
-              Cancelar
+              {tr('Cancelar')}
             </Button>
           </>
         )}
         {phase === 'done' && file && (
           <>
-            <Button onClick={() => clearJob()}>Refazer</Button>
+            <Button onClick={() => clearJob()}>{tr('Refazer')}</Button>
             <Button variant="primary" icon={<LuDownload />} onClick={() => downloadBlob(file.blob, file.name)}>
-              Baixar vídeo
+              {tr('Baixar vídeo')}
             </Button>
           </>
         )}

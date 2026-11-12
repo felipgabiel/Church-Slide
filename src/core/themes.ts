@@ -3,6 +3,7 @@ import { defaultTheme } from './defaults';
 import { POPPINS_STACK } from './fonts';
 import type { DeepPartial, Theme } from './types';
 import { deepMerge } from './util';
+import { tr } from './i18n';
 
 export interface ThemePreset {
   id: string;
@@ -28,8 +29,8 @@ const IMPACT_FONT = POPPINS_STACK;
 export const THEME_PRESETS: ThemePreset[] = [
   {
     id: 'impacto',
-    name: 'Impacto',
-    description: 'Palavra-chave gigante, resto pequeno, fundo em brasa — automático',
+    name: tr('Impacto'),
+    description: tr('Palavra-chave gigante, resto pequeno, fundo em brasa — automático'),
     autoLayout: 'impact',
     theme: make(
       {
@@ -67,8 +68,8 @@ export const THEME_PRESETS: ThemePreset[] = [
   },
   {
     id: 'aurora',
-    name: 'Aurora',
-    description: 'Fundo animado em cores vivas, texto com brilho',
+    name: tr('Aurora'),
+    description: tr('Fundo animado em cores vivas, texto com brilho'),
     theme: make(
       {
         text: { glow: { enabled: true, color: '#a9b8ff', blur: 26 }, letterSpacing: 2 },
@@ -92,8 +93,8 @@ export const THEME_PRESETS: ThemePreset[] = [
   },
   {
     id: 'dourado',
-    name: 'Dourado clássico',
-    description: 'Serifa elegante sobre fundo escuro quente',
+    name: tr('Dourado clássico'),
+    description: tr('Serifa elegante sobre fundo escuro quente'),
     theme: make(
       {
         text: {
@@ -121,8 +122,8 @@ export const THEME_PRESETS: ThemePreset[] = [
   },
   {
     id: 'minimal',
-    name: 'Minimal',
-    description: 'Preto absoluto, tipografia limpa, palavra por palavra',
+    name: tr('Minimal'),
+    description: tr('Preto absoluto, tipografia limpa, palavra por palavra'),
     theme: make(
       {
         text: { fontFamily: HELVETICA, bold: true, letterSpacing: -1, fontSize: 8.6, shadow: { enabled: false, color: '#000000', x: 0, y: 0, blur: 0 } },
@@ -133,8 +134,8 @@ export const THEME_PRESETS: ThemePreset[] = [
   },
   {
     id: 'noite',
-    name: 'Noite azul',
-    description: 'Gradiente azul profundo com entrada em foco',
+    name: tr('Noite azul'),
+    description: tr('Gradiente azul profundo com entrada em foco'),
     theme: make(
       {
         text: { color: '#e8f0ff', glow: { enabled: true, color: '#5b8cff', blur: 22 } },
@@ -154,8 +155,8 @@ export const THEME_PRESETS: ThemePreset[] = [
   },
   {
     id: 'luz',
-    name: 'Luz suave',
-    description: 'Fundo claro e quente, texto escuro, flutuação leve',
+    name: tr('Luz suave'),
+    description: tr('Fundo claro e quente, texto escuro, flutuação leve'),
     theme: make(
       {
         text: {

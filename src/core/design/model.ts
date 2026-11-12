@@ -13,6 +13,7 @@ import type {
   DesignTexture,
 } from '../types';
 import { clamp, isPlainObject } from '../util';
+import { tr } from '../i18n';
 
 /**
  * Modelo do Estúdio de Fundos: valores padrão, criação e validação.
@@ -25,40 +26,40 @@ export const MAX_LAYERS = 24;
 export const MAX_STOPS = 6;
 
 export const LAYER_KINDS: { kind: DesignLayerKind; label: string; hint: string }[] = [
-  { kind: 'gradient', label: 'Degradê', hint: 'Cores que se misturam pela tela' },
-  { kind: 'shape', label: 'Forma', hint: 'Círculo, portal, faixa, retângulo ou polígono' },
-  { kind: 'glow', label: 'Luz', hint: 'Halo de luz difusa' },
-  { kind: 'waves', label: 'Ondas', hint: 'Fios de luz ondulados' },
-  { kind: 'texture', label: 'Textura', hint: 'Listras diagonais ou grão' },
-  { kind: 'particles', label: 'Partículas', hint: 'Pontos de luz subindo' },
+  { kind: 'gradient', label: tr('Degradê'), hint: tr('Cores que se misturam pela tela') },
+  { kind: 'shape', label: tr('Forma'), hint: tr('Círculo, portal, faixa, retângulo ou polígono') },
+  { kind: 'glow', label: tr('Luz'), hint: tr('Halo de luz difusa') },
+  { kind: 'waves', label: tr('Ondas'), hint: tr('Fios de luz ondulados') },
+  { kind: 'texture', label: tr('Textura'), hint: tr('Listras diagonais ou grão') },
+  { kind: 'particles', label: tr('Partículas'), hint: tr('Pontos de luz subindo') },
 ];
 
 export const KIND_LABEL: Record<DesignLayerKind, string> = Object.fromEntries(LAYER_KINDS.map((k) => [k.kind, k.label])) as Record<DesignLayerKind, string>;
 
 export const SHAPE_LABEL: Record<DesignShape, string> = {
-  circle: 'Círculo',
-  rounded: 'Retângulo',
-  arch: 'Portal (arco)',
-  band: 'Faixa',
-  polygon: 'Polígono',
+  circle: tr('Círculo'),
+  rounded: tr('Retângulo'),
+  arch: tr('Portal (arco)'),
+  band: tr('Faixa'),
+  polygon: tr('Polígono'),
 };
 
 export const MOTION_LABEL: Record<DesignMotionKind, string> = {
-  drift: 'Derivar',
-  breathe: 'Respirar',
-  spin: 'Girar',
-  flow: 'Fluir',
-  colors: 'Ciclo de cores',
-  twinkle: 'Cintilar',
+  drift: tr('Derivar'),
+  breathe: tr('Respirar'),
+  spin: tr('Girar'),
+  flow: tr('Fluir'),
+  colors: tr('Ciclo de cores'),
+  twinkle: tr('Cintilar'),
 };
 
 export const MOTION_HINT: Record<DesignMotionKind, string> = {
-  drift: 'Passeia devagar num caminho em 8',
-  breathe: 'Cresce e diminui; a luz pulsa',
-  spin: 'Dá voltas em torno do centro',
-  flow: 'Listras, ondas e degradês correm na própria direção',
-  colors: 'As cores percorrem uma paleta e voltam à primeira',
-  twinkle: 'Brilho que acende e apaga',
+  drift: tr('Passeia devagar num caminho em 8'),
+  breathe: tr('Cresce e diminui; a luz pulsa'),
+  spin: tr('Dá voltas em torno do centro'),
+  flow: tr('Listras, ondas e degradês correm na própria direção'),
+  colors: tr('As cores percorrem uma paleta e voltam à primeira'),
+  twinkle: tr('Brilho que acende e apaga'),
 };
 
 /** Movimentos que fazem sentido em cada tipo de camada. */
@@ -80,12 +81,12 @@ export function motionsFor(kind: DesignLayerKind): DesignMotionKind[] {
 }
 
 export const BLEND_LABEL: Record<DesignBlend, string> = {
-  normal: 'Normal',
-  screen: 'Tela (clareia)',
-  lighter: 'Somar luz',
-  overlay: 'Sobrepor',
-  multiply: 'Multiplicar (escurece)',
-  difference: 'Inverter cores (diferença)',
+  normal: tr('Normal'),
+  screen: tr('Tela (clareia)'),
+  lighter: tr('Somar luz'),
+  overlay: tr('Sobrepor'),
+  multiply: tr('Multiplicar (escurece)'),
+  difference: tr('Inverter cores (diferença)'),
 };
 
 const KINDS: DesignLayerKind[] = ['gradient', 'shape', 'glow', 'waves', 'texture', 'particles'];
@@ -150,7 +151,7 @@ export function newDesignLayer(kind: DesignLayerKind, patch: Partial<DesignLayer
   };
 }
 
-export function newDesign(name = 'Novo fundo', layers: DesignLayer[] = [], base = '#0b0b12'): BackgroundDesign {
+export function newDesign(name = tr('Novo fundo'), layers: DesignLayer[] = [], base = '#0b0b12'): BackgroundDesign {
   const now = Date.now();
   return { id: uid('bg'), name, loopSec: DEFAULT_LOOP, base, layers, createdAt: now, updatedAt: now };
 }
@@ -218,7 +219,7 @@ export function sanitizeDesign(raw: unknown): BackgroundDesign | null {
   const layers = (Array.isArray(raw.layers) ? raw.layers : []).map(sanitizeLayer).filter((l): l is DesignLayer => !!l).slice(0, MAX_LAYERS);
   return {
     id: typeof raw.id === 'string' && raw.id ? raw.id : uid('bg'),
-    name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.slice(0, 80) : 'Fundo sem nome',
+    name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.slice(0, 80) : tr('Fundo sem nome'),
     loopSec: num(raw.loopSec, DEFAULT_LOOP, 2, 60),
     base: hex(raw.base, '#0b0b12'),
     layers,

@@ -5,6 +5,7 @@ import { downloadBlob } from '../../core/storage/exchange';
 import { useStore } from '../../store/createStore';
 import { toastError } from '../../ui/toast';
 import { cancelJob, clearJob, exportJobs, markSeen } from './exportJob';
+import { tr } from '../../core/i18n';
 
 /**
  * Aviso flutuante da exportação em segundo plano: aparece quando o diálogo está fechado.
@@ -29,7 +30,7 @@ export function ExportPill() {
       else if (job.files[0]) downloadBlob(job.files[0].blob, job.files[0].name);
       markSeen();
     } catch {
-      toastError('Não foi possível baixar.');
+      toastError(tr('Não foi possível baixar.'));
     }
   };
 
@@ -42,20 +43,20 @@ export function ExportPill() {
         <b>
           {job.status === 'running'
             ? job.kind === 'song'
-              ? `Gerando vídeos de “${job.title}”`
-              : `Gerando o fundo “${job.title}”`
+              ? tr('Gerando vídeos de “{0}”', job.title)
+              : tr('Gerando o fundo “{0}”', job.title)
             : job.status === 'done'
               ? job.kind === 'song'
-                ? `${job.files.length} ${job.files.length === 1 ? 'vídeo pronto' : 'vídeos prontos'}: “${job.title}”`
-                : `Vídeo do fundo pronto: “${job.title}”`
-              : `Não deu para gerar “${job.title}”`}
+                ? `${job.files.length} ${job.files.length === 1 ? tr('vídeo pronto') : tr('vídeos prontos')}: “${job.title}”`
+                : tr('Vídeo do fundo pronto: “{0}”', job.title)
+              : tr('Não deu para gerar “{0}”', job.title)}
         </b>
         {job.status === 'running' && (
           <>
             <span className="xpill-bar">
               <i style={{ width: `${pct}%` }} />
             </span>
-            <small>{job.progress ? `${job.progress.index + 1} de ${job.progress.total} · ${pct}%` : 'Preparando…'}</small>
+            <small>{job.progress ? tr('{0} de {1} · {2}%', job.progress.index + 1, job.progress.total, pct) : tr('Preparando…')}</small>
           </>
         )}
         {job.status === 'error' && <small>{job.error}</small>}
@@ -63,20 +64,20 @@ export function ExportPill() {
       <div className="xpill-actions">
         {job.status === 'done' && (
           <button type="button" className="xpill-main" onClick={() => void download()}>
-            <LuDownload aria-hidden /> {job.kind === 'song' ? 'Baixar .zip' : 'Baixar'}
+            <LuDownload aria-hidden /> {job.kind === 'song' ? tr('Baixar .zip') : tr('Baixar')}
           </button>
         )}
         {job.status !== 'error' && (
           <button type="button" className="xpill-link" onClick={open}>
-            Abrir
+            {tr('Abrir')}
           </button>
         )}
         {job.status === 'running' ? (
           <button type="button" className="xpill-link" onClick={() => cancelJob()}>
-            Cancelar
+            {tr('Cancelar')}
           </button>
         ) : (
-          <button type="button" className="xpill-x" aria-label="Fechar aviso" onClick={() => (job.status === 'done' ? markSeen() : clearJob())}>
+          <button type="button" className="xpill-x" aria-label={tr('Fechar aviso')} onClick={() => (job.status === 'done' ? markSeen() : clearJob())}>
             <LuX />
           </button>
         )}

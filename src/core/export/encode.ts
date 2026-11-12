@@ -1,4 +1,5 @@
 import { Mp4Muxer } from './mp4';
+import { tr } from '../i18n';
 
 export interface EncodeOptions {
   width: number;
@@ -15,7 +16,7 @@ export interface EncodeOptions {
 
 export class ExportAbort extends Error {
   constructor() {
-    super('Exportação cancelada.');
+    super(tr('Exportação cancelada.'));
     this.name = 'ExportAbort';
   }
 }
@@ -51,7 +52,7 @@ async function pickCodec(o: EncodeOptions): Promise<VideoEncoderConfig> {
       /* tenta o próximo perfil */
     }
   }
-  throw new Error('Este navegador não consegue gerar vídeo H.264. Use o Google Chrome ou o Microsoft Edge atualizados.');
+  throw new Error(tr('Este navegador não consegue gerar vídeo H.264. Use o Google Chrome ou o Microsoft Edge atualizados.'));
 }
 
 export function canEncodeVideo(): boolean {
@@ -75,7 +76,7 @@ const tick = () =>
 
 /** Renderiza quadro a quadro (mais rápido que o tempo real) e devolve um MP4. */
 export async function encodeMp4(o: EncodeOptions): Promise<Blob> {
-  if (!canEncodeVideo()) throw new Error('Este navegador não suporta exportar vídeo. Use o Google Chrome ou o Microsoft Edge.');
+  if (!canEncodeVideo()) throw new Error(tr('Este navegador não suporta exportar vídeo. Use o Google Chrome ou o Microsoft Edge.'));
   const config = await pickCodec(o);
 
   const canvas = document.createElement('canvas');
@@ -92,7 +93,7 @@ export async function encodeMp4(o: EncodeOptions): Promise<Blob> {
     output: (chunk, meta) => {
       const desc = meta?.decoderConfig?.description;
       if (desc && !avcC) avcC = new Uint8Array(desc instanceof ArrayBuffer ? desc : (desc as ArrayBufferView).buffer.slice((desc as ArrayBufferView).byteOffset, (desc as ArrayBufferView).byteOffset + (desc as ArrayBufferView).byteLength));
-      if (chunk.timestamp < lastTs) failure = new Error('O codificador gerou quadros fora de ordem (quadros B), o que este exportador não suporta.');
+      if (chunk.timestamp < lastTs) failure = new Error(tr('O codificador gerou quadros fora de ordem (quadros B), o que este exportador não suporta.'));
       lastTs = chunk.timestamp;
       const data = new Uint8Array(chunk.byteLength);
       chunk.copyTo(data);
@@ -128,7 +129,7 @@ export async function encodeMp4(o: EncodeOptions): Promise<Blob> {
     if (encoder.state !== 'closed') encoder.close();
   }
 
-  if (!avcC) throw new Error('O codificador não devolveu a configuração do vídeo.');
+  if (!avcC) throw new Error(tr('O codificador não devolveu a configuração do vídeo.'));
   const muxer = new Mp4Muxer({ width: o.width, height: o.height, fps: o.fps, avcC });
   for (const s of samples) muxer.addSample(s.data, s.key);
   o.onProgress?.(1);

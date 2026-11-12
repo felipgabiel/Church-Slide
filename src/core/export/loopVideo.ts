@@ -2,6 +2,7 @@ import { DesignPainter } from '../design/paint';
 import type { BackgroundDesign } from '../types';
 import { bitrateFor, type Quality } from './exportSong';
 import { encodeMp4 } from './encode';
+import { tr } from '../i18n';
 
 export interface LoopVideoOptions {
   height: 720 | 1080 | 2160;
@@ -41,4 +42,4 @@ export async function exportDesignVideo(design: BackgroundDesign, o: LoopVideoOp
 }
 
 export const loopFileName = (d: BackgroundDesign) =>
-  `${(d.name || 'fundo').replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'fundo'} (loop ${d.loopSec}s).mp4`;
+  `${(d.name || tr('fundo')).replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'fundo'} (loop ${d.loopSec}s).mp4`;

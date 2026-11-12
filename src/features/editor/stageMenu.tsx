@@ -22,6 +22,7 @@ import { editor } from '../../store/editor';
 import { wordKey, wordSel, wordSelection } from '../../store/wordSelection';
 import { writeSetting } from '../../core/settings';
 import type { ContextItem } from '../../ui/ContextMenu';
+import { tr } from '../../core/i18n';
 
 /** Posição (em % do palco) e tamanho (em % da altura) de um conjunto de elementos, medidos na tela. */
 interface Measured {
@@ -133,7 +134,7 @@ export function buildStageMenu({ stage, slide, word, layerId, at, toast }: MenuA
     const text = textWordAt(layer.text, word.index);
     const line = lineOfWord(layer.text, word.index);
     const shown = text.length > 18 ? `${text.slice(0, 17)}…` : text;
-    items.push({ heading: `Palavra “${shown}”` });
+    items.push({ heading: tr('Palavra “{0}”', shown) });
     // várias palavras marcadas nesta camada (Shift + clique) e o clique foi numa delas: solta a frase inteira
     const marked = wordSel
       .get()
@@ -141,24 +142,24 @@ export function buildStageMenu({ stage, slide, word, layerId, at, toast }: MenuA
       .map((k) => Number(k.slice(k.lastIndexOf(':') + 1)));
     if (marked.length > 1 && marked.includes(word.index)) {
       items.push({
-        label: `Soltar as ${marked.length} palavras juntas`,
+        label: tr('Soltar as {0} palavras juntas', marked.length),
         icon: <LuMove />,
-        hint: 'a frase marcada',
+        hint: tr('a frase marcada'),
         onClick: () => {
-          if (!detachFromStage(stage, slide, layer.id, 'words', word.index, marked)) toast('Não foi possível soltar as palavras.');
+          if (!detachFromStage(stage, slide, layer.id, 'words', word.index, marked)) toast(tr('Não foi possível soltar as palavras.'));
         },
       });
     }
     items.push({
-      label: marked.length > 1 && marked.includes(word.index) ? 'Soltar só esta palavra' : 'Soltar para mover',
+      label: marked.length > 1 && marked.includes(word.index) ? tr('Soltar só esta palavra') : tr('Soltar para mover'),
       icon: <LuMove />,
-      hint: 'arraste depois',
+      hint: tr('arraste depois'),
       onClick: () => {
-        if (!detachFromStage(stage, slide, layer.id, 'word', word.index)) toast('Não foi possível soltar a palavra.');
+        if (!detachFromStage(stage, slide, layer.id, 'word', word.index)) toast(tr('Não foi possível soltar a palavra.'));
       },
     });
     items.push({
-      label: 'Editar esta palavra',
+      label: tr('Editar esta palavra'),
       icon: <LuPencil />,
       onClick: () => {
         wordSelection.set([wordKey(layer.id, word.index)]);
@@ -166,9 +167,9 @@ export function buildStageMenu({ stage, slide, word, layerId, at, toast }: MenuA
       },
     });
     items.push({
-      label: 'Troca de cor…',
+      label: tr('Troca de cor…'),
       icon: <LuPalette />,
-      hint: 'marcadas',
+      hint: tr('marcadas'),
       onClick: () => {
         // clicou numa palavra que já está marcada: vale para todas as marcadas; senão, só para esta
         const key = wordKey(layer.id, word.index);
@@ -176,39 +177,39 @@ export function buildStageMenu({ stage, slide, word, layerId, at, toast }: MenuA
         writeSetting('right-tab', 'animation');
       },
     });
-    items.push({ label: 'Duplicar palavra', icon: <LuCopy />, onClick: () => editor.duplicateWord(layer.id, word.index) });
-    items.push({ label: 'Excluir palavra', icon: <LuTrash2 />, danger: true, onClick: () => editor.removeWord(layer.id, word.index) });
+    items.push({ label: tr('Duplicar palavra'), icon: <LuCopy />, onClick: () => editor.duplicateWord(layer.id, word.index) });
+    items.push({ label: tr('Excluir palavra'), icon: <LuTrash2 />, danger: true, onClick: () => editor.removeWord(layer.id, word.index) });
     items.push({ divider: true });
-    items.push({ heading: 'Linha inteira' });
+    items.push({ heading: tr('Linha inteira') });
     items.push({
-      label: 'Soltar linha para mover',
+      label: tr('Soltar linha para mover'),
       icon: <LuSplit />,
       onClick: () => {
-        if (!detachFromStage(stage, slide, layer.id, 'line', line)) toast('Não foi possível soltar a linha.');
+        if (!detachFromStage(stage, slide, layer.id, 'line', line)) toast(tr('Não foi possível soltar a linha.'));
       },
     });
-    items.push({ label: 'Duplicar linha', icon: <LuCopy />, onClick: () => editor.duplicateLine(layer.id, line) });
-    items.push({ label: 'Excluir linha', icon: <LuTrash2 />, danger: true, onClick: () => editor.removeLine(layer.id, line) });
+    items.push({ label: tr('Duplicar linha'), icon: <LuCopy />, onClick: () => editor.duplicateLine(layer.id, line) });
+    items.push({ label: tr('Excluir linha'), icon: <LuTrash2 />, danger: true, onClick: () => editor.removeLine(layer.id, line) });
   }
 
   if (layer) {
     if (items.length) items.push({ divider: true });
-    items.push({ heading: `Camada “${layer.name}”` });
+    items.push({ heading: tr('Camada “{0}”', layer.name) });
     const ls = slide.layers;
-    items.push({ label: 'Trazer para frente', icon: <LuChevronsUp />, disabled: !canMoveLayer(ls, layer.id, 'front'), onClick: () => editor.moveLayer(layer.id, 'front') });
-    items.push({ label: 'Subir uma camada', icon: <LuArrowUp />, disabled: !canMoveLayer(ls, layer.id, 'up'), onClick: () => editor.moveLayer(layer.id, 'up') });
-    items.push({ label: 'Descer uma camada', icon: <LuArrowDown />, disabled: !canMoveLayer(ls, layer.id, 'down'), onClick: () => editor.moveLayer(layer.id, 'down') });
-    items.push({ label: 'Enviar para trás', icon: <LuChevronsDown />, disabled: !canMoveLayer(ls, layer.id, 'back'), onClick: () => editor.moveLayer(layer.id, 'back') });
+    items.push({ label: tr('Trazer para frente'), icon: <LuChevronsUp />, disabled: !canMoveLayer(ls, layer.id, 'front'), onClick: () => editor.moveLayer(layer.id, 'front') });
+    items.push({ label: tr('Subir uma camada'), icon: <LuArrowUp />, disabled: !canMoveLayer(ls, layer.id, 'up'), onClick: () => editor.moveLayer(layer.id, 'up') });
+    items.push({ label: tr('Descer uma camada'), icon: <LuArrowDown />, disabled: !canMoveLayer(ls, layer.id, 'down'), onClick: () => editor.moveLayer(layer.id, 'down') });
+    items.push({ label: tr('Enviar para trás'), icon: <LuChevronsDown />, disabled: !canMoveLayer(ls, layer.id, 'back'), onClick: () => editor.moveLayer(layer.id, 'back') });
     items.push({ divider: true });
-    items.push({ label: 'Centralizar na horizontal', icon: <LuAlignHorizontalJustifyCenter />, onClick: () => { editor.selectLayer(layer.id); editor.patchStyle({ x: 50 }); } });
-    items.push({ label: 'Centralizar na vertical', icon: <LuAlignVerticalJustifyCenter />, onClick: () => { editor.selectLayer(layer.id); editor.patchStyle({ y: 50 }); } });
+    items.push({ label: tr('Centralizar na horizontal'), icon: <LuAlignHorizontalJustifyCenter />, onClick: () => { editor.selectLayer(layer.id); editor.patchStyle({ x: 50 }); } });
+    items.push({ label: tr('Centralizar na vertical'), icon: <LuAlignVerticalJustifyCenter />, onClick: () => { editor.selectLayer(layer.id); editor.patchStyle({ y: 50 }); } });
     items.push({ divider: true });
-    items.push({ label: 'Duplicar camada', icon: <LuCopy />, onClick: () => editor.duplicateLayer(layer.id) });
-    items.push({ label: 'Ocultar camada', icon: <LuEyeOff />, onClick: () => editor.toggleLayer(layer.id) });
-    items.push({ label: 'Excluir camada', icon: <LuTrash2 />, danger: true, disabled: ls.length <= 1, hint: ls.length <= 1 ? 'a única' : undefined, onClick: () => editor.removeLayer(layer.id) });
+    items.push({ label: tr('Duplicar camada'), icon: <LuCopy />, onClick: () => editor.duplicateLayer(layer.id) });
+    items.push({ label: tr('Ocultar camada'), icon: <LuEyeOff />, onClick: () => editor.toggleLayer(layer.id) });
+    items.push({ label: tr('Excluir camada'), icon: <LuTrash2 />, danger: true, disabled: ls.length <= 1, hint: ls.length <= 1 ? tr('a única') : undefined, onClick: () => editor.removeLayer(layer.id) });
   }
 
   if (items.length) items.push({ divider: true });
-  items.push({ label: 'Adicionar texto aqui', icon: <LuPlus />, onClick: () => editor.addLayer('free', 'Novo texto', at) });
+  items.push({ label: tr('Adicionar texto aqui'), icon: <LuPlus />, onClick: () => editor.addLayer('free', tr('Novo texto'), at) });
   return items;
 }

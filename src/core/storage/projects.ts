@@ -3,6 +3,7 @@ import { uid } from '../ids';
 import type { Aspect, Project, Theme } from '../types';
 import { clone } from '../util';
 import { dbDelete, dbGet, dbGetAll, dbPut } from './db';
+import { tr } from '../i18n';
 
 export async function listProjects(): Promise<Project[]> {
   const all = await dbGetAll<unknown>('projects');
@@ -33,7 +34,7 @@ export async function createProject(
   name: string,
   opts: { theme?: Theme; aspect?: Aspect; category?: string; artist?: string } = {},
 ): Promise<Project> {
-  const p = newProject(name.trim() || 'Novo louvor', opts);
+  const p = newProject(name.trim() || tr('Novo louvor'), opts);
   await dbPut('projects', p);
   return p;
 }
@@ -41,7 +42,7 @@ export async function createProject(
 export async function duplicateProject(id: string, newName?: string): Promise<Project | null> {
   const src = await getProject(id);
   if (!src) return null;
-  return cloneProject(src, newName ?? `${src.name} (cópia)`, { isTemplate: false });
+  return cloneProject(src, newName ?? tr('{0} (cópia)', src.name), { isTemplate: false });
 }
 
 /** Cria uma cópia com novos ids de projeto e de trechos/camadas. */

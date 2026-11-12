@@ -1,4 +1,5 @@
 import type { DeepPartial } from './types';
+import { LANG, tr } from './i18n';
 
 export const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
@@ -66,14 +67,14 @@ export function formatBytes(n: number): string {
 
 export function timeAgo(ts: number, now = Date.now()): string {
   const s = Math.max(0, Math.round((now - ts) / 1000));
-  if (s < 45) return 'agora há pouco';
+  if (s < 45) return tr('agora há pouco');
   const m = Math.round(s / 60);
-  if (m < 60) return `há ${m} min`;
+  if (m < 60) return tr('há {0} min', m);
   const h = Math.round(m / 60);
-  if (h < 24) return `há ${h} h`;
+  if (h < 24) return tr('há {0} h', h);
   const d = Math.round(h / 24);
-  if (d < 30) return `há ${d} ${d === 1 ? 'dia' : 'dias'}`;
-  return new Date(ts).toLocaleDateString('pt-BR');
+  if (d < 30) return tr('há {0} {1}', d, d === 1 ? tr('dia') : tr('dias'));
+  return new Date(ts).toLocaleDateString(LANG);
 }
 
 export function slugify(s: string): string {

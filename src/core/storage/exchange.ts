@@ -4,6 +4,7 @@ import type { MediaRecord, Project } from '../types';
 import { slugify } from '../util';
 import { addMedia, getMedia, listMedia } from './media';
 import { dbPut } from './db';
+import { tr } from '../i18n';
 
 /**
  * Formato de intercâmbio `.churchslide.json`:
@@ -103,11 +104,11 @@ export async function importProjectFile(file: File): Promise<Project> {
   try {
     parsed = JSON.parse(await file.text());
   } catch {
-    throw new Error('O arquivo não é um JSON válido.');
+    throw new Error(tr('O arquivo não é um JSON válido.'));
   }
-  if (parsed?.format !== FORMAT || !parsed.project) throw new Error('Este arquivo não é um projeto do Church Slide.');
+  if (parsed?.format !== FORMAT || !parsed.project) throw new Error(tr('Este arquivo não é um projeto do Church Slide.'));
   if (typeof parsed.version === 'number' && parsed.version > VERSION) {
-    throw new Error('Este projeto foi criado por uma versão mais nova do Church Slide.');
+    throw new Error(tr('Este projeto foi criado por uma versão mais nova do Church Slide.'));
   }
 
   let json = JSON.stringify(parsed.project);

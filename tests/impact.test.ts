@@ -83,3 +83,8 @@ test('Impacto quebra a linha comprida em partes e mantém os índices das palavr
   assert.equal(r.text.split(/\s+/).join(' '), 'Grande é o Senhor e muito digno de louvor Na cidade do nosso Deus');
   assert.equal(r.words['13']?.style?.textCase, 'upper'); // "Deus" (14ª palavra) continua sendo a grande
 });
+
+test('Impacto em inglês e espanhol: o nome de Deus também vira a palavra grande', () => {
+  assert.equal(impactLayout('Come upon me Lord').text, 'Come upon me\nLord');
+  assert.equal(impactLayout('Ven sobre mí Señor').text, 'Ven sobre mí\nSeñor');
+});

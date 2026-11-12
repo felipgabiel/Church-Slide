@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { listProjects } from '../../core/storage/projects';
 import type { Project } from '../../core/types';
+import { tr } from '../../core/i18n';
 
 /** Carrega todos os projetos (inclusive modelos e itens da lixeira) do IndexedDB. */
 export function useProjects() {
@@ -12,7 +13,7 @@ export function useProjects() {
       setState({ projects, loading: false, error: null });
     } catch (err) {
       console.error('[library] falha ao listar', err);
-      setState((s) => ({ ...s, loading: false, error: err instanceof Error ? err.message : 'Não foi possível carregar os projetos.' }));
+      setState((s) => ({ ...s, loading: false, error: err instanceof Error ? err.message : tr('Não foi possível carregar os projetos.') }));
     }
   }, []);
 

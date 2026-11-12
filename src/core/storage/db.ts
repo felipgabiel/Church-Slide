@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 /**
  * Camada mínima sobre o IndexedDB (sem bibliotecas).
  *
@@ -29,7 +30,7 @@ const memory: Record<StoreName, Map<string, unknown>> = {
 
 function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    if (typeof indexedDB === 'undefined') return reject(new Error('IndexedDB indisponível'));
+    if (typeof indexedDB === 'undefined') return reject(new Error(tr('IndexedDB indisponível')));
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
@@ -45,8 +46,8 @@ function open(): Promise<IDBDatabase> {
       };
       resolve(db);
     };
-    req.onerror = () => reject(req.error ?? new Error('Falha ao abrir o banco de dados'));
-    req.onblocked = () => reject(new Error('O banco de dados está bloqueado por outra aba'));
+    req.onerror = () => reject(req.error ?? new Error(tr('Falha ao abrir o banco de dados')));
+    req.onblocked = () => reject(new Error(tr('O banco de dados está bloqueado por outra aba')));
   });
 }
 
@@ -93,7 +94,7 @@ export async function dbPut<T extends { id: string }>(store: StoreName, value: T
     tx.objectStore(store).put(value);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
-    tx.onabort = () => reject(tx.error ?? new Error('Transação cancelada (espaço insuficiente?)'));
+    tx.onabort = () => reject(tx.error ?? new Error(tr('Transação cancelada (espaço insuficiente?)')));
   });
 }
 

@@ -50,7 +50,12 @@ function assert(cond, msg) {
 
 const server = await startPreview(PORT);
 const browser = await chromium.launch();
-const ctx = await browser.newContext({ viewport: { width: 1600, height: 900 }, serviceWorkers: 'allow' });
+const ctx = await browser.newContext({ viewport: { width: 1600, height: 900 }, serviceWorkers: 'allow', locale: 'pt-BR' });
+// o fluxo todo roda em português, sem a tela de boas-vindas (ela tem uma etapa própria no fim)
+const PT = () => {
+  if (!localStorage.getItem('cs:lang')) localStorage.setItem('cs:lang', '"pt-BR"');
+};
+await ctx.addInitScript(PT);
 
 const watch = (page, tag) => {
   page.on('console', (m) => {
@@ -414,7 +419,8 @@ await step('menu de clique direito: soltar a palavra mantém o lugar, arrastar m
 
 await step('miniaturas dos visuais (Novo louvor) cabem em poucas linhas, sem estourar a caixa', async () => {
   for (const vp of [{ width: 1600, height: 900 }, { width: 1100, height: 800 }]) {
-    const c = await browser.newContext({ viewport: vp });
+    const c = await browser.newContext({ viewport: vp, locale: 'pt-BR' });
+    await c.addInitScript(PT);
     const pg = await c.newPage();
     watch(pg, 'miniaturas');
     await pg.goto(BASE);
@@ -1623,6 +1629,53 @@ await step('louvor repetido: avisa, cria como "Nome (1)"; lixeira mostra a minia
   const tb = await row.locator('.trash-thumb').boundingBox();
   assert(tb.width > 80 && tb.height > 40, `miniatura visível (${tb.width}×${tb.height})`);
   await pg.close();
+});
+
+await step('primeiro acesso: boas-vindas pede idioma e tema (prévias), o site inteiro troca para inglês e espanhol', async () => {
+  const c = await browser.newContext({ viewport: { width: 1600, height: 900 }, locale: 'pt-BR' });
+  const pg = await c.newPage();
+  watch(pg, 'idioma');
+  await pg.goto(BASE);
+  const dlg = pg.locator('dialog.wl[open]');
+  await dlg.waitFor();
+  await dlg.getByRole('heading', { name: 'Bem-vindo ao Church Slide' }).waitFor(); // navegador em pt-BR: abre em português
+  assert((await dlg.locator('.wl-theme .wl-prev').count()) === 2, 'duas prévias visuais de tema');
+  // a escolha do idioma troca o texto da própria tela na hora
+  await dlg.getByRole('radio', { name: /English/ }).click();
+  await dlg.getByRole('heading', { name: 'Welcome to Church Slide' }).waitFor();
+  // tema: clicar na prévia aplica na hora
+  await dlg.getByRole('radio', { name: /Dark/ }).click();
+  assert((await pg.evaluate(() => document.documentElement.dataset.theme)) === 'dark', 'a prévia escura aplica o tema');
+  await dlg.getByRole('radio', { name: /Light/ }).click();
+  assert((await pg.evaluate(() => document.documentElement.dataset.theme)) === 'light', 'a prévia clara aplica o tema');
+  await Promise.all([pg.waitForEvent('load'), dlg.getByRole('button', { name: 'Get started' }).click()]);
+  await pg.getByRole('button', { name: 'New song' }).first().waitFor();
+  assert((await pg.locator('dialog.wl[open]').count()) === 0, 'a tela de boas-vindas não volta');
+  assert((await pg.evaluate(() => document.documentElement.lang)) === 'en', 'html lang = en');
+  assert((await pg.evaluate(() => localStorage.getItem('cs:theme'))) === '"light"', 'tema salvo');
+  // cria um louvor em inglês e confere o editor
+  await pg.getByRole('button', { name: 'New song' }).first().click();
+  await pg.locator('dialog[open] input').first().fill('Holy');
+  await pg.locator('dialog[open] textarea').first().fill('Holy holy holy\nLord God Almighty');
+  await pg.getByRole('button', { name: 'Create and open' }).click();
+  await pg.waitForURL(/#\/edit\//);
+  for (const name of ['Export videos', 'Present']) await pg.getByRole('button', { name }).first().waitFor();
+  for (const name of ['Text', 'Words', 'Background', 'Animation']) await pg.getByRole('tab', { name, exact: true }).waitFor();
+  await pg.locator('section.lyr').getByRole('button', { name: 'Add layer' }).waitFor();
+  const body = await pg.locator('body').innerText();
+  for (const pt of ['Trecho', 'Exportar vídeos', 'Camadas', 'Animação', 'Fundo']) assert(!body.includes(pt), `sobrou "${pt}" em português no editor`);
+  // trocar para espanhol pelas configurações
+  await pg.getByRole('button', { name: 'More options' }).click();
+  await pg.getByRole('menuitem', { name: /Settings/ }).click();
+  await Promise.all([pg.waitForEvent('load'), pg.locator('dialog[open]').getByRole('radio', { name: 'Español' }).click()]);
+  await pg.getByRole('button', { name: 'Exportar videos' }).first().waitFor();
+  await pg.getByRole('tab', { name: 'Animación', exact: true }).waitFor();
+  // e de volta ao português pela biblioteca
+  await pg.goto(BASE);
+  await pg.getByRole('button', { name: 'Idioma' }).click();
+  await Promise.all([pg.waitForEvent('load'), pg.getByRole('menuitem', { name: /Português/ }).click()]);
+  await pg.getByRole('button', { name: /Novo louvor/ }).first().waitFor();
+  await c.close();
 });
 
 await step('nenhum erro de console durante todo o fluxo', async () => {

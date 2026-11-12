@@ -3,6 +3,7 @@ import { LuChevronRight } from 'react-icons/lu';
 import { useSetting } from '../core/settings';
 import { clamp } from '../core/util';
 import { SwatchButton } from './ColorPicker';
+import { tr } from '../core/i18n';
 
 /* ----------------------------- Slider ----------------------------- */
 
@@ -43,7 +44,7 @@ export function Slider({ label, value, min, max, step = 1, unit = '', reset, onC
   return (
     <div className="slider" data-disabled={disabled ? '1' : undefined}>
       <div className="slider-head">
-        <label className="slider-label" onDoubleClick={() => reset !== undefined && onChange(reset)} title={reset !== undefined ? 'Duplo clique para restaurar o padrão' : undefined}>
+        <label className="slider-label" onDoubleClick={() => reset !== undefined && onChange(reset)} title={reset !== undefined ? tr('Duplo clique para restaurar o padrão') : undefined}>
           {label}
         </label>
         <span className="slider-num">
@@ -78,7 +79,7 @@ export function Slider({ label, value, min, max, step = 1, unit = '', reset, onC
         step={step}
         value={value}
         disabled={disabled}
-        aria-label={`${label} (controle deslizante)`}
+        aria-label={tr('{0} (controle deslizante)', label)}
         style={{ '--p': `${pct}%` }}
         onChange={(e) => onChange(parseFloat(e.currentTarget.value))}
       />
@@ -148,7 +149,7 @@ export function ColorField({ value, onChange, label }: { value: string; onChange
         className="color-text"
         value={text}
         spellCheck={false}
-        aria-label={`${label} (hexadecimal)`}
+        aria-label={tr('{0} (hexadecimal)', label)}
         onChange={(e) => {
           setText(e.currentTarget.value);
           if (HEX.test(e.currentTarget.value)) onChange(e.currentTarget.value);
@@ -216,7 +217,7 @@ export function Section({
               toggle.onChange(v);
               if (v && !open) setSaved(true); // ligou: mostra os controles
             }}
-            label={`Ativar ${title}`}
+            label={tr('Ativar {0}', title)}
           />
         )}
       </header>

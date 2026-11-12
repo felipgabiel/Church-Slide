@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 /**
  * Muxer MP4 mínimo (uma trilha de vídeo H.264, sem áudio, sem reordenação de quadros).
  * Grava "moov" ANTES de "mdat" (faststart): abre rápido em qualquer player e no Holyrics.
@@ -45,7 +46,7 @@ interface Sample {
 export class Mp4Muxer {
   private samples: Sample[] = [];
   constructor(private o: Mp4Options) {
-    if (o.width % 2 || o.height % 2) throw new Error('H.264 exige largura e altura pares.');
+    if (o.width % 2 || o.height % 2) throw new Error(tr('H.264 exige largura e altura pares.'));
   }
 
   addSample(data: Uint8Array, key: boolean) {
@@ -100,14 +101,14 @@ export class Mp4Muxer {
   }
 
   finish(): Blob {
-    if (!this.samples.length) throw new Error('Nenhum quadro foi codificado.');
+    if (!this.samples.length) throw new Error(tr('Nenhum quadro foi codificado.'));
     const ftyp = box('ftyp', str('isom'), u32(512), str('isom'), str('iso2'), str('avc1'), str('mp41'));
     // o tamanho do moov não depende do deslocamento: mede com 0 e refaz com o valor certo
     const moovSize = this.moov(0).length;
     const mdatOffset = ftyp.length + moovSize + 8;
     const moov = this.moov(mdatOffset);
     const mdatSize = this.samples.reduce((n, s) => n + s.data.length, 0);
-    if (mdatSize + mdatOffset > 0xffffffff) throw new Error('O vídeo passaria de 4 GB.');
+    if (mdatSize + mdatOffset > 0xffffffff) throw new Error(tr('O vídeo passaria de 4 GB.'));
     return new Blob([ftyp as BlobPart, moov as BlobPart, u32(8 + mdatSize) as BlobPart, str('mdat') as BlobPart, ...this.samples.map((s) => s.data as BlobPart)], { type: 'video/mp4' });
   }
 }

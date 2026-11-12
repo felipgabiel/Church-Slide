@@ -39,6 +39,7 @@ import {
 import { clamp, clone, deepMerge, move } from '../core/util';
 import { parseKey, wordSel, wordSelection } from './wordSelection';
 import { createStore, useStore } from './createStore';
+import { tr } from '../core/i18n';
 
 export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
 export type EditScope = 'slide' | 'all';
@@ -118,7 +119,7 @@ export function flushSave(): Promise<void> {
       if (!stillSame) scheduleSave();
     } catch (err) {
       console.error('[save] falha', err);
-      editorStore.set({ status: 'error', saveError: err instanceof Error ? err.message : 'Falha ao salvar' });
+      editorStore.set({ status: 'error', saveError: err instanceof Error ? err.message : tr('Falha ao salvar') });
     }
   });
   return saveChain;
@@ -204,7 +205,7 @@ export const editor = {
     try {
       const project = await getProject(id);
       if (!project) {
-        editorStore.set({ loading: false, loadError: 'Projeto não encontrado. Ele pode ter sido excluído.' });
+        editorStore.set({ loading: false, loadError: tr('Projeto não encontrado. Ele pode ter sido excluído.') });
         return;
       }
       lastBackup = Date.now();
@@ -212,7 +213,7 @@ export const editor = {
       const sel = fixSelection(project, null, null);
       editorStore.set({ project, loading: false, loadError: null, status: 'saved', lastSaved: project.updatedAt, ...sel });
     } catch (err) {
-      editorStore.set({ loading: false, loadError: err instanceof Error ? err.message : 'Não foi possível abrir o projeto.' });
+      editorStore.set({ loading: false, loadError: err instanceof Error ? err.message : tr('Não foi possível abrir o projeto.') });
     }
   },
 
@@ -533,7 +534,7 @@ export const editor = {
 
   /** Texto livre novo, no terço de baixo do slide, já aberto para digitar no palco. */
   addFreeText() {
-    const id = editor.addLayer('free', 'Novo texto', { x: 50, y: 80 });
+    const id = editor.addLayer('free', tr('Novo texto'), { x: 50, y: 80 });
     window.dispatchEvent(new CustomEvent('cs:edit-layer', { detail: id }));
     return id;
   },

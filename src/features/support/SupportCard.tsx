@@ -3,6 +3,7 @@ import { LuCheck, LuCopy, LuHeart } from 'react-icons/lu';
 import { readSetting, writeSetting } from '../../core/settings';
 import { PIX_CODE, PIX_NAME, PIX_QR, SUPPORT_SNOOZE_DAYS } from '../../core/support';
 import { Button } from '../../ui/Button';
+import { tr } from '../../core/i18n';
 
 const SNOOZE_KEY = 'support-snooze-until';
 
@@ -11,7 +12,7 @@ export const supportDue = (): boolean => Date.now() >= readSetting<number>(SNOOZ
 
 export function PixQr({ size = PIX_QR.size * 3 }: { size?: number }) {
   return (
-    <svg className="pix-qr" width={size} height={size} viewBox={`0 0 ${PIX_QR.size} ${PIX_QR.size}`} shapeRendering="crispEdges" role="img" aria-label="QR Code do Pix para apoiar o projeto">
+    <svg className="pix-qr" width={size} height={size} viewBox={`0 0 ${PIX_QR.size} ${PIX_QR.size}`} shapeRendering="crispEdges" role="img" aria-label={tr('QR Code do Pix para apoiar o projeto')}>
       <rect width={PIX_QR.size} height={PIX_QR.size} fill="#fff" />
       <path d={PIX_QR.path} fill="#000" />
     </svg>
@@ -44,16 +45,15 @@ export function SupportCard({ onDismiss }: { onDismiss?: () => void }) {
       <PixQr />
       <div className="support-body">
         <h3 id="support-title">
-          <LuHeart aria-hidden /> Gostou? Ajude a manter o Church Slide gratuito
+          <LuHeart aria-hidden />{' '}{tr('Gostou? Ajude a manter o Church Slide gratuito')}
         </h3>
         <p>
-          É opcional: seus vídeos já estão prontos. O Church Slide é feito por um voluntário e qualquer valor ajuda a continuar
-          melhorando. Aponte a câmera do app do banco para o QR Code ou copie o código Pix.
+          {tr('É opcional: seus vídeos já estão prontos. O Church Slide é feito por um voluntário e qualquer valor ajuda a continuar melhorando. Aponte a câmera do app do banco para o QR Code ou copie o código Pix.')}
         </p>
-        <p className="support-to">Pix para {PIX_NAME}</p>
+        <p className="support-to">{tr('Pix para')}{' '}{PIX_NAME}</p>
         <div className="support-actions">
           <Button size="sm" variant="primary" icon={copied ? <LuCheck /> : <LuCopy />} onClick={() => void copy()}>
-            {copied ? 'Código copiado' : 'Copiar código Pix'}
+            {copied ? tr('Código copiado') : tr('Copiar código Pix')}
           </Button>
           {onDismiss && (
             <button
@@ -64,7 +64,7 @@ export function SupportCard({ onDismiss }: { onDismiss?: () => void }) {
                 onDismiss();
               }}
             >
-              Agora não
+              {tr('Agora não')}
             </button>
           )}
         </div>

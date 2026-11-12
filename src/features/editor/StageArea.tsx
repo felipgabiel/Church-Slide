@@ -14,6 +14,7 @@ import { Button, IconButton } from '../../ui/Button';
 import { ContextMenu, type ContextItem } from '../../ui/ContextMenu';
 import { toast } from '../../ui/toast';
 import { buildStageMenu } from './stageMenu';
+import { tr } from '../../core/i18n';
 
 /** Caixa da camada selecionada, SEM giro: centro + tamanho (px da superfície) + ângulo. */
 interface Box {
@@ -97,15 +98,15 @@ function Handles({ box, layerName, onBusy }: { box: Box; layerName: string; onBu
     <div className="sel" style={{ left: box.cx, top: box.cy, width: box.w, height: box.h, transform: `translate(-50%, -50%) rotate(${box.rot}deg)` }}>
       <span className="sel-tag">{layerName}</span>
       {corners.map((g) => (
-        <i key={g} className={`grip grip-${g}`} data-grip={g} role="presentation" title="Arraste para aumentar ou diminuir" onPointerDown={start(g)} />
+        <i key={g} className={`grip grip-${g}`} data-grip={g} role="presentation" title={tr('Arraste para aumentar ou diminuir')} onPointerDown={start(g)} />
       ))}
-      <i className="grip grip-side grip-w" data-grip="w" role="presentation" title="Arraste para mudar a largura" onPointerDown={start('w')} />
-      <i className="grip grip-side grip-e" data-grip="e" role="presentation" title="Arraste para mudar a largura" onPointerDown={start('e')} />
+      <i className="grip grip-side grip-w" data-grip="w" role="presentation" title={tr('Arraste para mudar a largura')} onPointerDown={start('w')} />
+      <i className="grip grip-side grip-e" data-grip="e" role="presentation" title={tr('Arraste para mudar a largura')} onPointerDown={start('e')} />
       <button
         type="button"
         className="grip-rot"
-        aria-label="Girar o texto (arraste; clique duplo volta a 0°)"
-        title="Arraste para girar · Shift: de 15 em 15° · clique duplo: 0°"
+        aria-label={tr('Girar o texto (arraste; clique duplo volta a 0°)')}
+        title={tr('Arraste para girar · Shift: de 15 em 15° · clique duplo: 0°')}
         onPointerDown={start('rotate')}
         onDoubleClick={() => editor.patchStyle({ rotation: 0 })}
       >
@@ -390,7 +391,7 @@ function Surface({ guides }: { guides: boolean }) {
         const b = boxes[id];
         return b ? <div key={id} className="sel sel-extra" style={{ left: b.cx, top: b.cy, width: b.w, height: b.h, transform: `translate(-50%, -50%) rotate(${b.rot}deg)` }} aria-hidden /> : null;
       })}
-      {selIds.length > 1 && <span className="sel-count">{selIds.length} textos selecionados · Ctrl + clique soma ou tira</span>}
+      {selIds.length > 1 && <span className="sel-count">{selIds.length}{' '}{tr('textos selecionados · Ctrl + clique soma ou tira')}</span>}
       {box && layer && (
         <div className="sel-wrap" data-drag={drag ? '1' : '0'} data-busy={busy ? '1' : '0'}>
           <Handles box={box} layerName={layer.name} onBusy={setBusy} />
@@ -434,7 +435,7 @@ function InlineText({ box, text, onChange, onDone }: { box: Box; text: string; o
       <textarea
         ref={ref}
         value={text}
-        aria-label="Editar texto no palco"
+        aria-label={tr('Editar texto no palco')}
         spellCheck
         onChange={(e) => onChange(e.currentTarget.value)}
         onBlur={onDone}
@@ -446,7 +447,7 @@ function InlineText({ box, text, onChange, onDone }: { box: Box; text: string; o
           }
         }}
       />
-      <small>Enter quebra a linha · Esc ou clicar fora termina</small>
+      <small>{tr('Enter quebra a linha · Esc ou clicar fora termina')}</small>
     </div>
   );
 }
@@ -467,17 +468,17 @@ export function StageArea({ onLyrics }: { onLyrics: () => void }) {
   };
 
   return (
-    <section className="sa" aria-label="Pré-visualização">
+    <section className="sa" aria-label={tr('Pré-visualização')}>
       <div className="sa-view">
         <ZoomView ratio={ASPECT_RATIOS[aspect]} padding={22} zoom={zoom} onZoom={setZoom}>
           <Surface guides={guides} />
         </ZoomView>
         {allEmpty && (
           <div className="sa-empty">
-            <h3>Comece pela letra</h3>
-            <p>Cole a letra do louvor e ela será dividida em trechos prontos para o telão.</p>
+            <h3>{tr('Comece pela letra')}</h3>
+            <p>{tr('Cole a letra do louvor e ela será dividida em trechos prontos para o telão.')}</p>
             <Button variant="primary" icon={<LuClipboardPaste />} onClick={onLyrics}>
-              Colar letra
+              {tr('Colar letra')}
             </Button>
           </div>
         )}
@@ -485,25 +486,25 @@ export function StageArea({ onLyrics }: { onLyrics: () => void }) {
 
       <div className="sa-bar">
         <div className="sa-nav">
-          <IconButton label="Trecho anterior (↑)" icon={<LuChevronLeft />} size="sm" onClick={() => go(-1)} disabled={index <= 0} />
+          <IconButton label={tr('Trecho anterior (↑)')} icon={<LuChevronLeft />} size="sm" onClick={() => go(-1)} disabled={index <= 0} />
           <span className="sa-pos" aria-live="polite">
-            {index + 1} <small>de {count}</small>
+            {index + 1} <small>{tr('de')}{' '}{count}</small>
           </span>
-          <IconButton label="Próximo trecho (↓)" icon={<LuChevronRight />} size="sm" onClick={() => go(1)} disabled={index >= count - 1} />
+          <IconButton label={tr('Próximo trecho (↓)')} icon={<LuChevronRight />} size="sm" onClick={() => go(1)} disabled={index >= count - 1} />
         </div>
         <div className="sa-tools">
-          <Button size="sm" variant="ghost" icon={<LuRotateCcw />} onClick={() => editor.replay()} title="Repetir a animação de entrada e saída (R)">
-            Repetir animação
+          <Button size="sm" variant="ghost" icon={<LuRotateCcw />} onClick={() => editor.replay()} title={tr('Repetir a animação de entrada e saída (R)')}>
+            {tr('Repetir animação')}
           </Button>
-          <div className="sa-zoom" role="group" aria-label="Zoom do palco">
-            <IconButton label="Diminuir zoom (Ctrl + roda do mouse)" icon={<LuZoomOut />} size="sm" onClick={() => zoomTo(stepZoom(zoom, -1))} disabled={zoom <= ZOOM_MIN} />
-            <button type="button" className="sa-zoom-val" onClick={() => zoomTo(1)} title="Caber na tela" aria-label={`Zoom ${Math.round(zoom * 100)}%. Clique para caber na tela`}>
+          <div className="sa-zoom" role="group" aria-label={tr('Zoom do palco')}>
+            <IconButton label={tr('Diminuir zoom (Ctrl + roda do mouse)')} icon={<LuZoomOut />} size="sm" onClick={() => zoomTo(stepZoom(zoom, -1))} disabled={zoom <= ZOOM_MIN} />
+            <button type="button" className="sa-zoom-val" onClick={() => zoomTo(1)} title={tr('Caber na tela')} aria-label={tr('Zoom {0}%. Clique para caber na tela', Math.round(zoom * 100))}>
               {Math.round(zoom * 100)}%
             </button>
-            <IconButton label="Aumentar zoom (Ctrl + roda do mouse)" icon={<LuZoomIn />} size="sm" onClick={() => zoomTo(stepZoom(zoom, 1))} disabled={zoom >= ZOOM_MAX} />
+            <IconButton label={tr('Aumentar zoom (Ctrl + roda do mouse)')} icon={<LuZoomIn />} size="sm" onClick={() => zoomTo(stepZoom(zoom, 1))} disabled={zoom >= ZOOM_MAX} />
           </div>
           <SnapToggle />
-          <IconButton label="Guias de centralização e área segura" icon={<LuGrid3X3 />} size="sm" active={guides} onClick={() => setGuides(!guides)} />
+          <IconButton label={tr('Guias de centralização e área segura')} icon={<LuGrid3X3 />} size="sm" active={guides} onClick={() => setGuides(!guides)} />
           <span className="chip">{aspect}</span>
         </div>
       </div>

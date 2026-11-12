@@ -24,6 +24,7 @@ import { Button } from '../../ui/Button';
 import { Row, Segmented, Slider } from '../../ui/Controls';
 import { Modal } from '../../ui/Modal';
 import { toast, toastError } from '../../ui/toast';
+import { tr } from '../../core/i18n';
 
 type Prefs = Omit<ExportSettings, 'slideIds'>;
 type Phase = 'idle' | 'running' | 'done';
@@ -32,7 +33,7 @@ const preview = (text: string) => text.replace(/\s+/g, ' ').trim();
 
 export function ExportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <Modal open={open} onClose={onClose} title="Exportar vídeos" description="Um vídeo por trecho: a animação de entrada e depois a letra parada, com o fundo animado." width={640}>
+    <Modal open={open} onClose={onClose} title={tr('Exportar vídeos')} description={tr('Um vídeo por trecho: a animação de entrada e depois a letra parada, com o fundo animado.')} width={640}>
       {open && <ExportBody onClose={onClose} />}
     </Modal>
   );
@@ -88,7 +89,7 @@ function ExportBody({ onClose }: { onClose: () => void }) {
         onClip: (c) => r.file(c),
       });
     });
-    if (!ok) toast('Já há vídeos sendo gerados. Espere terminar ou cancele.', 'info');
+    if (!ok) toast(tr('Já há vídeos sendo gerados. Espere terminar ou cancele.'), 'info');
   };
 
   const downloadZip = async () => {
@@ -96,7 +97,7 @@ function ExportBody({ onClose }: { onClose: () => void }) {
       downloadBlob(await zipClips(clips), mine?.zipName ?? zipFileName(editorStore.get().project!));
     } catch (err) {
       console.error(err);
-      toastError('Não foi possível montar o arquivo ZIP.');
+      toastError(tr('Não foi possível montar o arquivo ZIP.'));
     }
   };
 
@@ -105,7 +106,7 @@ function ExportBody({ onClose }: { onClose: () => void }) {
       downloadBlob(c.blob, c.name);
       await new Promise((r) => setTimeout(r, 350)); // navegadores descartam downloads simultâneos demais
     }
-    toast('Se algum vídeo não baixou, permita "vários downloads" neste site.', 'info');
+    toast(tr('Se algum vídeo não baixou, permita "vários downloads" neste site.'), 'info');
   };
 
   const saveToFolder = async () => {
@@ -116,9 +117,9 @@ function ExportBody({ onClose }: { onClose: () => void }) {
         await w.write(c.blob);
         await w.close();
       }
-      toast(`${clips.length} vídeos salvos na pasta escolhida.`);
+      toast(tr('{0} vídeos salvos na pasta escolhida.', clips.length));
     } catch (err) {
-      if ((err as Error)?.name !== 'AbortError') toastError('Não foi possível salvar na pasta.');
+      if ((err as Error)?.name !== 'AbortError') toastError(tr('Não foi possível salvar na pasta.'));
     }
   };
 
@@ -133,9 +134,9 @@ function ExportBody({ onClose }: { onClose: () => void }) {
   if (!slides.length) {
     return (
       <>
-        <p className="xd-empty">Este louvor ainda não tem trechos com letra.</p>
+        <p className="xd-empty">{tr('Este louvor ainda não tem trechos com letra.')}</p>
         <div className="modal-actions">
-          <Button onClick={onClose}>Fechar</Button>
+          <Button onClick={onClose}>{tr('Fechar')}</Button>
         </div>
       </>
     );
@@ -146,38 +147,38 @@ function ExportBody({ onClose }: { onClose: () => void }) {
     <div className="xd">
       {!supported && (
         <p className="xd-warn" role="alert">
-          <LuTriangleAlert aria-hidden /> Este navegador não consegue gerar vídeo. Abra o Church Slide no Google Chrome ou no Microsoft Edge.
+          <LuTriangleAlert aria-hidden />{' '}{tr('Este navegador não consegue gerar vídeo. Abra o Church Slide no Google Chrome ou no Microsoft Edge.')}
         </p>
       )}
 
       <fieldset className="xd-opts" disabled={running}>
-        <Row label="Resolução" hint={`${size.width} × ${size.height}`}>
-          <Segmented<string> size="sm" label="Resolução" value={String(prefs.height)} onChange={(v) => set({ height: Number(v) })} options={[{ value: '720', label: '720p' }, { value: '1080', label: '1080p' }, { value: '2160', label: '4K' }]} />
+        <Row label={tr('Resolução')} hint={`${size.width} × ${size.height}`}>
+          <Segmented<string> size="sm" label={tr('Resolução')} value={String(prefs.height)} onChange={(v) => set({ height: Number(v) })} options={[{ value: '720', label: '720p' }, { value: '1080', label: '1080p' }, { value: '2160', label: '4K' }]} />
         </Row>
-        <Row label="Quadros por segundo">
-          <Segmented<string> size="sm" label="Quadros por segundo" value={String(prefs.fps)} onChange={(v) => set({ fps: Number(v) as 30 | 60 })} options={[{ value: '30', label: '30' }, { value: '60', label: '60' }]} />
+        <Row label={tr('Quadros por segundo')}>
+          <Segmented<string> size="sm" label={tr('Quadros por segundo')} value={String(prefs.fps)} onChange={(v) => set({ fps: Number(v) as 30 | 60 })} options={[{ value: '30', label: '30' }, { value: '60', label: '60' }]} />
         </Row>
-        <Row label="Qualidade">
-          <Segmented<Quality> size="sm" label="Qualidade" value={prefs.quality} onChange={(v) => set({ quality: v })} options={[{ value: 'low', label: 'Leve' }, { value: 'medium', label: 'Média' }, { value: 'high', label: 'Alta' }]} />
+        <Row label={tr('Qualidade')}>
+          <Segmented<Quality> size="sm" label={tr('Qualidade')} value={prefs.quality} onChange={(v) => set({ quality: v })} options={[{ value: 'low', label: tr('Leve') }, { value: 'medium', label: tr('Média') }, { value: 'high', label: tr('Alta') }]} />
         </Row>
-        <Slider label="Tempo com a letra parada" value={prefs.holdSec} min={1} max={30} step={0.5} unit=" s" reset={5} onChange={(v) => set({ holdSec: v })} />
+        <Slider label={tr('Tempo com a letra parada')} value={prefs.holdSec} min={1} max={30} step={0.5} unit=" s" reset={5} onChange={(v) => set({ holdSec: v })} />
       </fieldset>
 
       <div className="xd-list-head">
         <strong>
-          Trechos ({chosen.length} de {slides.length})
+          {tr('Trechos (')}{chosen.length}{' '}{tr('de')}{' '}{slides.length})
         </strong>
         <span>
           <button type="button" className="xd-link" disabled={running} onClick={() => setSelected(new Set(slides.map((s) => s.id)))}>
-            Todos
+            {tr('Todos')}
           </button>
           {' · '}
           <button type="button" className="xd-link" disabled={running} onClick={() => setSelected(new Set())}>
-            Nenhum
+            {tr('Nenhum')}
           </button>
         </span>
       </div>
-      <ul className="xd-list" aria-label="Trechos a exportar">
+      <ul className="xd-list" aria-label={tr('Trechos a exportar')}>
         {slides.map((s, i) => {
           const clip = clips.find((c) => c.slideId === s.id);
           const current = running && progress?.index !== undefined && chosen[progress.index]?.id === s.id;
@@ -194,7 +195,7 @@ function ExportBody({ onClose }: { onClose: () => void }) {
                   <button
                     type="button"
                     className="xd-icon"
-                    aria-label={`Ver o vídeo ${clip.name}`}
+                    aria-label={tr('Ver o vídeo {0}', clip.name)}
                     onClick={() => {
                       setPreviewUrl(URL.createObjectURL(clip.blob));
                       setPreviewName(clip.name);
@@ -202,7 +203,7 @@ function ExportBody({ onClose }: { onClose: () => void }) {
                   >
                     <LuPlay />
                   </button>
-                  <button type="button" className="xd-icon" aria-label={`Baixar ${clip.name}`} onClick={() => downloadBlob(clip.blob, clip.name)}>
+                  <button type="button" className="xd-icon" aria-label={tr('Baixar {0}', clip.name)} onClick={() => downloadBlob(clip.blob, clip.name)}>
                     <LuDownload />
                   </button>
                 </span>
@@ -216,7 +217,7 @@ function ExportBody({ onClose }: { onClose: () => void }) {
 
       {previewUrl && (
         <div className="xd-preview">
-          <video src={previewUrl} controls autoPlay loop muted playsInline aria-label={`Prévia de ${previewName}`} />
+          <video src={previewUrl} controls autoPlay loop muted playsInline aria-label={tr('Prévia de {0}', previewName)} />
           <small>{previewName}</small>
         </div>
       )}
@@ -227,7 +228,7 @@ function ExportBody({ onClose }: { onClose: () => void }) {
             <i style={{ width: `${((progress.index + progress.fraction) / progress.total) * 100}%` }} />
           </div>
           <span>
-            Gerando {progress.index + 1} de {progress.total}: {progress.name}
+            {tr('Gerando')}{' '}{progress.index + 1}{' '}{tr('de')}{' '}{progress.total}: {progress.name}
           </span>
         </div>
       )}
@@ -239,7 +240,7 @@ function ExportBody({ onClose }: { onClose: () => void }) {
 
       {otherRunning && job && (
         <p className="xd-warn" role="status">
-          <LuTriangleAlert aria-hidden /> Já há vídeos sendo gerados (“{job.title}”). Este começa quando aquele terminar ou for cancelado.
+          <LuTriangleAlert aria-hidden />{' '}{tr('Já há vídeos sendo gerados (“')}{job.title}{tr('”). Este começa quando aquele terminar ou for cancelado.')}
         </p>
       )}
 
@@ -249,40 +250,40 @@ function ExportBody({ onClose }: { onClose: () => void }) {
         {phase === 'idle' && (
           <>
             <span className="xd-est">
-              {chosen.length} {chosen.length === 1 ? 'vídeo' : 'vídeos'} · ≈ {formatBytes(estBytes)} no total
+              {chosen.length} {chosen.length === 1 ? tr('vídeo') : tr('vídeos')} · ≈ {formatBytes(estBytes)}{' '}{tr('no total')}
             </span>
             <Button variant="primary" icon={<LuFiles />} disabled={!supported || chosen.length === 0 || otherRunning} onClick={() => void start()}>
-              Gerar {chosen.length} {chosen.length === 1 ? 'vídeo' : 'vídeos'}
+              {tr('Gerar')}{' '}{chosen.length} {chosen.length === 1 ? tr('vídeo') : tr('vídeos')}
             </Button>
           </>
         )}
         {running && (
           <>
-            <span className="xd-est">Pode fechar esta janela e continuar editando: os vídeos seguem sendo gerados.</span>
+            <span className="xd-est">{tr('Pode fechar esta janela e continuar editando: os vídeos seguem sendo gerados.')}</span>
             <span className="xd-dl">
               <Button icon={<LuX />} onClick={() => cancelJob()}>
-                Cancelar
+                {tr('Cancelar')}
               </Button>
               <Button variant="primary" icon={<LuMinimize2 />} onClick={onClose}>
-                Continuar em segundo plano
+                {tr('Continuar em segundo plano')}
               </Button>
             </span>
           </>
         )}
         {phase === 'done' && (
           <>
-            <Button onClick={() => clearJob()}>Refazer</Button>
+            <Button onClick={() => clearJob()}>{tr('Refazer')}</Button>
             <span className="xd-dl">
               {hasFolder && (
                 <Button icon={<LuFolderDown />} onClick={() => void saveToFolder()}>
-                  Salvar numa pasta
+                  {tr('Salvar numa pasta')}
                 </Button>
               )}
               <Button icon={<LuFiles />} onClick={() => void downloadSeparate()}>
-                Baixar separados
+                {tr('Baixar separados')}
               </Button>
               <Button variant="primary" icon={<LuDownload />} onClick={() => void downloadZip()}>
-                Baixar tudo (.zip)
+                {tr('Baixar tudo (.zip)')}
               </Button>
             </span>
           </>

@@ -44,6 +44,7 @@ import { LogoMark } from '../../ui/Logo';
 import { Menu, type MenuItem } from '../../ui/Menu';
 import { Modal } from '../../ui/Modal';
 import { confirmDialog, toast, toastError, useNow } from '../../ui/toast';
+import { tr } from '../../core/i18n';
 
 /**
  * Console do operador (a tela que fica no computador da mesa).
@@ -159,9 +160,9 @@ export function Operator({ id }: { id: string }) {
 
   const exit = useCallback(async () => {
     const ok = await confirmDialog({
-      title: 'Sair da apresentação?',
-      message: 'A janela do telão continua aberta com o trecho atual. Você pode voltar a qualquer momento.',
-      confirmLabel: 'Sair',
+      title: tr('Sair da apresentação?'),
+      message: tr('A janela do telão continua aberta com o trecho atual. Você pode voltar a qualquer momento.'),
+      confirmLabel: tr('Sair'),
     });
     if (ok) navigate(paths.library);
   }, []);
@@ -176,7 +177,7 @@ export function Operator({ id }: { id: string }) {
       if (!cur) return;
       switch (a.type) {
         case 'next':
-          if (!go(nextPos(list, cur))) toast('Fim do roteiro', 'info');
+          if (!go(nextPos(list, cur))) toast(tr('Fim do roteiro'), 'info');
           break;
         case 'prev':
           go(prevPos(list, cur));
@@ -188,7 +189,7 @@ export function Operator({ id }: { id: string }) {
           go(lastPos(list, cur.songId));
           break;
         case 'nextSong':
-          if (!go(nextSongPos(list, cur.songId))) toast('Este é o último louvor do roteiro', 'info');
+          if (!go(nextSongPos(list, cur.songId))) toast(tr('Este é o último louvor do roteiro'), 'info');
           break;
         case 'prevSong':
           go(prevSongPos(list, cur.songId));
@@ -288,7 +289,7 @@ export function Operator({ id }: { id: string }) {
 
   const changeSetlist = (next: string[]) => setSetlist(next);
   const removeSong = (sid: string) => {
-    if (sid === pos?.songId) return toast('Troque de louvor antes de retirar este do roteiro', 'info');
+    if (sid === pos?.songId) return toast(tr('Troque de louvor antes de retirar este do roteiro'), 'info');
     changeSetlist(setlist.filter((x) => x !== sid));
   };
 
@@ -298,13 +299,13 @@ export function Operator({ id }: { id: string }) {
       <div className="op op-empty">
         <div className="op-empty-box">
           <LogoMark size={34} />
-          <h1>{missing ? 'Louvor não encontrado' : 'Este louvor ainda não tem letra'}</h1>
-          <p>{missing ? 'Ele pode ter sido excluído deste computador.' : 'Adicione a letra no editor para poder apresentar.'}</p>
+          <h1>{missing ? tr('Louvor não encontrado') : tr('Este louvor ainda não tem letra')}</h1>
+          <p>{missing ? tr('Ele pode ter sido excluído deste computador.') : tr('Adicione a letra no editor para poder apresentar.')}</p>
           <div className="op-empty-actions">
-            <Button onClick={() => navigate(paths.library)}>Biblioteca</Button>
+            <Button onClick={() => navigate(paths.library)}>{tr('Biblioteca')}</Button>
             {!missing && (
               <Button variant="primary" icon={<LuPenLine />} onClick={() => navigate(paths.edit(id))}>
-                Abrir o editor
+                {tr('Abrir o editor')}
               </Button>
             )}
           </div>
@@ -319,35 +320,35 @@ export function Operator({ id }: { id: string }) {
     <div className="op" onClickCapture={(e: ReactMouseEvent) => (e.target as HTMLElement).closest('button')?.blur()}>
       <header className="op-top">
         <div className="op-top-l">
-          <IconButton label="Voltar à biblioteca" icon={<LuChevronLeft />} onClick={() => navigate(paths.library)} />
+          <IconButton label={tr('Voltar à biblioteca')} icon={<LuChevronLeft />} onClick={() => navigate(paths.library)} />
           <span className="op-logo" aria-hidden>
             <LogoMark size={20} />
           </span>
           <div className="op-title">
             <b>{current?.name ?? '…'}</b>
-            <span>{current?.artist || 'Modo de apresentação'}</span>
+            <span>{current?.artist || tr('Modo de apresentação')}</span>
           </div>
           {pos && (
-            <span className="op-count" aria-label={`Trecho ${number} de ${playable.length}`}>
+            <span className="op-count" aria-label={tr('Trecho {0} de {1}', number, playable.length)}>
               <b>{number}</b>/{playable.length}
             </span>
           )}
         </div>
         <div className="op-top-r">
           <OutputControls bus={busRef} link={link} />
-          <IconButton label="Atalhos de teclado" icon={<LuKeyboard />} onClick={() => setDialog('keys')} />
+          <IconButton label={tr('Atalhos de teclado')} icon={<LuKeyboard />} onClick={() => setDialog('keys')} />
           <ThemeToggle />
         </div>
       </header>
 
       <div className="op-body">
-        <aside className="op-rail" aria-label="Roteiro do culto">
+        <aside className="op-rail" aria-label={tr('Roteiro do culto')}>
           <div className="op-rail-head">
             <h2>
-              <LuListMusic aria-hidden /> Roteiro
+              <LuListMusic aria-hidden />{' '}{tr('Roteiro')}
             </h2>
             <Button size="sm" icon={<LuPlus />} onClick={() => setDialog('add')}>
-              Louvor
+              {tr('Louvor')}
             </Button>
           </div>
           <ol className="op-songs">
@@ -361,18 +362,18 @@ export function Operator({ id }: { id: string }) {
                     className="op-song-main"
                     disabled={!s.project || !slidesN}
                     onClick={() => go(firstPos(songRefs, s.id))}
-                    title={slidesN ? 'Ir para o primeiro trecho deste louvor' : s.project ? 'Sem letra' : 'Louvor não encontrado'}
+                    title={slidesN ? tr('Ir para o primeiro trecho deste louvor') : s.project ? tr('Sem letra') : tr('Louvor não encontrado')}
                   >
-                    <span className="op-song-n">{on ? <LuMonitorPlay aria-label="No ar" /> : i + 1}</span>
+                    <span className="op-song-n">{on ? <LuMonitorPlay aria-label={tr('No ar')} /> : i + 1}</span>
                     <span className="op-song-t">
-                      <b>{s.project?.name ?? (songs[s.id] === undefined ? 'Carregando…' : 'Louvor não encontrado')}</b>
-                      <small>{s.project ? `${slidesN} ${slidesN === 1 ? 'trecho' : 'trechos'}${s.project.artist ? ` · ${s.project.artist}` : ''}` : ' '}</small>
+                      <b>{s.project?.name ?? (songs[s.id] === undefined ? tr('Carregando…') : tr('Louvor não encontrado'))}</b>
+                      <small>{s.project ? `${slidesN} ${slidesN === 1 ? tr('trecho') : tr('trechos')}${s.project.artist ? ` · ${s.project.artist}` : ''}` : ' '}</small>
                     </span>
                   </button>
                   <span className="op-song-tools">
-                    <IconButton size="sm" label="Subir no roteiro" icon={<LuArrowUp />} disabled={i === 0} onClick={() => changeSetlist(move(setlist, i, i - 1))} />
-                    <IconButton size="sm" label="Descer no roteiro" icon={<LuArrowDown />} disabled={i === songRefs.length - 1} onClick={() => changeSetlist(move(setlist, i, i + 1))} />
-                    <IconButton size="sm" label="Retirar do roteiro" icon={<LuTrash2 />} disabled={on} onClick={() => removeSong(s.id)} />
+                    <IconButton size="sm" label={tr('Subir no roteiro')} icon={<LuArrowUp />} disabled={i === 0} onClick={() => changeSetlist(move(setlist, i, i - 1))} />
+                    <IconButton size="sm" label={tr('Descer no roteiro')} icon={<LuArrowDown />} disabled={i === songRefs.length - 1} onClick={() => changeSetlist(move(setlist, i, i + 1))} />
+                    <IconButton size="sm" label={tr('Retirar do roteiro')} icon={<LuTrash2 />} disabled={on} onClick={() => removeSong(s.id)} />
                   </span>
                 </li>
               );
@@ -380,19 +381,19 @@ export function Operator({ id }: { id: string }) {
           </ol>
           {songRefs.length > 1 && (
             <button type="button" className="op-clear" onClick={() => changeSetlist(pos ? [pos.songId] : [id])}>
-              Limpar roteiro (manter o louvor atual)
+              {tr('Limpar roteiro (manter o louvor atual)')}
             </button>
           )}
         </aside>
 
         <main className="op-main">
           <div className="op-monitors">
-            <section className="op-mon op-mon-live" aria-label="Ao vivo">
+            <section className="op-mon op-mon-live" aria-label={tr('Ao vivo')}>
               <header>
                 <span className="op-tag op-tag-live">
-                  <i /> Ao vivo
+                  <i />{' '}{tr('Ao vivo')}
                 </span>
-                {blackout && <span className="op-tag op-tag-black">Tela preta</span>}
+                {blackout && <span className="op-tag op-tag-black">{tr('Tela preta')}</span>}
                 <span className="op-mon-label">{slide?.label}</span>
               </header>
               <div className="op-mon-view" style={{ '--ratio': String(ratio) } as CSSProperties}>
@@ -401,10 +402,10 @@ export function Operator({ id }: { id: string }) {
               {auto && autoSecs > 0 && pos && nextP && nextP.songId === pos.songId && <i key={`${pos.songId}${pos.index}${replay}`} className="op-auto" style={{ animationDuration: `${autoSecs}s` }} />}
             </section>
 
-            <section className="op-mon op-mon-next" aria-label="Próximo trecho">
+            <section className="op-mon op-mon-next" aria-label={tr('Próximo trecho')}>
               <header>
-                <span className="op-tag">Próximo</span>
-                {nextIsOtherSong && nextSong && <span className="op-tag op-tag-song">Novo louvor · {nextSong.name}</span>}
+                <span className="op-tag">{tr('Próximo')}</span>
+                {nextIsOtherSong && nextSong && <span className="op-tag op-tag-song">{tr('Novo louvor ·')}{' '}{nextSong.name}</span>}
                 {!nextIsOtherSong && nextSlide && <span className="op-mon-label">{nextSlide.label}</span>}
               </header>
               <div className="op-mon-view" style={{ '--ratio': String(nextSong ? ASPECT_RATIOS[nextSong.aspect] : ratio) } as CSSProperties}>
@@ -413,7 +414,7 @@ export function Operator({ id }: { id: string }) {
                     <Stage theme={nextSong.theme} slide={nextSlide} mode="static" />
                   </FitBox>
                 ) : (
-                  <div className="op-end">Fim do roteiro</div>
+                  <div className="op-end">{tr('Fim do roteiro')}</div>
                 )}
               </div>
             </section>
@@ -421,49 +422,49 @@ export function Operator({ id }: { id: string }) {
 
           {slide?.notes.trim() && (
             <div className="op-notes" role="note">
-              <b>Nota</b> {slide.notes}
+              <b>{tr('Nota')}</b> {slide.notes}
             </div>
           )}
 
           <div className="op-transport">
-            <Button size="lg" icon={<LuChevronLeft />} onClick={() => dispatch({ type: 'prev' })} title="Trecho anterior (←)">
-              Anterior
+            <Button size="lg" icon={<LuChevronLeft />} onClick={() => dispatch({ type: 'prev' })} title={tr('Trecho anterior (←)')}>
+              {tr('Anterior')}
             </Button>
-            <Button size="lg" variant="primary" className="op-next" onClick={() => dispatch({ type: 'next' })} title="Próximo trecho (→ ou Espaço)">
-              Próximo <LuChevronRight />
+            <Button size="lg" variant="primary" className="op-next" onClick={() => dispatch({ type: 'next' })} title={tr('Próximo trecho (→ ou Espaço)')}>
+              {tr('Próximo')}{' '}<LuChevronRight />
             </Button>
             <span className="op-sep" />
-            <button type="button" className="op-tool" data-on={blackout ? '1' : '0'} aria-pressed={blackout} onClick={() => setBlackout((b) => !b)} title="Tela preta (B)">
-              <LuMoon aria-hidden /> Tela preta
+            <button type="button" className="op-tool" data-on={blackout ? '1' : '0'} aria-pressed={blackout} onClick={() => setBlackout((b) => !b)} title={tr('Tela preta (B)')}>
+              <LuMoon aria-hidden />{' '}{tr('Tela preta')}
             </button>
-            <button type="button" className="op-tool" onClick={() => setReplay((r) => r + 1)} title="Repetir a animação (R)">
-              <LuRotateCcw aria-hidden /> Repetir
+            <button type="button" className="op-tool" onClick={() => setReplay((r) => r + 1)} title={tr('Repetir a animação (R)')}>
+              <LuRotateCcw aria-hidden />{' '}{tr('Repetir')}
             </button>
             <span className="op-sep" />
-            <label className="op-auto-sw" title="Avança sozinho nos trechos que têm duração definida no editor">
-              <LuTimer aria-hidden /> Avanço automático
-              <Switch checked={auto} onChange={setAuto} label="Avanço automático" />
+            <label className="op-auto-sw" title={tr('Avança sozinho nos trechos que têm duração definida no editor')}>
+              <LuTimer aria-hidden />{' '}{tr('Avanço automático')}
+              <Switch checked={auto} onChange={setAuto} label={tr('Avanço automático')} />
             </label>
             <span className="op-grow" />
             <Segmented<FitMode>
               size="sm"
-              label="Ajuste da imagem no telão"
+              label={tr('Ajuste da imagem no telão')}
               value={fit}
               onChange={setFit}
               options={[
-                { value: 'fill', label: 'Preencher', title: 'A imagem ocupa toda a tela' },
-                { value: 'letterbox', label: 'Barras pretas', title: 'Mantém a proporção do projeto, com barras pretas se necessário' },
+                { value: 'fill', label: tr('Preencher'), title: tr('A imagem ocupa toda a tela') },
+                { value: 'letterbox', label: tr('Barras pretas'), title: tr('Mantém a proporção do projeto, com barras pretas se necessário') },
               ]}
             />
           </div>
         </main>
 
-        <aside className="op-slides" aria-label="Trechos do louvor">
+        <aside className="op-slides" aria-label={tr('Trechos do louvor')}>
           <div className="op-rail-head">
-            <h2>Trechos</h2>
+            <h2>{tr('Trechos')}</h2>
             {pos && (
-              <Button size="sm" icon={<LuPenLine />} onClick={() => navigate(paths.edit(pos.songId))} title="Abrir este louvor no editor">
-                Editar
+              <Button size="sm" icon={<LuPenLine />} onClick={() => navigate(paths.edit(pos.songId))} title={tr('Abrir este louvor no editor')}>
+                {tr('Editar')}
               </Button>
             )}
           </div>
@@ -493,8 +494,8 @@ export function Operator({ id }: { id: string }) {
                     <span className="op-slide-meta">
                       <b>{n + 1}</b>
                       <span>{s.label || slideText(s).split('\n')[0]}</span>
-                      {isCur && <em>No ar</em>}
-                      {isNext && <em className="op-next-tag">Próximo</em>}
+                      {isCur && <em>{tr('No ar')}</em>}
+                      {isNext && <em className="op-next-tag">{tr('Próximo')}</em>}
                     </span>
                   </button>
                 );
@@ -504,7 +505,7 @@ export function Operator({ id }: { id: string }) {
       </div>
 
       <AddSongDialog open={dialog === 'add'} onClose={() => setDialog(null)} existing={setlist} onAdd={(sid) => changeSetlist([...setlist, sid])} />
-      <Modal open={dialog === 'keys'} onClose={() => setDialog(null)} title="Atalhos da apresentação" description="Clique em + para trocar ou adicionar uma tecla." width={520} footer={<Button onClick={() => setDialog(null)}>Fechar</Button>}>
+      <Modal open={dialog === 'keys'} onClose={() => setDialog(null)} title={tr('Atalhos da apresentação')} description={tr('Clique em + para trocar ou adicionar uma tecla.')} width={520} footer={<Button onClick={() => setDialog(null)}>{tr('Fechar')}</Button>}>
         <ShortcutsEditor />
       </Modal>
     </div>
@@ -536,23 +537,23 @@ function OutputControls({ bus, link }: { bus: MutableRefObject<LiveBus | null>; 
     try {
       const s = await detectScreens();
       setScreens(s);
-      toast(s.length > 1 ? `${s.length} monitores encontrados` : 'Só um monitor encontrado', 'info');
+      toast(s.length > 1 ? tr('{0} monitores encontrados', s.length) : tr('Só um monitor encontrado'), 'info');
     } catch {
-      toastError('Permissão para ver os monitores negada. Abra o telão em uma janela e arraste-a até o projetor.');
+      toastError(tr('Permissão para ver os monitores negada. Abra o telão em uma janela e arraste-a até o projetor.'));
     }
   };
 
   const open = (screen?: ScreenInfo) => {
     const w = openOutputWindow(screen);
-    if (!w) return toastError('O navegador bloqueou a janela do telão. Permita pop-ups para este endereço e tente de novo.');
-    toast(screen ? `Telão aberto em ${screen.label}. Clique nele ou aperte F para a tela cheia.` : 'Telão aberto. Arraste a janela até o projetor e aperte F nela.', 'info', 5500);
+    if (!w) return toastError(tr('O navegador bloqueou a janela do telão. Permita pop-ups para este endereço e tente de novo.'));
+    toast(screen ? tr('Telão aberto em {0}. Clique nele ou aperte F para a tela cheia.', screen.label) : tr('Telão aberto. Arraste a janela até o projetor e aperte F nela.'), 'info', 5500);
   };
 
   const askFullscreen = () => {
     bus.current?.sendToOutput({ t: 'fullscreen' });
     // o navegador só aceita tela cheia após um clique DENTRO da janela do telão
     setTimeout(() => {
-      if (!link.current.fs) toast('O navegador exige um clique na janela do telão (ou a tecla F nela) para entrar em tela cheia.', 'info', 6000);
+      if (!link.current.fs) toast(tr('O navegador exige um clique na janela do telão (ou a tecla F nela) para entrar em tela cheia.'), 'info', 6000);
     }, 700);
   };
 
@@ -564,33 +565,33 @@ function OutputControls({ bus, link }: { bus: MutableRefObject<LiveBus | null>; 
 
   const external = screens.find((s) => !s.isCurrent);
   const items: MenuItem[] = [
-    ...screens.map((s): MenuItem => ({ label: `${s.label}${s.isCurrent ? ' (esta tela)' : ''}`, hint: `${s.width}×${s.height}`, icon: <LuMonitor />, onClick: () => open(s) })),
+    ...screens.map((s): MenuItem => ({ label: `${s.label}${s.isCurrent ? tr(' (esta tela)') : ''}`, hint: `${s.width}×${s.height}`, icon: <LuMonitor />, onClick: () => open(s) })),
     ...(screens.length ? [{ divider: true } as MenuItem] : []),
-    { label: 'Abrir em uma janela', icon: <LuExternalLink />, onClick: () => open() },
+    { label: tr('Abrir em uma janela'), icon: <LuExternalLink />, onClick: () => open() },
     hasWindowManagement
-      ? { label: screens.length ? 'Atualizar lista de monitores' : 'Detectar monitores…', icon: <LuCast />, onClick: () => void detect() }
-      : { label: 'Este navegador não lista monitores', icon: <LuCast />, disabled: true, hint: 'use Chrome/Edge' },
+      ? { label: screens.length ? tr('Atualizar lista de monitores') : tr('Detectar monitores…'), icon: <LuCast />, onClick: () => void detect() }
+      : { label: tr('Este navegador não lista monitores'), icon: <LuCast />, disabled: true, hint: tr('use Chrome/Edge') },
     { divider: true },
-    { label: 'Telão em tela cheia', icon: <LuMaximize />, disabled: !connected, onClick: askFullscreen },
-    { label: 'Fechar o telão', icon: <LuX />, danger: true, disabled: !connected && !getOutputWindow(), onClick: closeOutput },
+    { label: tr('Telão em tela cheia'), icon: <LuMaximize />, disabled: !connected, onClick: askFullscreen },
+    { label: tr('Fechar o telão'), icon: <LuX />, danger: true, disabled: !connected && !getOutputWindow(), onClick: closeOutput },
   ];
 
   return (
     <div className="op-out">
-      <span className="op-conn" data-on={connected ? '1' : '0'} role="status" title={connected ? (link.current.fs ? 'Telão conectado, em tela cheia' : 'Telão conectado') : 'Nenhuma janela de telão aberta'}>
+      <span className="op-conn" data-on={connected ? '1' : '0'} role="status" title={connected ? (link.current.fs ? tr('Telão conectado, em tela cheia') : tr('Telão conectado')) : tr('Nenhuma janela de telão aberta')}>
         <i aria-hidden />
-        {connected ? (link.current.fs ? 'Telão em tela cheia' : 'Telão conectado') : 'Telão desligado'}
+        {connected ? (link.current.fs ? tr('Telão em tela cheia') : tr('Telão conectado')) : tr('Telão desligado')}
       </span>
       <div className="op-split">
         <Button variant={connected ? 'soft' : 'primary'} icon={<LuMonitorPlay />} onClick={() => open(external)}>
-          {connected ? 'Telão' : 'Abrir telão'}
+          {connected ? tr('Telão') : tr('Abrir telão')}
         </Button>
         <Menu
           align="end"
           width={290}
           items={items}
           trigger={(isOpen, toggle) => (
-            <button type="button" className="op-split-more btn btn-soft btn-md" aria-label="Opções do telão" aria-expanded={isOpen} onClick={toggle}>
+            <button type="button" className="op-split-more btn btn-soft btn-md" aria-label={tr('Opções do telão')} aria-expanded={isOpen} onClick={toggle}>
               <LuChevronDown aria-hidden />
             </button>
           )}
@@ -622,22 +623,22 @@ function AddSongDialog({ open, onClose, existing, onAdd }: { open: boolean; onCl
   const list = (all ?? []).filter((p) => !existing.includes(p.id) && (!term || `${p.name} ${p.artist} ${p.category}`.toLowerCase().includes(term)));
 
   return (
-    <Modal open={open} onClose={onClose} title="Adicionar ao roteiro" description="Escolha os louvores que serão apresentados em seguida." width={520} footer={<Button onClick={onClose}>Pronto</Button>}>
+    <Modal open={open} onClose={onClose} title={tr('Adicionar ao roteiro')} description={tr('Escolha os louvores que serão apresentados em seguida.')} width={520} footer={<Button onClick={onClose}>{tr('Pronto')}</Button>}>
       <div className="op-add-search">
         <LuSearch aria-hidden />
-        <input className="input" placeholder="Buscar por nome, artista ou categoria" value={q} onChange={(e) => setQ(e.currentTarget.value)} autoFocus />
+        <input className="input" placeholder={tr('Buscar por nome, artista ou categoria')} value={q} onChange={(e) => setQ(e.currentTarget.value)} autoFocus />
       </div>
       <ul className="op-add-list">
-        {all === null && <li className="op-add-empty">Carregando…</li>}
-        {all !== null && !list.length && <li className="op-add-empty">{all.length && !term ? 'Todos os louvores já estão no roteiro.' : 'Nenhum louvor encontrado.'}</li>}
+        {all === null && <li className="op-add-empty">{tr('Carregando…')}</li>}
+        {all !== null && !list.length && <li className="op-add-empty">{all.length && !term ? tr('Todos os louvores já estão no roteiro.') : tr('Nenhum louvor encontrado.')}</li>}
         {list.map((p) => {
           const n = playableIndices(p).length;
           return (
             <li key={p.id}>
-              <button type="button" disabled={!n} onClick={() => onAdd(p.id)} title={n ? 'Adicionar ao fim do roteiro' : 'Este louvor ainda não tem letra'}>
+              <button type="button" disabled={!n} onClick={() => onAdd(p.id)} title={n ? tr('Adicionar ao fim do roteiro') : tr('Este louvor ainda não tem letra')}>
                 <span>
                   <b>{p.name}</b>
-                  <small>{[p.artist, p.category, `${n} ${n === 1 ? 'trecho' : 'trechos'}`].filter(Boolean).join(' · ')}</small>
+                  <small>{[p.artist, p.category, `${n} ${n === 1 ? tr('trecho') : tr('trechos')}`].filter(Boolean).join(' · ')}</small>
                 </span>
                 <LuPlus aria-hidden />
               </button>

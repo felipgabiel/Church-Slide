@@ -1,6 +1,7 @@
 import { uid } from '../ids';
 import type { MediaRecord } from '../types';
 import { dbDelete, dbGet, dbGetAll, dbPut } from './db';
+import { tr } from '../i18n';
 
 const IMAGE_EXT = /\.(png|jpe?g|webp|gif|avif|bmp)$/i;
 const VIDEO_EXT = /\.(mp4|webm|mov|m4v|ogv)$/i;
@@ -51,7 +52,7 @@ async function videoThumb(blob: Blob): Promise<Blob | undefined> {
       };
       video.onerror = () => {
         clearTimeout(t);
-        reject(new Error('erro de vídeo'));
+        reject(new Error(tr('erro de vídeo')));
       };
     });
     const target = Math.min(1, (video.duration || 1) / 3);
@@ -78,7 +79,7 @@ async function videoThumb(blob: Blob): Promise<Blob | undefined> {
 
 export async function addMedia(file: File): Promise<MediaRecord> {
   const kind = detectKind(file);
-  if (!kind) throw new Error(`Formato não suportado: ${file.name}`);
+  if (!kind) throw new Error(tr('Formato não suportado: {0}', file.name));
   const blob: Blob = file;
   const rec: MediaRecord = {
     id: uid('m'),

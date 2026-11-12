@@ -11,6 +11,7 @@ import { Button } from '../../ui/Button';
 import { Segmented, Select } from '../../ui/Controls';
 import { Modal } from '../../ui/Modal';
 import { confirmDialog, toastError } from '../../ui/toast';
+import { tr } from '../../core/i18n';
 
 interface Props {
   open: boolean;
@@ -47,7 +48,7 @@ export function NewProjectDialog({ open, onClose, categories, templates, onCreat
 
   const choices = useMemo<ThemeChoice[]>(
     () => [
-      { id: 'default', name: 'Simples', theme: defaultTheme() },
+      { id: 'default', name: tr('Simples'), theme: defaultTheme() },
       ...THEME_PRESETS.map((t) => ({ id: t.id, name: t.name, theme: t.theme, autoLayout: t.autoLayout })),
       ...templates.map((t) => ({ id: `tpl:${t.id}`, name: t.name, theme: t.theme, aspect: t.aspect, custom: true })),
     ],
@@ -61,16 +62,18 @@ export function NewProjectDialog({ open, onClose, categories, templates, onCreat
     setBusy(true);
     try {
       // mesmo nome e mesmo autor de um louvor que já existe: avisa; seguindo, o novo ganha um número
-      let finalName = name.trim() || 'Novo louvor';
+      let finalName = name.trim() || tr('Novo louvor');
       const all = await listProjects();
       const dup = findDuplicate(all, finalName, artist);
       if (dup) {
         const numbered = numberedName(finalName, all.filter((x) => !x.isTemplate && !x.deletedAt).map((x) => x.name));
         // sem nome digitado não há o que avisar: o "Novo louvor" só ganha o número
         const ok = !name.trim() || (await confirmDialog({
-          title: 'Este louvor já existe',
-          message: `Você já tem “${dup.name}”${dup.artist ? ` de ${dup.artist}` : ''}. Criar mesmo assim? O novo vai se chamar “${numbered}” (dá para renomear depois).`,
-          confirmLabel: `Criar “${numbered}”`,
+          title: tr('Este louvor já existe'),
+          message: dup.artist
+            ? tr('Você já tem “{0}” de {1}. Criar mesmo assim? O novo vai se chamar “{2}” (dá para renomear depois).', dup.name, dup.artist, numbered)
+            : tr('Você já tem “{0}”. Criar mesmo assim? O novo vai se chamar “{1}” (dá para renomear depois).', dup.name, numbered),
+          confirmLabel: tr('Criar “{0}”', numbered),
         }));
         if (!ok) return;
         finalName = numbered;
@@ -86,7 +89,7 @@ export function NewProjectDialog({ open, onClose, categories, templates, onCreat
       onCreated(p);
     } catch (err) {
       console.error(err);
-      toastError('Não foi possível criar o projeto. Verifique o espaço disponível no navegador.');
+      toastError(tr('Não foi possível criar o projeto. Verifique o espaço disponível no navegador.'));
     } finally {
       setBusy(false);
     }
@@ -96,15 +99,15 @@ export function NewProjectDialog({ open, onClose, categories, templates, onCreat
     <Modal
       open={open}
       onClose={onClose}
-      title="Novo louvor"
-      description="Escolha um visual de partida. Tudo pode ser mudado depois, trecho por trecho."
+      title={tr('Novo louvor')}
+      description={tr('Escolha um visual de partida. Tudo pode ser mudado depois, trecho por trecho.')}
       width={760}
       footer={
         <>
-          <span className="np-count">{parts ? `${parts} ${parts === 1 ? 'trecho' : 'trechos'} serão criados` : 'Você pode colar a letra agora ou depois.'}</span>
-          <Button onClick={onClose}>Cancelar</Button>
+          <span className="np-count">{parts ? tr('{0} {1} serão criados', parts, parts === 1 ? tr('trecho') : tr('trechos')) : tr('Você pode colar a letra agora ou depois.')}</span>
+          <Button onClick={onClose}>{tr('Cancelar')}</Button>
           <Button variant="primary" onClick={submit} disabled={busy}>
-            {busy ? 'Criando…' : 'Criar e abrir'}
+            {busy ? tr('Criando…') : tr('Criar e abrir')}
           </Button>
         </>
       }
@@ -119,22 +122,22 @@ export function NewProjectDialog({ open, onClose, categories, templates, onCreat
         <div className="np-col">
           <div className="field">
             <label className="field-label" htmlFor="np-name">
-              Nome do louvor
+              {tr('Nome do louvor')}
             </label>
-            <input id="np-name" className="input" autoFocus value={name} placeholder="Ex.: Grande é o Senhor" onChange={(e) => setName(e.currentTarget.value)} />
+            <input id="np-name" className="input" autoFocus value={name} placeholder={tr('Ex.: Grande é o Senhor')} onChange={(e) => setName(e.currentTarget.value)} />
           </div>
           <div className="np-two">
             <div className="field">
               <label className="field-label" htmlFor="np-artist">
-                Artista ou ministério
+                {tr('Artista ou ministério')}
               </label>
-              <input id="np-artist" className="input" value={artist} placeholder="Ex.: Ministério Jovem" onChange={(e) => setArtist(e.currentTarget.value)} />
+              <input id="np-artist" className="input" value={artist} placeholder={tr('Ex.: Ministério Jovem')} onChange={(e) => setArtist(e.currentTarget.value)} />
             </div>
             <div className="field">
               <label className="field-label" htmlFor="np-cat">
-                Categoria
+                {tr('Categoria')}
               </label>
-              <input id="np-cat" className="input" list="np-cats" value={category} placeholder="Ex.: Adoração" onChange={(e) => setCategory(e.currentTarget.value)} />
+              <input id="np-cat" className="input" list="np-cats" value={category} placeholder={tr('Ex.: Adoração')} onChange={(e) => setCategory(e.currentTarget.value)} />
               <datalist id="np-cats">
                 {categories.map((c) => (
                   <option key={c} value={c} />
@@ -143,22 +146,22 @@ export function NewProjectDialog({ open, onClose, categories, templates, onCreat
             </div>
           </div>
           <div className="field">
-            <span className="field-label">Proporção da tela</span>
+            <span className="field-label">{tr('Proporção da tela')}</span>
             <Segmented
-              label="Proporção"
+              label={tr('Proporção')}
               value={chosen.aspect ?? aspect}
               onChange={setAspect}
-              options={ASPECTS.map((a) => ({ value: a, label: a, title: `Proporção ${a}` }))}
+              options={ASPECTS.map((a) => ({ value: a, label: a, title: tr('Proporção {0}', a) }))}
             />
-            {chosen.aspect && <p className="field-hint">O modelo escolhido usa {chosen.aspect}.</p>}
+            {chosen.aspect && <p className="field-hint">{tr('O modelo escolhido usa')}{' '}{chosen.aspect}.</p>}
           </div>
           <div className="field">
             <label className="field-label" htmlFor="np-lyrics">
-              Letra (opcional)
+              {tr('Letra (opcional)')}
             </label>
-            <textarea id="np-lyrics" className="textarea" rows={7} value={lyrics} placeholder={'Cole a letra completa aqui.\nUma linha em branco separa as estrofes.'} onChange={(e) => setLyrics(e.currentTarget.value)} />
+            <textarea id="np-lyrics" className="textarea" rows={7} value={lyrics} placeholder={tr('Cole a letra completa aqui.\nUma linha em branco separa as estrofes.')} onChange={(e) => setLyrics(e.currentTarget.value)} />
             <div className="np-split">
-              <Select value={mode} onChange={(v) => setMode(v as SplitMode)} label="Como dividir a letra">
+              <Select value={mode} onChange={(v) => setMode(v as SplitMode)} label={tr('Como dividir a letra')}>
                 {(Object.keys(SPLIT_MODE_LABELS) as SplitMode[]).map((m) => (
                   <option key={m} value={m}>
                     {SPLIT_MODE_LABELS[m].title}
@@ -170,16 +173,16 @@ export function NewProjectDialog({ open, onClose, categories, templates, onCreat
         </div>
 
         <div className="np-col">
-          <span className="field-label">Visual</span>
-          <div className="np-themes" role="radiogroup" aria-label="Visual de partida">
+          <span className="field-label">{tr('Visual')}</span>
+          <div className="np-themes" role="radiogroup" aria-label={tr('Visual de partida')}>
             {choices.map((c) => {
-              const slide = newSlide('Santo, santo, santo\nÉ o Senhor', c.theme);
+              const slide = newSlide(tr('Santo, santo, santo\nÉ o Senhor'), c.theme);
               return (
                 <button key={c.id} type="button" role="radio" aria-checked={c.id === chosen.id} data-on={c.id === chosen.id ? '1' : '0'} className="np-theme" onClick={() => setThemeId(c.id)}>
                   <SlideThumb slide={slide} theme={c.theme} aspect={c.aspect ?? aspect} />
                   <span>
                     {c.name}
-                    {c.custom && <small>seu modelo</small>}
+                    {c.custom && <small>{tr('seu modelo')}</small>}
                   </span>
                 </button>
               );

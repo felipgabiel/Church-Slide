@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { SupportCard } from '../support/SupportCard';
 import { ThemeToggle } from '../../ui/ThemeToggle';
+import { LangMenu } from '../../ui/LangMenu';
 import {
   LuArchive,
   LuClock3,
@@ -51,6 +52,7 @@ import { useProjects } from './useProjects';
 import { Gallery, startFromStarter } from '../backgrounds/Gallery';
 import { useDesigns } from '../backgrounds/useDesigns';
 import { STARTERS } from '../../core/design/starters';
+import { tr } from '../../core/i18n';
 
 type Filter = { kind: 'all' } | { kind: 'templates' } | { kind: 'category'; name: string } | { kind: 'none' };
 type Sort = 'recent' | 'name';
@@ -104,9 +106,9 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
     for (const f of Array.from(files)) {
       try {
         last = await importProjectFile(f);
-        toast(`“${last.name}” importado`);
+        toast(tr('“{0}” importado', last.name));
       } catch (err) {
-        toastError(err instanceof Error ? err.message : `Não foi possível importar ${f.name}.`);
+        toastError(err instanceof Error ? err.message : tr('Não foi possível importar {0}.', f.name));
       }
     }
     if (fileRef.current) fileRef.current.value = '';
@@ -115,76 +117,76 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
   };
 
   const actionsFor = (p: Project): MenuItem[] => [
-    { label: 'Abrir no editor', icon: <LuFolderOpen />, onClick: () => open(p) },
-    { label: 'Informações…', icon: <LuPencil />, onClick: () => setInfo(p) },
+    { label: tr('Abrir no editor'), icon: <LuFolderOpen />, onClick: () => open(p) },
+    { label: tr('Informações…'), icon: <LuPencil />, onClick: () => setInfo(p) },
     {
-      label: 'Duplicar',
+      label: tr('Duplicar'),
       icon: <LuCopy />,
       onClick: async () => {
         try {
           const c = await duplicateProject(p.id);
-          toast(c ? `“${c.name}” criado` : 'Projeto não encontrado');
+          toast(c ? tr('“{0}” criado', c.name) : tr('Projeto não encontrado'));
           await reload();
         } catch {
-          toastError('Não foi possível duplicar.');
+          toastError(tr('Não foi possível duplicar.'));
         }
       },
     },
     {
-      label: 'Salvar como modelo…',
+      label: tr('Salvar como modelo…'),
       icon: <LuLayoutTemplate />,
       disabled: p.isTemplate,
       onClick: async () => {
-        const name = await promptDialog({ title: 'Salvar como modelo', label: 'Nome do modelo', value: `${p.name} (modelo)` });
+        const name = await promptDialog({ title: tr('Salvar como modelo'), label: tr('Nome do modelo'), value: `${p.name} (modelo)` });
         if (!name) return;
         await saveAsTemplate(p.id, name);
-        toast('Modelo salvo. Ele aparece ao criar um novo louvor.');
+        toast(tr('Modelo salvo. Ele aparece ao criar um novo louvor.'));
         await reload();
       },
     },
     {
-      label: 'Exportar arquivo',
+      label: tr('Exportar arquivo'),
       icon: <LuDownload />,
       hint: '.json',
       onClick: async () => {
         try {
           downloadBlob(await exportProject(p), exportFileName(p));
         } catch {
-          toastError('Não foi possível exportar o projeto.');
+          toastError(tr('Não foi possível exportar o projeto.'));
         }
       },
     },
     {
-      label: 'Restaurar cópia de segurança…',
+      label: tr('Restaurar cópia de segurança…'),
       icon: <LuHistory />,
       onClick: async () => {
         const snap = await readSnapshot(p.id);
-        if (!snap) return toast('Este projeto ainda não tem cópia de segurança.', 'info');
+        if (!snap) return toast(tr('Este projeto ainda não tem cópia de segurança.'), 'info');
         const ok = await confirmDialog({
-          title: 'Restaurar cópia de segurança?',
-          message: `O projeto voltará ao estado salvo ${timeAgo(snap.savedAt)} (${snap.project.slides.length} trechos). As alterações feitas depois serão substituídas.`,
-          confirmLabel: 'Restaurar',
+          title: tr('Restaurar cópia de segurança?'),
+          message: tr('O projeto voltará ao estado salvo {0} ({1} trechos). As alterações feitas depois serão substituídas.', timeAgo(snap.savedAt), snap.project.slides.length),
+          confirmLabel: tr('Restaurar'),
         });
         if (!ok) return;
         await restoreFromSnapshot(p.id);
-        toast('Cópia de segurança restaurada');
+        toast(tr('Cópia de segurança restaurada'));
         await reload();
       },
     },
     { divider: true },
     {
-      label: 'Mover para a lixeira',
+      label: tr('Mover para a lixeira'),
       icon: <LuTrash2 />,
       danger: true,
       onClick: async () => {
         await trashProject(p.id);
-        toast(`“${p.name}” foi para a lixeira`, 'info');
+        toast(tr('“{0}” foi para a lixeira', p.name), 'info');
         await reload();
       },
     },
   ];
 
-  const heading = filter.kind === 'templates' ? 'Modelos' : filter.kind === 'category' ? filter.name : filter.kind === 'none' ? 'Sem categoria' : 'Todos os louvores';
+  const heading = filter.kind === 'templates' ? tr('Modelos') : filter.kind === 'category' ? filter.name : filter.kind === 'none' ? tr('Sem categoria') : tr('Todos os louvores');
   // tela de início (saudação + recentes) só na visão geral, sem busca
   const home = filter.kind === 'all' && !query.trim();
   const recent = useMemo(() => [...songs].sort((x, y) => y.updatedAt - x.updatedAt).slice(0, 4), [songs]);
@@ -212,22 +214,22 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
 
   return (
     <div className="lib">
-      <aside className="lib-side" aria-label="Navegação">
+      <aside className="lib-side" aria-label={tr('Navegação')}>
         <div className="lib-brand">
           <Wordmark />
         </div>
         <nav className="lib-nav-group">
-          <NavItem icon={<LuLibrary />} label="Louvores" count={songs.length} on={!inBg && filter.kind === 'all'} onClick={() => setFilter({ kind: 'all' })} />
-          <NavItem icon={<LuLayoutTemplate />} label="Modelos" count={templates.length} on={!inBg && filter.kind === 'templates'} onClick={() => setFilter({ kind: 'templates' })} />
-          <NavItem icon={<LuPalette />} label="Fundos" count={designs.items.length} on={inBg} onClick={() => navigate(paths.backgrounds)} />
+          <NavItem icon={<LuLibrary />} label={tr('Louvores')} count={songs.length} on={!inBg && filter.kind === 'all'} onClick={() => setFilter({ kind: 'all' })} />
+          <NavItem icon={<LuLayoutTemplate />} label={tr('Modelos')} count={templates.length} on={!inBg && filter.kind === 'templates'} onClick={() => setFilter({ kind: 'templates' })} />
+          <NavItem icon={<LuPalette />} label={tr('Fundos')} count={designs.items.length} on={inBg} onClick={() => navigate(paths.backgrounds)} />
         </nav>
         {(categories.length > 0 || uncategorized > 0) && (
-          <nav className="lib-nav-group lib-cats" aria-label="Categorias">
-            <h3>Categorias</h3>
+          <nav className="lib-nav-group lib-cats" aria-label={tr('Categorias')}>
+            <h3>{tr('Categorias')}</h3>
             {categories.map((c) => (
               <NavItem key={c} icon={<LuHash />} label={c} count={songs.filter((p) => p.category.trim() === c).length} on={!inBg && filter.kind === 'category' && filter.name === c} onClick={() => setFilter({ kind: 'category', name: c })} />
             ))}
-            {uncategorized > 0 && categories.length > 0 && <NavItem icon={<LuHash />} label="Sem categoria" count={uncategorized} on={!inBg && filter.kind === 'none'} onClick={() => setFilter({ kind: 'none' })} />}
+            {uncategorized > 0 && categories.length > 0 && <NavItem icon={<LuHash />} label={tr('Sem categoria')} count={uncategorized} on={!inBg && filter.kind === 'none'} onClick={() => setFilter({ kind: 'none' })} />}
           </nav>
         )}
         <div className="lib-side-foot">
@@ -235,12 +237,12 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
             <span className="lib-nav-ico">
               <LuArchive />
             </span>
-            <span className="lib-nav-label">Lixeira</span>
+            <span className="lib-nav-label">{tr('Lixeira')}</span>
             {trashed.length > 0 && <span className="lib-nav-count">{trashed.length}</span>}
           </button>
           <p className="lib-status" data-state={storageMode === 'memory' ? 'bad' : offline === 'ready' ? 'ok' : 'idle'}>
             <i aria-hidden />
-            {storageMode === 'memory' ? 'Armazenamento indisponível' : offline === 'ready' ? 'Neste computador · funciona offline' : 'Guardado neste computador'}
+            {storageMode === 'memory' ? tr('Armazenamento indisponível') : offline === 'ready' ? tr('Neste computador · funciona offline') : tr('Guardado neste computador')}
           </p>
         </div>
       </aside>
@@ -250,23 +252,24 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
         <header className="lib-bar">
           <label className="lib-search">
             <LuSearch aria-hidden />
-            <input ref={searchRef} type="search" placeholder={inBg ? 'Buscar nos meus fundos' : 'Buscar louvor, artista ou trecho da letra'} value={query} onChange={(e) => setQuery(e.currentTarget.value)} aria-label={inBg ? 'Buscar fundos' : 'Buscar louvores'} />
+            <input ref={searchRef} type="search" placeholder={inBg ? tr('Buscar nos meus fundos') : tr('Buscar louvor, artista ou trecho da letra')} value={query} onChange={(e) => setQuery(e.currentTarget.value)} aria-label={inBg ? tr('Buscar fundos') : tr('Buscar louvores')} />
             {!query && <kbd aria-hidden>/</kbd>}
           </label>
           <div className="lib-bar-actions">
             <input ref={fileRef} type="file" accept=".json,application/json" multiple hidden onChange={(e) => void doImport(e.currentTarget.files)} />
+            <LangMenu />
             <ThemeToggle />
             {inBg ? (
               <Button variant="primary" icon={<LuPlus />} onClick={() => void startFromStarter(STARTERS[STARTERS.length - 1])}>
-                Novo fundo
+                {tr('Novo fundo')}
               </Button>
             ) : (
               <>
                 <Button variant="ghost" icon={<LuUpload />} onClick={() => fileRef.current?.click()}>
-                  Importar
+                  {tr('Importar')}
                 </Button>
                 <Button variant="primary" icon={<LuPlus />} onClick={startNew}>
-                  Novo louvor
+                  {tr('Novo louvor')}
                 </Button>
               </>
             )}
@@ -278,24 +281,24 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
           {!inBg && storageMode === 'memory' && (
             <div className="lib-banner" role="alert">
               <LuWifiOff aria-hidden />
-              Este navegador bloqueou o armazenamento local (navegação privada?). Os projetos só existem enquanto esta aba estiver aberta. Use “Exportar” para guardar uma cópia.
+              {tr('Este navegador bloqueou o armazenamento local (navegação privada?). Os projetos só existem enquanto esta aba estiver aberta. Use “Exportar” para guardar uma cópia.')}
             </div>
           )}
 
           {!inBg && home && !loading && !error && (
-            <section className="lib-hello" aria-label="Início">
+            <section className="lib-hello" aria-label={tr('Início')}>
               <h1>{greeting()}</h1>
               <p>
                 {songs.length === 0
-                  ? 'Cole a letra de um louvor e veja como ele fica no telão em poucos minutos.'
-                  : `${songs.length} ${songs.length === 1 ? 'louvor' : 'louvores'} · ${totalSlides} ${totalSlides === 1 ? 'trecho pronto' : 'trechos prontos'} para o telão`}
+                  ? tr('Cole a letra de um louvor e veja como ele fica no telão em poucos minutos.')
+                  : tr('{0} {1} · {2} {3} para o telão', songs.length, songs.length === 1 ? tr('louvor') : tr('louvores'), totalSlides, totalSlides === 1 ? tr('trecho pronto') : tr('trechos prontos'))}
               </p>
             </section>
           )}
 
           {!inBg && home && recent.length > 0 && !error && (
             <section className="lib-recent" aria-labelledby="lib-recent-h">
-              <h2 id="lib-recent-h">Continue de onde parou</h2>
+              <h2 id="lib-recent-h">{tr('Continue de onde parou')}</h2>
               <div className="lib-recent-row">
                 {recent.map((p) => (
                   <RecentCard key={p.id} project={p} onOpen={() => open(p)} />
@@ -307,48 +310,48 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
           {!inBg && (
           <section className="lib-all" aria-labelledby="lib-all-h">
             <div className="lib-head">
-              <h2 id="lib-all-h">{query.trim() ? 'Resultados' : heading}</h2>
+              <h2 id="lib-all-h">{query.trim() ? tr('Resultados') : heading}</h2>
               <span className="lib-count">{visible.length}</span>
               <div className="lib-tools">
                 <div className="lib-sort">
-                  <Select value={sort} onChange={(v) => setSort(v as Sort)} label="Ordenar">
-                    <option value="recent">Editados recentemente</option>
-                    <option value="name">Nome (A–Z)</option>
+                  <Select value={sort} onChange={(v) => setSort(v as Sort)} label={tr('Ordenar')}>
+                    <option value="recent">{tr('Editados recentemente')}</option>
+                    <option value="name">{tr('Nome (A–Z)')}</option>
                   </Select>
                 </div>
-                <div className="lib-view" role="group" aria-label="Exibição">
-                  <IconButton label="Lista" icon={<LuList />} size="sm" active={view === 'list'} onClick={() => setView('list')} />
-                  <IconButton label="Grade" icon={<LuLayoutGrid />} size="sm" active={view === 'grid'} onClick={() => setView('grid')} />
+                <div className="lib-view" role="group" aria-label={tr('Exibição')}>
+                  <IconButton label={tr('Lista')} icon={<LuList />} size="sm" active={view === 'list'} onClick={() => setView('list')} />
+                  <IconButton label={tr('Grade')} icon={<LuLayoutGrid />} size="sm" active={view === 'grid'} onClick={() => setView('grid')} />
                 </div>
               </div>
             </div>
 
             {error && (
               <div className="empty">
-                <h3>Não foi possível carregar os projetos</h3>
+                <h3>{tr('Não foi possível carregar os projetos')}</h3>
                 <p>{error}</p>
-                <Button onClick={() => void reload()}>Tentar novamente</Button>
+                <Button onClick={() => void reload()}>{tr('Tentar novamente')}</Button>
               </div>
             )}
 
-            {!error && loading && <div className="empty">Carregando…</div>}
+            {!error && loading && <div className="empty">{tr('Carregando…')}</div>}
 
             {!error && !loading && visible.length === 0 && (
               <div className="lib-empty">
                 <LuMusic aria-hidden />
                 {songs.length === 0 && filter.kind === 'all' && !query ? (
                   <>
-                    <h3>Comece pelo primeiro louvor</h3>
-                    <p>Cole a letra, escolha um visual e veja como fica no telão em poucos minutos.</p>
+                    <h3>{tr('Comece pelo primeiro louvor')}</h3>
+                    <p>{tr('Cole a letra, escolha um visual e veja como fica no telão em poucos minutos.')}</p>
                     <Button variant="primary" size="lg" icon={<LuPlus />} onClick={() => setNewOpen(true)}>
-                      Criar louvor
+                      {tr('Criar louvor')}
                     </Button>
                   </>
                 ) : (
                   <>
-                    <h3>Nada encontrado</h3>
-                    <p>{query ? `Nenhum resultado para “${query}”.` : 'Não há itens neste filtro.'}</p>
-                    {query && <Button onClick={() => setQuery('')}>Limpar busca</Button>}
+                    <h3>{tr('Nada encontrado')}</h3>
+                    <p>{query ? tr('Nenhum resultado para “{0}”.', query) : tr('Não há itens neste filtro.')}</p>
+                    {query && <Button onClick={() => setQuery('')}>{tr('Limpar busca')}</Button>}
                   </>
                 )}
               </div>
@@ -361,18 +364,18 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
                     <th className="c-n" scope="col">
                       #
                     </th>
-                    <th scope="col">Título</th>
+                    <th scope="col">{tr('Título')}</th>
                     <th className="c-cat" scope="col">
-                      Categoria
+                      {tr('Categoria')}
                     </th>
                     <th className="c-num" scope="col">
-                      Trechos
+                      {tr('Trechos')}
                     </th>
                     <th className="c-when" scope="col">
-                      <LuClock3 aria-label="Editado" />
+                      <LuClock3 aria-label={tr('Editado')} />
                     </th>
                     <th className="c-act" scope="col">
-                      <span className="sr-only">Ações</span>
+                      <span className="sr-only">{tr('Ações')}</span>
                     </th>
                   </tr>
                 </thead>
@@ -433,10 +436,10 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
       <TrashDialog open={trashOpen} onClose={() => setTrashOpen(false)} items={trashed} onChanged={() => void reload()} />
       <InfoDialog project={info} categories={categories} onClose={() => setInfo(null)} onSaved={() => void reload()} />
       {/* apoio: botão redondo fixo no canto, longe das ações do dia a dia */}
-      <button type="button" className="support-fab" aria-label="Apoiar o projeto" title="Apoiar o projeto" onClick={() => setSupportOpen(true)}>
+      <button type="button" className="support-fab" aria-label={tr('Apoiar o projeto')} title={tr('Apoiar o projeto')} onClick={() => setSupportOpen(true)}>
         <LuHeart aria-hidden />
       </button>
-      <Modal open={supportOpen} onClose={() => setSupportOpen(false)} title="Apoiar o projeto" width={560}>
+      <Modal open={supportOpen} onClose={() => setSupportOpen(false)} title={tr('Apoiar o projeto')} width={560}>
         <SupportCard />
       </Modal>
     </div>
@@ -446,7 +449,7 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
 /** "Bom dia", "Boa tarde" ou "Boa noite", pelo relógio do computador. */
 function greeting(d = new Date()): string {
   const h = d.getHours();
-  return h >= 5 && h < 12 ? 'Bom dia' : h >= 12 && h < 18 ? 'Boa tarde' : 'Boa noite';
+  return h >= 5 && h < 12 ? tr('Bom dia') : h >= 12 && h < 18 ? tr('Boa tarde') : tr('Boa noite');
 }
 
 /** Duas cores para a luz do topo: as do fundo do louvor mais recente (ou o teal da marca). */
@@ -493,13 +496,13 @@ function RecentCard({ project: p, onOpen }: { project: Project; onOpen: () => vo
   return (
     <article className="rcard">
       <div className="rcard-media">
-        <button type="button" className="rcard-thumb" onClick={onOpen} aria-label={`Abrir ${p.name}`}>
+        <button type="button" className="rcard-thumb" onClick={onOpen} aria-label={tr('Abrir {0}', p.name)}>
           <LazyMount style={{ width: '100%' }}>
             <SlideThumb slide={firstSlide(p)} theme={p.theme} aspect={p.aspect} />
           </LazyMount>
         </button>
         {filled > 0 && (
-          <button type="button" className="rcard-play" aria-label={`Apresentar ${p.name}`} title="Apresentar" onClick={() => navigate(paths.present(p.id))}>
+          <button type="button" className="rcard-play" aria-label={tr('Apresentar {0}', p.name)} title={tr('Apresentar')} onClick={() => navigate(paths.present(p.id))}>
             <LuPlay aria-hidden />
           </button>
         )}
@@ -507,7 +510,7 @@ function RecentCard({ project: p, onOpen }: { project: Project; onOpen: () => vo
       <button type="button" className="rcard-text" tabIndex={-1} onClick={onOpen}>
         <span className="rcard-title">{p.name}</span>
         <span className="rcard-sub">
-          {p.artist || `${filled} ${filled === 1 ? 'trecho' : 'trechos'}`} · {timeAgo(p.updatedAt)}
+          {p.artist || `${filled} ${filled === 1 ? tr('trecho') : tr('trechos')}`} · {timeAgo(p.updatedAt)}
         </span>
       </button>
     </article>
@@ -520,7 +523,7 @@ function ProjectRow({ n, project: p, onOpen, items, template, onUseTemplate }: {
     <tr className="lrow" onDoubleClick={onOpen}>
       <td className="c-n">{n}</td>
       <td className="c-title">
-        <button type="button" className="lrow-open" onClick={onOpen} aria-label={`Abrir ${p.name}`}>
+        <button type="button" className="lrow-open" onClick={onOpen} aria-label={tr('Abrir {0}', p.name)}>
           <span className="lrow-thumb">
             <LazyMount style={{ width: '100%' }}>
               <SlideThumb slide={firstSlide(p)} theme={p.theme} aspect={p.aspect} />
@@ -528,7 +531,7 @@ function ProjectRow({ n, project: p, onOpen, items, template, onUseTemplate }: {
           </span>
           <span className="lrow-names">
             <b>{p.name}</b>
-            <span>{p.artist || 'Sem artista'}</span>
+            <span>{p.artist || tr('Sem artista')}</span>
           </span>
         </button>
       </td>
@@ -539,16 +542,16 @@ function ProjectRow({ n, project: p, onOpen, items, template, onUseTemplate }: {
         <span className="lrow-actions">
           {template ? (
             <Button size="sm" variant="ghost" className="lib-go" onClick={onUseTemplate}>
-              Usar modelo
+              {tr('Usar modelo')}
             </Button>
           ) : (
-            <IconButton label={filled ? `Apresentar ${p.name}` : 'Adicione a letra para apresentar'} icon={<LuMonitorPlay />} size="sm" className="lib-go" disabled={!filled} onClick={() => navigate(paths.present(p.id))} />
+            <IconButton label={filled ? tr('Apresentar {0}', p.name) : tr('Adicione a letra para apresentar')} icon={<LuMonitorPlay />} size="sm" className="lib-go" disabled={!filled} onClick={() => navigate(paths.present(p.id))} />
           )}
           <Menu
             align="end"
             items={items}
             trigger={(isOpen, toggle) => (
-              <button type="button" className="ibtn ibtn-sm" data-active={isOpen ? '1' : undefined} aria-label={`Mais ações para ${p.name}`} aria-haspopup="menu" aria-expanded={isOpen} onClick={toggle}>
+              <button type="button" className="ibtn ibtn-sm" data-active={isOpen ? '1' : undefined} aria-label={tr('Mais ações para {0}', p.name)} aria-haspopup="menu" aria-expanded={isOpen} onClick={toggle}>
                 <LuEllipsis />
               </button>
             )}
@@ -574,22 +577,22 @@ function ProjectCard({ project: p, onOpen, items, template, onUseTemplate }: { p
   const filled = p.slides.filter((s) => slideText(s).trim()).length;
   return (
     <article className="pcard">
-      <button type="button" className="pcard-thumb" onClick={onOpen} aria-label={`Abrir ${p.name}`}>
+      <button type="button" className="pcard-thumb" onClick={onOpen} aria-label={tr('Abrir {0}', p.name)}>
         <LazyMount style={{ width: '100%' }}>
           <SlideThumb slide={first} theme={p.theme} aspect={p.aspect} />
         </LazyMount>
-        {filled === 0 && <span className="pcard-blank">Sem letra ainda</span>}
+        {filled === 0 && <span className="pcard-blank">{tr('Sem letra ainda')}</span>}
       </button>
       <div className="pcard-meta">
         <div className="pcard-titles">
           <h3 title={p.name}>{p.name}</h3>
-          <p>{p.artist || 'Sem artista'}</p>
+          <p>{p.artist || tr('Sem artista')}</p>
         </div>
         <Menu
           align="end"
           items={items}
           trigger={(isOpen, toggle) => (
-            <button type="button" className="ibtn ibtn-sm" data-active={isOpen ? '1' : undefined} aria-label={`Mais ações para ${p.name}`} aria-haspopup="menu" aria-expanded={isOpen} onClick={toggle}>
+            <button type="button" className="ibtn ibtn-sm" data-active={isOpen ? '1' : undefined} aria-label={tr('Mais ações para {0}', p.name)} aria-haspopup="menu" aria-expanded={isOpen} onClick={toggle}>
               <LuEllipsis />
             </button>
           )}
@@ -597,17 +600,17 @@ function ProjectCard({ project: p, onOpen, items, template, onUseTemplate }: { p
       </div>
       <div className="pcard-foot">
         <span>
-          {filled} {filled === 1 ? 'trecho' : 'trechos'}
+          {filled} {filled === 1 ? tr('trecho') : tr('trechos')}
         </span>
         <span>{timeAgo(p.updatedAt)}</span>
         {p.category && <span className="chip">{p.category}</span>}
         {template ? (
           <Button size="sm" className="pcard-go lib-go" onClick={onUseTemplate}>
-            Usar modelo
+            {tr('Usar modelo')}
           </Button>
         ) : (
-          <Button size="sm" className="pcard-go lib-go" icon={<LuMonitorPlay />} onClick={() => navigate(paths.present(p.id))} disabled={filled === 0} title={filled === 0 ? 'Adicione a letra para apresentar' : 'Abrir o modo de apresentação'}>
-            Apresentar
+          <Button size="sm" className="pcard-go lib-go" icon={<LuMonitorPlay />} onClick={() => navigate(paths.present(p.id))} disabled={filled === 0} title={filled === 0 ? tr('Adicione a letra para apresentar') : tr('Abrir o modo de apresentação')}>
+            {tr('Apresentar')}
           </Button>
         )}
       </div>

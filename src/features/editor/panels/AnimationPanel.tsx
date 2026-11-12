@@ -9,31 +9,32 @@ import { Row, Section, Segmented, Select, Slider, Switch } from '../../../ui/Con
 import { useDebouncedReplay } from '../hooks';
 import { ColorChange } from './ColorChange';
 import { applyAnimationPreset } from '../applyPreset';
+import { tr } from '../../../core/i18n';
 
 const GROUPS = PRESET_GROUPS;
 
 function PhaseControls({ title, value, onChange }: { title: string; value: AnimPhase; onChange: (p: Partial<AnimPhase>) => void }) {
   return (
     <Section title={title} defaultOpen={false}>
-      <Row label="Desvanecer (fade)">
-        <Switch checked={value.fade} onChange={(v) => onChange({ fade: v })} label={`${title}: fade`} />
+      <Row label={tr('Desvanecer (fade)')}>
+        <Switch checked={value.fade} onChange={(v) => onChange({ fade: v })} label={tr('{0}: fade', title)} />
       </Row>
-      <Row label="Deslizar (slide)">
-        <Switch checked={value.slide} onChange={(v) => onChange({ slide: v })} label={`${title}: slide`} />
+      <Row label={tr('Deslizar (slide)')}>
+        <Switch checked={value.slide} onChange={(v) => onChange({ slide: v })} label={tr('{0}: slide', title)} />
       </Row>
-      <Row label="Desfocar (blur)">
-        <Switch checked={value.blur} onChange={(v) => onChange({ blur: v })} label={`${title}: blur`} />
+      <Row label={tr('Desfocar (blur)')}>
+        <Switch checked={value.blur} onChange={(v) => onChange({ blur: v })} label={tr('{0}: blur', title)} />
       </Row>
-      <Row label="Zoom">
+      <Row label={tr('Zoom')}>
         <Segmented<AnimPhase['zoom']>
           size="sm"
-          label={`${title}: zoom`}
+          label={tr('{0}: zoom', title)}
           value={value.zoom}
           onChange={(v) => onChange({ zoom: v })}
           options={[
-            { value: 'none', label: 'Nenhum' },
-            { value: 'in', label: 'Crescer' },
-            { value: 'out', label: 'Encolher' },
+            { value: 'none', label: tr('Nenhum') },
+            { value: 'in', label: tr('Crescer') },
+            { value: 'out', label: tr('Encolher') },
           ]}
         />
       </Row>
@@ -64,25 +65,25 @@ export function AnimationPanel() {
     <div className="props">
       {own && (
         <div className="notice">
-          <span>Este trecho tem uma animação própria.</span>
+          <span>{tr('Este trecho tem uma animação própria.')}</span>
           <Button size="sm" variant="ghost" icon={<LuUndo2 />} onClick={() => editor.clearOverride('animation')}>
-            Usar a do tema
+            {tr('Usar a do tema')}
           </Button>
         </div>
       )}
 
-      <Section title="Predefinição">
-        <Row label="Estilo">
+      <Section title={tr('Predefinição')}>
+        <Row label={tr('Estilo')}>
           <Select
             value={knownPreset ? cfg.preset : 'custom'}
             onChange={(v) => {
               if (v !== 'custom') applyAnimationPreset(v);
             }}
-            label="Predefinição de animação"
+            label={tr('Predefinição de animação')}
           >
-            {!knownPreset && <option value="custom">Personalizada</option>}
+            {!knownPreset && <option value="custom">{tr('Personalizada')}</option>}
             {GROUPS.map((g) => (
-              <optgroup key={g} label={g}>
+              <optgroup key={g} label={tr(g)}>
                 {ANIMATION_PRESETS.filter((p) => p.group === g).map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.label}
@@ -93,30 +94,30 @@ export function AnimationPanel() {
           </Select>
         </Row>
         <Button size="sm" icon={<LuRotateCcw />} className="props-upload" onClick={() => editor.replay()}>
-          Ver animação
+          {tr('Ver animação')}
         </Button>
       </Section>
 
-      <Section title="Troca de cor">
+      <Section title={tr('Troca de cor')}>
         <ColorChange />
       </Section>
 
-      <Section title="Animar por">
+      <Section title={tr('Animar por')}>
         <Segmented<AnimUnit>
           size="sm"
-          label="Unidade da animação"
+          label={tr('Unidade da animação')}
           value={cfg.unit}
           onChange={(v) => set(v !== 'block' && cfg.stagger <= 0 ? { unit: v, stagger: DEFAULT_STAGGER[v] } : { unit: v })}
           options={[
-            { value: 'block', label: 'Frase toda', title: 'O trecho inteiro entra de uma vez' },
-            { value: 'line', label: 'Linha' },
-            { value: 'word', label: 'Palavra' },
+            { value: 'block', label: tr('Frase toda'), title: tr('O trecho inteiro entra de uma vez') },
+            { value: 'line', label: tr('Linha') },
+            { value: 'word', label: tr('Palavra') },
           ]}
         />
-        <Row label="Direção">
+        <Row label={tr('Direção')}>
           <Segmented<Direction>
             size="sm"
-            label="Direção do movimento"
+            label={tr('Direção do movimento')}
             value={cfg.direction}
             onChange={(v) => set({ direction: v })}
             options={[
@@ -129,17 +130,17 @@ export function AnimationPanel() {
         </Row>
       </Section>
 
-      <PhaseControls title="Entrada" value={cfg.enter} onChange={setPhase('enter')} />
-      <PhaseControls title="Saída" value={cfg.exit} onChange={setPhase('exit')} />
+      <PhaseControls title={tr('Entrada')} value={cfg.enter} onChange={setPhase('enter')} />
+      <PhaseControls title={tr('Saída')} value={cfg.exit} onChange={setPhase('exit')} />
 
-      <Section title="Tempo e curva" defaultOpen={false}>
-        <Slider label="Duração" value={cfg.duration} min={100} max={3000} step={50} unit="ms" reset={800} onChange={(v) => set({ duration: v })} />
-        <Slider label="Velocidade" value={cfg.speed} min={0.25} max={3} step={0.05} unit="×" reset={1} onChange={(v) => set({ speed: v })} />
-        <Slider label="Atraso" value={cfg.delay} min={0} max={3000} step={50} unit="ms" reset={0} onChange={(v) => set({ delay: v })} />
-        <Slider label="Intervalo entre partes" value={cfg.stagger} min={0} max={600} step={10} unit="ms" reset={110} onChange={(v) => set({ stagger: v })} disabled={cfg.unit === 'block'} />
-        <Slider label="Intensidade" value={cfg.intensity} min={0} max={100} unit="%" reset={50} onChange={(v) => set({ intensity: v })} />
-        <Row label="Curva de movimento">
-          <Select value={cfg.easing} onChange={(v) => set({ easing: v as EasingName })} label="Curva de movimento">
+      <Section title={tr('Tempo e curva')} defaultOpen={false}>
+        <Slider label={tr('Duração')} value={cfg.duration} min={100} max={3000} step={50} unit="ms" reset={800} onChange={(v) => set({ duration: v })} />
+        <Slider label={tr('Velocidade')} value={cfg.speed} min={0.25} max={3} step={0.05} unit="×" reset={1} onChange={(v) => set({ speed: v })} />
+        <Slider label={tr('Atraso')} value={cfg.delay} min={0} max={3000} step={50} unit="ms" reset={0} onChange={(v) => set({ delay: v })} />
+        <Slider label={tr('Intervalo entre partes')} value={cfg.stagger} min={0} max={600} step={10} unit="ms" reset={110} onChange={(v) => set({ stagger: v })} disabled={cfg.unit === 'block'} />
+        <Slider label={tr('Intensidade')} value={cfg.intensity} min={0} max={100} unit="%" reset={50} onChange={(v) => set({ intensity: v })} />
+        <Row label={tr('Curva de movimento')}>
+          <Select value={cfg.easing} onChange={(v) => set({ easing: v as EasingName })} label={tr('Curva de movimento')}>
             {(Object.keys(EASING_LABELS) as EasingName[]).map((k) => (
               <option key={k} value={k}>
                 {EASING_LABELS[k]}
@@ -149,9 +150,9 @@ export function AnimationPanel() {
         </Row>
       </Section>
 
-      <Section title="Motion Blur" defaultOpen={false} hint="O borrão acompanha a velocidade real do movimento: mais forte quando o texto corre, some quando ele para. Vale para deslizes e zooms.">
-        <Slider label="Intensidade do Motion Blur" value={cfg.motionBlur} min={0} max={100} unit="%" reset={35} onChange={(v) => set({ motionBlur: v })} />
-        <Slider label="Flutuação contínua" value={cfg.float} min={0} max={100} unit="%" reset={0} onChange={(v) => set({ float: v })} />
+      <Section title={tr('Motion Blur')} defaultOpen={false} hint={tr('O borrão acompanha a velocidade real do movimento: mais forte quando o texto corre, some quando ele para. Vale para deslizes e zooms.')}>
+        <Slider label={tr('Intensidade do Motion Blur')} value={cfg.motionBlur} min={0} max={100} unit="%" reset={35} onChange={(v) => set({ motionBlur: v })} />
+        <Slider label={tr('Flutuação contínua')} value={cfg.float} min={0} max={100} unit="%" reset={0} onChange={(v) => set({ float: v })} />
       </Section>
     </div>
   );

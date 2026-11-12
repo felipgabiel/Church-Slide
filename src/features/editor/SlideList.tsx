@@ -7,6 +7,7 @@ import { editor, useEditor } from '../../store/editor';
 import { Button, IconButton } from '../../ui/Button';
 import { LazyMount } from '../../ui/LazyMount';
 import { Menu, type MenuItem } from '../../ui/Menu';
+import { tr } from '../../core/i18n';
 
 interface ItemProps {
   slide: Slide;
@@ -34,12 +35,12 @@ const SlideItem = memo(function SlideItem({ slide, index, count, theme, aspect, 
   }, [selected]);
 
   const items: MenuItem[] = [
-    { label: 'Duplicar', icon: <LuCopy />, hint: 'Ctrl+D', onClick: () => editor.duplicateSlide(slide.id) },
-    { label: 'Mesclar com o próximo', icon: <LuMerge />, disabled: index >= count - 1, onClick: () => editor.mergeWithNext(slide.id) },
-    { label: 'Mover para cima', icon: <LuArrowUp />, hint: 'Alt+↑', disabled: index === 0, onClick: () => editor.moveSlide(index, index - 1) },
-    { label: 'Mover para baixo', icon: <LuArrowDown />, hint: 'Alt+↓', disabled: index >= count - 1, onClick: () => editor.moveSlide(index, index + 1) },
+    { label: tr('Duplicar'), icon: <LuCopy />, hint: 'Ctrl+D', onClick: () => editor.duplicateSlide(slide.id) },
+    { label: tr('Mesclar com o próximo'), icon: <LuMerge />, disabled: index >= count - 1, onClick: () => editor.mergeWithNext(slide.id) },
+    { label: tr('Mover para cima'), icon: <LuArrowUp />, hint: 'Alt+↑', disabled: index === 0, onClick: () => editor.moveSlide(index, index - 1) },
+    { label: tr('Mover para baixo'), icon: <LuArrowDown />, hint: 'Alt+↓', disabled: index >= count - 1, onClick: () => editor.moveSlide(index, index + 1) },
     { divider: true },
-    { label: 'Excluir trecho', icon: <LuTrash2 />, danger: true, hint: 'Del', onClick: () => editor.deleteSlide(slide.id) },
+    { label: tr('Excluir trecho'), icon: <LuTrash2 />, danger: true, hint: 'Del', onClick: () => editor.deleteSlide(slide.id) },
   ];
 
   return (
@@ -70,14 +71,14 @@ const SlideItem = memo(function SlideItem({ slide, index, count, theme, aspect, 
       <span className="si-num" aria-hidden>
         {index + 1}
       </span>
-      <button type="button" className="si-main" onClick={() => editor.selectSlide(slide.id)} aria-current={selected ? 'true' : undefined} aria-label={`Trecho ${index + 1}${slide.label ? `, ${slide.label}` : ''}`} title={text || 'Trecho vazio'}>
+      <button type="button" className="si-main" onClick={() => editor.selectSlide(slide.id)} aria-current={selected ? 'true' : undefined} aria-label={tr('Trecho {0}{1}', index + 1, slide.label ? `, ${slide.label}` : '')} title={text || tr('Trecho vazio')}>
         <span className="si-thumb">
           <LazyMount>
             <SlideThumb slide={slide} theme={theme} aspect={aspect} />
           </LazyMount>
         </span>
         <span className="si-cap" data-label={slide.label ? '1' : undefined} data-blank={caption ? undefined : '1'}>
-          {caption || 'Trecho vazio'}
+          {caption || tr('Trecho vazio')}
         </span>
       </button>
       <span className="si-actions">
@@ -86,7 +87,7 @@ const SlideItem = memo(function SlideItem({ slide, index, count, theme, aspect, 
           items={items}
           width={230}
           trigger={(open, toggle) => (
-            <button type="button" className="ibtn ibtn-sm" data-active={open ? '1' : undefined} aria-label={`Ações do trecho ${index + 1}`} aria-haspopup="menu" aria-expanded={open} onClick={toggle}>
+            <button type="button" className="ibtn ibtn-sm" data-active={open ? '1' : undefined} aria-label={tr('Ações do trecho {0}', index + 1)} aria-haspopup="menu" aria-expanded={open} onClick={toggle}>
               <LuEllipsis />
             </button>
           )}
@@ -136,20 +137,20 @@ export function SlideList({ onLyrics }: { onLyrics: () => void }) {
     <div className="sl">
       <div className="sl-head">
         <span className="sl-title">
-          Trechos <em>{slides.length}</em>
+          {tr('Trechos')}{' '}<em>{slides.length}</em>
         </span>
-        <IconButton label="Colar a letra completa" icon={<LuClipboardPaste />} size="sm" onClick={onLyrics} />
-        <IconButton label="Novo trecho" icon={<LuPlus />} size="sm" onClick={() => editor.addSlide()} />
+        <IconButton label={tr('Colar a letra completa')} icon={<LuClipboardPaste />} size="sm" onClick={onLyrics} />
+        <IconButton label={tr('Novo trecho')} icon={<LuPlus />} size="sm" onClick={() => editor.addSlide()} />
       </div>
       {empty && (
         <div className="sl-empty">
           <Button size="sm" variant="primary" icon={<LuClipboardPaste />} onClick={onLyrics}>
-            Colar a letra completa
+            {tr('Colar a letra completa')}
           </Button>
-          <p>Cole a letra e ela é dividida em trechos automaticamente.</p>
+          <p>{tr('Cole a letra e ela é dividida em trechos automaticamente.')}</p>
         </div>
       )}
-      <ol className="sl-list" aria-label="Trechos do louvor" title="Arraste um trecho para mudar a ordem">
+      <ol className="sl-list" aria-label={tr('Trechos do louvor')} title={tr('Arraste um trecho para mudar a ordem')}>
         {slides.map((s, i) => (
           <SlideItem
             key={s.id}

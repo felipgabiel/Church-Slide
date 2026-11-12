@@ -8,6 +8,7 @@ import { useSetting } from '../../core/settings';
 import { rotatedHalf, SAFE_MARGIN, snapAxis, SNAP_PX, SNAP_SETTING, type SnapHit } from '../../core/snap';
 import { SnapToggle } from '../../ui/SnapToggle';
 import type { StudioApi } from './Studio';
+import { tr } from '../../core/i18n';
 
 export interface StudioClock {
   toggle: () => void;
@@ -70,17 +71,17 @@ export function StudioStage({ api, clockRef }: { api: StudioApi; clockRef: Mutab
       <div className="st-bar">
         <LoopBar loopSec={design.loopSec} clock={clock} />
         <div className="st-chips">
-          <button type="button" className="st-chip" aria-pressed={sample} data-on={sample ? '1' : undefined} onClick={() => setSample(!sample)} title="Mostra uma letra por cima para conferir a leitura">
-            <LuType aria-hidden /> Letra de exemplo
+          <button type="button" className="st-chip" aria-pressed={sample} data-on={sample ? '1' : undefined} onClick={() => setSample(!sample)} title={tr('Mostra uma letra por cima para conferir a leitura')}>
+            <LuType aria-hidden />{' '}{tr('Letra de exemplo')}
           </button>
           <SnapToggle className="st-chip" />
-          <button type="button" className="st-chip" onClick={() => clockRef.current?.fullscreen()} title="Tela cheia (F)">
-            <LuMaximize aria-hidden /> Tela cheia
+          <button type="button" className="st-chip" onClick={() => clockRef.current?.fullscreen()} title={tr('Tela cheia (F)')}>
+            <LuMaximize aria-hidden />{' '}{tr('Tela cheia')}
           </button>
-          <ContrastMeter design={design} getTime={clock.now} onFix={() => api.addLayer('glow', { name: 'Sombra central', w: 160, h: 70, opacity: 55, blend: 'normal', fill: { type: 'solid', angle: 0, stops: [{ color: '#000000', at: 0 }] } })} />
+          <ContrastMeter design={design} getTime={clock.now} onFix={() => api.addLayer('glow', { name: tr('Sombra central'), w: 160, h: 70, opacity: 55, blend: 'normal', fill: { type: 'solid', angle: 0, stops: [{ color: '#000000', at: 0 }] } })} />
         </div>
       </div>
-      {selected && !selected.visible && <p className="st-note">A camada selecionada está oculta.</p>}
+      {selected && !selected.visible && <p className="st-note">{tr('A camada selecionada está oculta.')}</p>}
     </div>
   );
 }
@@ -104,7 +105,7 @@ function LoopBar({ loopSec, clock }: { loopSec: number; clock: ReturnType<typeof
   const fmt = (v: number) => v.toFixed(1).replace('.', ',');
   return (
     <div className="st-loop">
-      <button type="button" className="ibtn ibtn-sm" aria-label={clock.playing ? 'Pausar (Espaço)' : 'Tocar (Espaço)'} title={clock.playing ? 'Pausar (Espaço)' : 'Tocar (Espaço)'} onClick={clock.toggle}>
+      <button type="button" className="ibtn ibtn-sm" aria-label={clock.playing ? tr('Pausar (Espaço)') : tr('Tocar (Espaço)')} title={clock.playing ? tr('Pausar (Espaço)') : tr('Tocar (Espaço)')} onClick={clock.toggle}>
         {clock.playing ? <LuPause /> : <LuPlay />}
       </button>
       <input
@@ -114,12 +115,12 @@ function LoopBar({ loopSec, clock }: { loopSec: number; clock: ReturnType<typeof
         max={loopSec}
         step={0.01}
         value={t}
-        aria-label="Posição no loop"
+        aria-label={tr('Posição no loop')}
         style={{ '--p': `${(t / loopSec) * 100}%` } as Record<string, string>}
         onChange={(e) => clock.seek(Number(e.currentTarget.value))}
       />
       <span className="st-time">
-        {fmt(t)} s de {loopSec} s
+        {fmt(t)}{' '}{tr('s de')}{' '}{loopSec} s
       </span>
     </div>
   );
@@ -172,12 +173,12 @@ function ContrastMeter({ design, getTime, onFix }: { design: BackgroundDesign; g
   if (ratio === null) return null;
   const level = ratio >= 4.5 ? 'good' : ratio >= 3 ? 'ok' : 'low';
   return (
-    <span className="st-contrast" data-level={level} title={`Contraste estimado da letra branca no centro: ${ratio.toFixed(1)}:1`}>
+    <span className="st-contrast" data-level={level} title={tr('Contraste estimado da letra branca no centro: {0}:1', ratio.toFixed(1))}>
       <i aria-hidden />
-      {level === 'good' ? 'Contraste: bom' : level === 'ok' ? 'Contraste: razoável' : 'Contraste: baixo'}
+      {level === 'good' ? tr('Contraste: bom') : level === 'ok' ? tr('Contraste: razoável') : tr('Contraste: baixo')}
       {level !== 'good' && (
         <button type="button" className="st-fix" onClick={onFix}>
-          Escurecer o centro
+          {tr('Escurecer o centro')}
         </button>
       )}
     </span>
@@ -370,8 +371,8 @@ function Surface({ api, getTime, sample }: { api: StudioApi; getTime: () => numb
       <DesignCanvas design={design} mode="live" getTime={getTime} maxWidth={1600} />
       {sample && (
         <div className="st-sample" aria-hidden>
-          <span className="st-sample-small">vem sobre mim</span>
-          <span className="st-sample-big">SENHOR</span>
+          <span className="st-sample-small">{tr('vem sobre mim')}</span>
+          <span className="st-sample-big">{tr('SENHOR')}</span>
         </div>
       )}
       {busy === 'move' && (
@@ -386,7 +387,7 @@ function Surface({ api, getTime, sample }: { api: StudioApi; getTime: () => numb
         </div>
       )}
       {W > 0 && others.map((l) => <div key={l.id} className="sel st-sel sel-extra" style={outline(l)} aria-hidden />)}
-      {selectedIds.length > 1 && <span className="sel-count">{selectedIds.length} camadas selecionadas · Ctrl + clique soma ou tira</span>}
+      {selectedIds.length > 1 && <span className="sel-count">{selectedIds.length}{' '}{tr('camadas selecionadas · Ctrl + clique soma ou tira')}</span>}
       {box && sel && (
         <div className="sel-wrap" data-drag={busy === 'move' ? '1' : undefined} data-busy={busy === 'rotate' ? '1' : undefined}>
           <div
@@ -400,7 +401,7 @@ function Surface({ api, getTime, sample }: { api: StudioApi; getTime: () => numb
                   <span key={c} className={`grip grip-${c}`} onPointerDown={onGrip('scale')} aria-hidden />
                 ))}
                 {sel.kind !== 'waves' && (
-                  <span className="grip-rot" onPointerDown={onGrip('rotate')} title="Girar (Shift: de 15 em 15°)" aria-hidden>
+                  <span className="grip-rot" onPointerDown={onGrip('rotate')} title={tr('Girar (Shift: de 15 em 15°)')} aria-hidden>
                     <LuRotateCw />
                   </span>
                 )}

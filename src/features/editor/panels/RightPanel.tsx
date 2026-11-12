@@ -7,6 +7,7 @@ import { AnimationPanel } from './AnimationPanel';
 import { BackgroundPanel } from './BackgroundPanel';
 import { TextPanel } from './TextPanel';
 import { WordsPanel } from './WordsPanel';
+import { tr } from '../../../core/i18n';
 
 type Tab = 'text' | 'words' | 'background' | 'animation';
 
@@ -16,7 +17,7 @@ function ActiveLayerName() {
   const n = useSelectedLayerIds().length;
   if (!layer) return null;
   return (
-    <span className="ctx-layer" data-static="1" data-hidden={layer.visible ? undefined : '1'} title="Troque a camada no painel Camadas, embaixo do palco">
+    <span className="ctx-layer" data-static="1" data-hidden={layer.visible ? undefined : '1'} title={tr('Troque a camada no painel Camadas, embaixo do palco')}>
       <LuLayers aria-hidden />
       <b>{layer.name}</b>
       {n > 1 && <em>+{n - 1}</em>}
@@ -34,22 +35,22 @@ export function RightPanel() {
         <ActiveLayerName />
         <Segmented<EditScope>
           size="sm"
-          label="Escopo das alterações"
+          label={tr('Escopo das alterações')}
           value={scope}
           onChange={(v) => editor.setScope(v)}
           options={[
-            { value: 'slide', label: 'Este trecho', title: 'As alterações valem só para o trecho selecionado' },
-            { value: 'all', label: 'Todos', title: 'As alterações valem para todos os trechos do louvor' },
+            { value: 'slide', label: tr('Este trecho'), title: tr('As alterações valem só para o trecho selecionado') },
+            { value: 'all', label: tr('Todos'), title: tr('As alterações valem para todos os trechos do louvor') },
           ]}
         />
       </div>
-      <div className="tabs" role="tablist" aria-label="Propriedades">
+      <div className="tabs" role="tablist" aria-label={tr('Propriedades')}>
         {(
           [
-            { id: 'text', label: 'Texto', icon: <LuType /> },
-            { id: 'words', label: 'Palavras', icon: <LuALargeSmall /> },
-            { id: 'background', label: 'Fundo', icon: <LuImage /> },
-            { id: 'animation', label: 'Animação', icon: <LuClapperboard /> },
+            { id: 'text', label: tr('Texto'), icon: <LuType /> },
+            { id: 'words', label: tr('Palavras'), icon: <LuALargeSmall /> },
+            { id: 'background', label: tr('Fundo'), icon: <LuImage /> },
+            { id: 'animation', label: tr('Animação'), icon: <LuClapperboard /> },
           ] as { id: Tab; label: string; icon: ReactNode }[]
         ).map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} data-on={tab === t.id ? '1' : '0'} onClick={() => setTab(t.id)}>

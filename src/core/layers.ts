@@ -1,5 +1,6 @@
 import type { DetachOrigin, Slide, TextLayer, WordOverride } from './types';
 import { tokenizeText, wordsOf } from './words';
+import { tr } from './i18n';
 
 /**
  * Operações puras sobre camadas e palavras: tirar uma palavra do texto, separar uma linha,
@@ -265,7 +266,7 @@ export const layerIsEmpty = (layer: TextLayer): boolean => layer.text.trim() ===
 
 const shortName = (text: string): string => {
   const t = text.replace(/\s+/g, ' ').trim();
-  return t.length > 20 ? `${t.slice(0, 19)}…` : t || 'Texto';
+  return t.length > 20 ? `${t.slice(0, 19)}…` : t || tr('Texto');
 };
 
 /**
@@ -300,7 +301,7 @@ export function detachedLayer(src: TextLayer, cut: LineCut, geom: { x: number; y
 export function copyLayer(src: TextLayer, id: string): TextLayer {
   const c = structuredClone(src);
   c.id = id;
-  c.name = src.name.endsWith(' cópia') ? src.name : `${src.name} cópia`;
+  c.name = src.name.endsWith(tr('{0} cópia', '')) ? src.name : tr('{0} cópia', src.name);
   c.style.x = Math.min(100, Math.round((src.style.x + 4) * 10) / 10);
   c.style.y = Math.min(100, Math.round((src.style.y + 6) * 10) / 10);
   if (src.role === 'lyrics') c.role = 'free'; // só a camada original é "a letra" do trecho

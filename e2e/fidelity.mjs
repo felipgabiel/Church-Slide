@@ -36,7 +36,9 @@ const measure = (a, b) => {
 };
 
 const browser = await chromium.launch();
-const page = await (await browser.newContext({ viewport: { width: 1280, height: 720 } })).newPage();
+const fctx = await browser.newContext({ viewport: { width: 1280, height: 720 }, locale: 'pt-BR' });
+await fctx.addInitScript(() => localStorage.getItem('cs:lang') || localStorage.setItem('cs:lang', '"pt-BR"'));
+const page = await fctx.newPage();
 const errs = [];
 page.on('pageerror', (e) => errs.push(e.message));
 await page.goto(`http://127.0.0.1:${port}/`);

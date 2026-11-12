@@ -9,12 +9,13 @@ import { Row, Segmented, Switch } from '../../ui/Controls';
 import { Modal } from '../../ui/Modal';
 import { toast } from '../../ui/toast';
 import type { FitMode } from '../../core/present/channel';
+import { LANG, LANGS, setLang, tr, type Lang } from '../../core/i18n';
 
 /* --------------------------- Informações --------------------------- */
 
 export function InfoDialog({ open, onClose, categories }: { open: boolean; onClose: () => void; categories: string[] }) {
   return (
-    <Modal open={open} onClose={onClose} title="Informações do louvor" width={460}>
+    <Modal open={open} onClose={onClose} title={tr('Informações do louvor')} width={460}>
       {open && <InfoForm onClose={onClose} categories={categories} />}
     </Modal>
   );
@@ -35,19 +36,19 @@ function InfoForm({ onClose, categories }: { onClose: () => void; categories: st
     >
       <div className="field">
         <label className="field-label" htmlFor="ed-name">
-          Nome
+          {tr('Nome')}
         </label>
         <input id="ed-name" className="input" autoFocus value={name} onChange={(e) => setName(e.currentTarget.value)} />
       </div>
       <div className="field">
         <label className="field-label" htmlFor="ed-artist">
-          Artista ou ministério
+          {tr('Artista ou ministério')}
         </label>
         <input id="ed-artist" className="input" value={artist} onChange={(e) => setArtist(e.currentTarget.value)} />
       </div>
       <div className="field">
         <label className="field-label" htmlFor="ed-cat">
-          Categoria
+          {tr('Categoria')}
         </label>
         <input id="ed-cat" className="input" list="ed-cats" value={category} onChange={(e) => setCategory(e.currentTarget.value)} />
         <datalist id="ed-cats">
@@ -57,9 +58,9 @@ function InfoForm({ onClose, categories }: { onClose: () => void; categories: st
         </datalist>
       </div>
       <div className="modal-actions">
-        <Button onClick={onClose}>Cancelar</Button>
+        <Button onClick={onClose}>{tr('Cancelar')}</Button>
         <Button variant="primary" type="submit">
-          Salvar
+          {tr('Salvar')}
         </Button>
       </div>
     </form>
@@ -82,30 +83,30 @@ function StorageInfo() {
   useEffect(() => {
     void load();
   }, []);
-  if (!info) return <p className="field-hint">Informação de armazenamento indisponível neste navegador.</p>;
+  if (!info) return <p className="field-hint">{tr('Informação de armazenamento indisponível neste navegador.')}</p>;
   return (
     <>
-      <Row label="Espaço usado" hint="Projetos, imagens, vídeos e fontes">
+      <Row label={tr('Espaço usado')} hint={tr('Projetos, imagens, vídeos e fontes')}>
         <span className="set-val">
           {formatBytes(info.usage)}
-          {info.quota ? ` de ${formatBytes(info.quota)}` : ''}
+          {info.quota ? tr(' de {0}', formatBytes(info.quota)) : ''}
         </span>
       </Row>
-      <Row label="Proteção contra limpeza" hint="O navegador não apaga os dados sozinho quando faltar espaço">
+      <Row label={tr('Proteção contra limpeza')} hint={tr('O navegador não apaga os dados sozinho quando faltar espaço')}>
         {info.persisted ? (
           <span className="chip" data-tone="ok">
-            Ativa
+            {tr('Ativa')}
           </span>
         ) : (
           <Button
             size="sm"
             onClick={async () => {
               const ok = await requestPersistence();
-              toast(ok ? 'Armazenamento protegido' : 'O navegador não concedeu a proteção agora. Tente novamente mais tarde.', ok ? 'ok' : 'info');
+              toast(ok ? tr('Armazenamento protegido') : tr('O navegador não concedeu a proteção agora. Tente novamente mais tarde.'), ok ? 'ok' : 'info');
               void load();
             }}
           >
-            Ativar
+            {tr('Ativar')}
           </Button>
         )}
       </Row>
@@ -117,26 +118,30 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
   const [guides, setGuides] = useSetting<boolean>('guides', false);
   const [fit, setFit] = useSetting<FitMode>('fit', 'fill');
   return (
-    <Modal open={open} onClose={onClose} title="Configurações" width={500} footer={<Button onClick={onClose}>Fechar</Button>}>
+    <Modal open={open} onClose={onClose} title={tr('Configurações')} width={500} footer={<Button onClick={onClose}>{tr('Fechar')}</Button>}>
       <div className="set">
-        <h3>Editor</h3>
-        <Row label="Mostrar guias na pré-visualização" hint="Centro e área segura de 5%">
-          <Switch checked={guides} onChange={setGuides} label="Mostrar guias" />
+        <h3>{tr('Idioma')}</h3>
+        <Row label={tr('Idioma do site')} hint={tr('A página recarrega para trocar')}>
+          <Segmented<Lang> size="sm" label={tr('Idioma do site')} value={LANG} onChange={(v) => v !== LANG && setLang(v)} options={LANGS.map((l) => ({ value: l.id, label: l.label }))} />
         </Row>
-        <h3>Telão</h3>
-        <Row label="Quando a tela não for 16:9" hint="Preencher corta nada: o texto se adapta à tela">
+        <h3>{tr('Editor')}</h3>
+        <Row label={tr('Mostrar guias na pré-visualização')} hint={tr('Centro e área segura de 5%')}>
+          <Switch checked={guides} onChange={setGuides} label={tr('Mostrar guias')} />
+        </Row>
+        <h3>{tr('Telão')}</h3>
+        <Row label={tr('Quando a tela não for 16:9')} hint={tr('Preencher corta nada: o texto se adapta à tela')}>
           <Segmented<FitMode>
             size="sm"
-            label="Ajuste da imagem no telão"
+            label={tr('Ajuste da imagem no telão')}
             value={fit}
             onChange={setFit}
             options={[
-              { value: 'fill', label: 'Preencher' },
-              { value: 'letterbox', label: 'Barras pretas' },
+              { value: 'fill', label: tr('Preencher') },
+              { value: 'letterbox', label: tr('Barras pretas') },
             ]}
           />
         </Row>
-        <h3>Armazenamento</h3>
+        <h3>{tr('Armazenamento')}</h3>
         <StorageInfo />
       </div>
     </Modal>
@@ -146,21 +151,21 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
 /* ------------------------------- Atalhos ------------------------------- */
 
 const EDITOR_KEYS: { keys: string; label: string }[] = [
-  { keys: 'Ctrl+Z', label: 'Desfazer' },
-  { keys: 'Ctrl+Shift+Z  ou  Ctrl+Y', label: 'Refazer' },
-  { keys: 'Ctrl+S', label: 'Salvar agora (o salvamento automático já acontece)' },
-  { keys: 'Ctrl+D', label: 'Duplicar o trecho' },
-  { keys: '↑ / ↓', label: 'Trecho anterior / seguinte' },
-  { keys: 'Alt+↑ / Alt+↓', label: 'Mover o trecho' },
-  { keys: 'Delete', label: 'Excluir o trecho' },
-  { keys: 'R', label: 'Repetir a animação' },
-  { keys: 'Ctrl+Enter', label: 'Abrir o modo de apresentação' },
+  { keys: 'Ctrl+Z', label: tr('Desfazer') },
+  { keys: 'Ctrl+Shift+Z  ou  Ctrl+Y', label: tr('Refazer') },
+  { keys: 'Ctrl+S', label: tr('Salvar agora (o salvamento automático já acontece)') },
+  { keys: 'Ctrl+D', label: tr('Duplicar o trecho') },
+  { keys: '↑ / ↓', label: tr('Trecho anterior / seguinte') },
+  { keys: 'Alt+↑ / Alt+↓', label: tr('Mover o trecho') },
+  { keys: 'Delete', label: tr('Excluir o trecho') },
+  { keys: 'R', label: tr('Repetir a animação') },
+  { keys: 'Ctrl+Enter', label: tr('Abrir o modo de apresentação') },
 ];
 
 export function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <Modal open={open} onClose={onClose} title="Atalhos de teclado" width={560} footer={<Button onClick={onClose}>Fechar</Button>}>
-      <h3 className="sc-title">No editor</h3>
+    <Modal open={open} onClose={onClose} title={tr('Atalhos de teclado')} width={560} footer={<Button onClick={onClose}>{tr('Fechar')}</Button>}>
+      <h3 className="sc-title">{tr('No editor')}</h3>
       <dl className="sc">
         {EDITOR_KEYS.map((s) => (
           <div key={s.keys}>
@@ -169,7 +174,7 @@ export function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () 
           </div>
         ))}
       </dl>
-      <h3 className="sc-title">Na apresentação</h3>
+      <h3 className="sc-title">{tr('Na apresentação')}</h3>
       <dl className="sc">
         {shortcutHelp().map((s) => (
           <div key={s.keys}>

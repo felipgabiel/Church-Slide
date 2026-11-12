@@ -296,6 +296,21 @@ download e nunca vai para dentro do vídeo. "Agora não" esconde o convite por 3
 banco (chave aleatória, sem valor fixo; CRC conferido em teste) e o QR foi desenhado uma vez como caminho SVG,
 então funciona sem internet e sem biblioteca. Para trocar o Pix: substituir `PIX_CODE` e gerar o `PIX_QR` de novo.
 
+### Idiomas e boas-vindas (`core/i18n.ts`, `i18n/en.ts`, `i18n/es.ts`, `features/onboarding/Welcome.tsx`)
+
+- **Texto-fonte em português:** toda frase da interface passa por `tr('…')`; o português é a chave e o dicionário do
+  idioma escolhido (inglês ou espanhol) devolve a tradução. Partes variáveis usam `{0}`, `{1}`
+  (`tr('Trecho {0} de {1}', i, n)`), e o teste `tests/i18n.test.ts` confere que toda tradução tem os mesmos marcadores
+  e que toda frase em português do código tem versão em inglês.
+- **Escolha:** `cs:lang` no navegador. Sem escolha, segue o idioma do navegador (pt/en/es), senão português. Trocar
+  recarrega a página, porque rótulos de módulo (temas, estilos de animação, atalhos) são lidos uma vez. O `<html lang>`, o
+  corretor da caixa de letra e as datas acompanham o idioma. Grupos usados como dados (ex.: "Básicas", "Serifa") ficam em
+  português no código e são traduzidos só na hora de mostrar.
+- **Primeiro acesso:** a tela de boas-vindas pede idioma (os textos dela trocam na hora) e tema, com duas prévias
+  desenhadas em CSS (barra lateral, slide e lista em cada tema); clicar numa prévia já aplica o tema. Depois, o idioma
+  muda pelo botão de idioma da biblioteca ou em *Configurações* no editor.
+- O que a pessoa digita (letras, nomes de louvores, camadas já criadas) nunca é traduzido.
+
 ## 9. Fontes embutidas
 
 Poppins 400/500/700 (SIL OFL 1.1, recortada para caracteres latinos, ~11 KB cada) está em `src/assets/fonts/`
@@ -342,8 +357,8 @@ Painéis laterais acompanham a largura do monitor (`clamp`), testados de 1280×7
 | Comando | O que faz |
 |---|---|
 | `npm run typecheck` | `tsc --noEmit` (ver limitação na seção 1) |
-| `npm test` | 115 testes unitários: easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
-| `npm run build && npm run e2e` | 41 etapas no navegador contra o build de produção (ver abaixo) |
+| `npm test` | 118 testes unitários: idiomas (marcadores e cobertura do dicionário), easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
+| `npm run build && npm run e2e` | 42 etapas no navegador contra o build de produção (ver abaixo) |
 | `npm run e2e:fidelity` | compara o desenho em canvas (vídeo) com o DOM do editor (PSNR; exige ffmpeg) |
 
 O e2e (`e2e/run.mjs`) cria um louvor pela interface, edita e confere a persistência após recarregar,
@@ -360,7 +375,8 @@ biblioteca, editor, menus, diálogos e operador) e o Estúdio de Fundos (criar a
 salvar sozinho, camadas e movimentos, vídeo só do fundo com 360 quadros e emenda invisível, cópia no louvor, "Atualizar" e a
 ida e volta editor ↔ estúdio), o painel de camadas (adicionar, renomear, ocultar, reordenar, excluir), a palavra solta
 que continua na "Letra completa", o zoom (Ctrl + roda no ponto do mouse, lupas, Espaço + arrastar sem mover o texto), o aviso
-de louvor repetido e as miniaturas da lixeira. Termina conferindo que não houve erros de console.
+de louvor repetido, as miniaturas da lixeira e o primeiro acesso (boas-vindas, prévias de tema, site em inglês e espanhol
+e a volta ao português). Termina conferindo que não houve erros de console.
 
 O build **falha** se `sw.js` sair com marcadores sem substituir — um bug anterior fazia o service
 worker não registrar e o modo offline nunca funcionava, sem nenhum aviso.

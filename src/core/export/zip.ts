@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 /**
  * Gerador de ZIP sem dependências (método "store": sem compressão).
  * Vídeos já são comprimidos, então comprimir de novo só gastaria tempo.
@@ -60,7 +61,7 @@ export async function buildZip(files: ZipFile[], now = new Date()): Promise<Blob
     const f = files[i];
     const bytes = f.data instanceof Blob ? new Uint8Array(await f.data.arrayBuffer()) : f.data;
     const size = bytes.length;
-    if (size > MAX32 || offset > MAX32) throw new Error('O arquivo ZIP passaria de 4 GB. Exporte menos trechos por vez ou reduza a resolução.');
+    if (size > MAX32 || offset > MAX32) throw new Error(tr('O arquivo ZIP passaria de 4 GB. Exporte menos trechos por vez ou reduza a resolução.'));
     const name = enc.encode(names[i]);
     const crc = crc32(bytes);
 

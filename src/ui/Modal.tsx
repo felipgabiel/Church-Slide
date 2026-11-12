@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { LuX } from 'react-icons/lu';
 import { IconButton } from './Button';
+import { tr } from '../core/i18n';
 
 interface ModalProps {
   open: boolean;
@@ -44,7 +45,7 @@ export function Modal({ open, onClose, title, description, children, footer, wid
               <h2>{title}</h2>
               {description && <p>{description}</p>}
             </div>
-            <IconButton label="Fechar" icon={<LuX />} size="sm" onClick={() => ref.current?.close()} />
+            <IconButton label={tr('Fechar')} icon={<LuX />} size="sm" onClick={() => ref.current?.close()} />
           </header>
           <div className="modal-body">{children}</div>
           {footer && <footer className="modal-foot">{footer}</footer>}

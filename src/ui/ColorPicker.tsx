@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as RKeyboardEvent, type PointerEvent as RPointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { hexToHsv, hsvToHex, normalizeHex, type HSV } from '../core/colorMath';
+import { tr } from '../core/i18n';
 
 /* ------------------------------ Popover ------------------------------ */
 
@@ -147,13 +148,13 @@ export function ColorPicker({ value, onChange, footer }: { value: string; onChan
         onPointerDown={sv}
         tabIndex={0}
         role="slider"
-        aria-label="Saturação e brilho (setas ajustam)"
+        aria-label={tr('Saturação e brilho (setas ajustam)')}
         aria-valuetext={hsvToHex(hsv)}
         onKeyDown={(e) => keyNudge(e, 's')}
       >
         <i style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%`, background: hsvToHex(hsv) }} />
       </div>
-      <div className="cp-hue" onPointerDown={hue} tabIndex={0} role="slider" aria-label="Matiz" aria-valuemin={0} aria-valuemax={360} aria-valuenow={Math.round(hsv.h)} onKeyDown={(e) => keyNudge(e, 'h')}>
+      <div className="cp-hue" onPointerDown={hue} tabIndex={0} role="slider" aria-label={tr('Matiz')} aria-valuemin={0} aria-valuemax={360} aria-valuenow={Math.round(hsv.h)} onKeyDown={(e) => keyNudge(e, 'h')}>
         <i style={{ left: `${(hsv.h / 360) * 100}%`, background: pure }} />
       </div>
       <div className="cp-row">
@@ -162,7 +163,7 @@ export function ColorPicker({ value, onChange, footer }: { value: string; onChan
           className="cp-hex"
           value={text}
           spellCheck={false}
-          aria-label="Cor em hexadecimal"
+          aria-label={tr('Cor em hexadecimal')}
           onChange={(e) => {
             setText(e.currentTarget.value);
             const n = normalizeHex(e.currentTarget.value);
@@ -171,9 +172,9 @@ export function ColorPicker({ value, onChange, footer }: { value: string; onChan
           onBlur={() => setText(hsvToHex(hsv))}
         />
       </div>
-      <div className="cp-swatches" aria-label="Cores rápidas">
+      <div className="cp-swatches" aria-label={tr('Cores rápidas')}>
         {[...recent.current, ...STARTERS.filter((c) => !recent.current.includes(c))].slice(0, 16).map((c) => (
-          <button key={c} type="button" style={{ background: c }} title={c} aria-label={`Usar ${c}`} onClick={() => pick(c)} />
+          <button key={c} type="button" style={{ background: c }} title={c} aria-label={tr('Usar {0}', c)} onClick={() => pick(c)} />
         ))}
       </div>
       {footer}

@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 /**
  * Suporte a múltiplos monitores/projetores.
  *
@@ -56,7 +57,7 @@ export async function detectScreens(): Promise<ScreenInfo[]> {
   const details = (await (window as unknown as { getScreenDetails(): Promise<ScreenDetailsLike> }).getScreenDetails()) as ScreenDetailsLike;
   return details.screens.map((s, i) => ({
     id: `${s.left},${s.top},${s.width}x${s.height}`,
-    label: s.label || (s.isPrimary ? 'Monitor principal' : `Monitor ${i + 1}`),
+    label: s.label || (s.isPrimary ? tr('Monitor principal') : tr('Monitor {0}', i + 1)),
     left: s.left,
     top: s.top,
     width: s.width,

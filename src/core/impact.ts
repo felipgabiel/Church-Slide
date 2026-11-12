@@ -11,9 +11,17 @@ import { patchWord, tokenizeText } from './words';
 const NAMES = new Set([
   'senhor', 'deus', 'jesus', 'cristo', 'espirito', 'pai', 'rei', 'salvador', 'redentor', 'cordeiro', 'altissimo',
   'emanuel', 'messias', 'jeova', 'yahweh', 'adonai', 'elohim', 'abba', 'consolador',
+  // inglês
+  'lord', 'god', 'christ', 'spirit', 'father', 'king', 'savior', 'saviour', 'redeemer', 'lamb', 'almighty', 'immanuel', 'emmanuel', 'messiah',
+  // espanhol
+  'senor', 'dios', 'espiritu', 'padre', 'rey', 'cordero', 'altisimo', 'mesias',
 ]);
 /** Outras palavras de peso em um louvor. */
-const THEMES = new Set(['santo', 'aleluia', 'gloria', 'amor', 'fe', 'graca', 'paz', 'vida', 'hosana', 'maranata', 'leao']);
+const THEMES = new Set([
+  'santo', 'aleluia', 'gloria', 'amor', 'fe', 'graca', 'paz', 'vida', 'hosana', 'maranata', 'leao',
+  'holy', 'hallelujah', 'alleluia', 'glory', 'love', 'faith', 'grace', 'peace', 'life', 'hosanna',
+  'aleluya', 'gracia', 'leon',
+]);
 
 const keyScore = (w: string) => {
   const n = norm(w);

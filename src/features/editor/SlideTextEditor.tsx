@@ -3,8 +3,9 @@ import { LuMerge, LuScissors } from 'react-icons/lu';
 import { editor, useActiveLayer, useActiveSlide, useEditor } from '../../store/editor';
 import { Button } from '../../ui/Button';
 import { toast } from '../../ui/toast';
+import { LANG, tr } from '../../core/i18n';
 
-const LABELS = ['Verso 1', 'Verso 2', 'Verso 3', 'Pré-refrão', 'Refrão', 'Ponte', 'Final', 'Intro'];
+const LABELS = [tr('Verso 1'), tr('Verso 2'), tr('Verso 3'), tr('Pré-refrão'), tr('Refrão'), tr('Ponte'), tr('Final'), tr('Intro')];
 
 /** Texto, rótulo, duração e anotações do trecho selecionado. */
 export function SlideTextEditor() {
@@ -18,21 +19,21 @@ export function SlideTextEditor() {
 
   const split = () => {
     const pos = area.current?.selectionStart ?? 0;
-    if (!editor.splitSlideAt(slide.id, layer.id, pos)) toast('Coloque o cursor no meio do texto para dividir o trecho.', 'info');
+    if (!editor.splitSlideAt(slide.id, layer.id, pos)) toast(tr('Coloque o cursor no meio do texto para dividir o trecho.'), 'info');
   };
 
   return (
-    <section className="te" aria-label="Texto do trecho">
+    <section className="te" aria-label={tr('Texto do trecho')}>
       <header className="te-head">
         <h2>
-          Trecho {index + 1} <small>· {layer.name}</small>
+          {tr('Trecho')}{' '}{index + 1} <small>· {layer.name}</small>
         </h2>
         <div className="te-actions">
-          <Button size="sm" variant="ghost" icon={<LuScissors />} onClick={split} title="Divide o texto na posição do cursor em dois trechos">
-            Dividir no cursor
+          <Button size="sm" variant="ghost" icon={<LuScissors />} onClick={split} title={tr('Divide o texto na posição do cursor em dois trechos')}>
+            {tr('Dividir no cursor')}
           </Button>
-          <Button size="sm" variant="ghost" icon={<LuMerge />} onClick={() => editor.mergeWithNext(slide.id)} disabled={index >= count - 1} title="Junta com o trecho seguinte">
-            Mesclar com o próximo
+          <Button size="sm" variant="ghost" icon={<LuMerge />} onClick={() => editor.mergeWithNext(slide.id)} disabled={index >= count - 1} title={tr('Junta com o trecho seguinte')}>
+            {tr('Mesclar com o próximo')}
           </Button>
         </div>
       </header>
@@ -42,17 +43,17 @@ export function SlideTextEditor() {
         className="textarea te-area"
         rows={4}
         spellCheck
-        lang="pt-BR"
-        aria-label={`Texto da camada ${layer.name}`}
+        lang={LANG}
+        aria-label={tr('Texto da camada {0}', layer.name)}
         value={layer.text}
-        placeholder="Digite ou cole o texto deste trecho"
+        placeholder={tr('Digite ou cole o texto deste trecho')}
         onChange={(e) => editor.setLayerText(slide.id, layer.id, e.currentTarget.value)}
       />
 
       <div className="te-meta">
         <label>
-          <span>Rótulo</span>
-          <input className="input" list="te-labels" value={slide.label} placeholder="Ex.: Refrão" onChange={(e) => editor.setSlideMeta(slide.id, { label: e.currentTarget.value })} />
+          <span>{tr('Rótulo')}</span>
+          <input className="input" list="te-labels" value={slide.label} placeholder={tr('Ex.: Refrão')} onChange={(e) => editor.setSlideMeta(slide.id, { label: e.currentTarget.value })} />
           <datalist id="te-labels">
             {LABELS.map((l) => (
               <option key={l} value={l} />
@@ -60,7 +61,7 @@ export function SlideTextEditor() {
           </datalist>
         </label>
         <label className="te-dur">
-          <span>Avanço automático</span>
+          <span>{tr('Avanço automático')}</span>
           <span className="te-dur-in">
             <input
               className="input"
@@ -69,7 +70,7 @@ export function SlideTextEditor() {
               max={600}
               step={1}
               value={slide.duration ?? ''}
-              placeholder="manual"
+              placeholder={tr('manual')}
               onChange={(e) => {
                 const n = parseFloat(e.currentTarget.value);
                 editor.setSlideMeta(slide.id, { duration: Number.isFinite(n) && n > 0 ? n : null });
@@ -79,8 +80,8 @@ export function SlideTextEditor() {
           </span>
         </label>
         <label className="te-notes">
-          <span>Anotações do operador</span>
-          <input className="input" value={slide.notes} placeholder="Só aparecem para quem controla a apresentação" onChange={(e) => editor.setSlideMeta(slide.id, { notes: e.currentTarget.value })} />
+          <span>{tr('Anotações do operador')}</span>
+          <input className="input" value={slide.notes} placeholder={tr('Só aparecem para quem controla a apresentação')} onChange={(e) => editor.setSlideMeta(slide.id, { notes: e.currentTarget.value })} />
         </label>
       </div>
     </section>

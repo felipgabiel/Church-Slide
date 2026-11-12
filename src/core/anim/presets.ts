@@ -1,4 +1,5 @@
 import type { AnimPhase, AnimationConfig, ColorFx, Direction } from '../types';
+import { tr } from '../i18n';
 
 const OFF: AnimPhase = { fade: false, slide: false, zoom: 'none', blur: false };
 const phase = (p: Partial<AnimPhase>): AnimPhase => ({ ...OFF, ...p });
@@ -51,16 +52,16 @@ const dir = (d: Direction) => d;
 export const ANIMATION_PRESETS: AnimPreset[] = [
   {
     id: 'none',
-    label: 'Sem animação',
+    label: tr('Sem animação'),
     group: 'Básicas',
-    hint: 'Troca instantânea',
+    hint: tr('Troca instantânea'),
     config: { enter: OFF, exit: OFF, motionBlur: 0, duration: 1, float: 0 },
   },
   {
     id: 'fade',
-    label: 'Fade',
+    label: tr('Fade'),
     group: 'Básicas',
-    hint: 'Aparece e some suavemente',
+    hint: tr('Aparece e some suavemente'),
     config: {
       enter: phase({ fade: true }),
       exit: phase({ fade: true }),
@@ -71,9 +72,9 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
   },
   {
     id: 'blur',
-    label: 'Blur In/Out',
+    label: tr('Blur In/Out'),
     group: 'Básicas',
-    hint: 'Surge do desfoque',
+    hint: tr('Surge do desfoque'),
     config: {
       enter: phase({ fade: true, blur: true }),
       exit: phase({ fade: true, blur: true }),
@@ -84,9 +85,9 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
   },
   {
     id: 'zoom-in',
-    label: 'Zoom In',
+    label: tr('Zoom In'),
     group: 'Básicas',
-    hint: 'Cresce até o tamanho final',
+    hint: tr('Cresce até o tamanho final'),
     config: {
       enter: phase({ fade: true, zoom: 'in' }),
       exit: phase({ fade: true, zoom: 'in' }),
@@ -97,9 +98,9 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
   },
   {
     id: 'zoom-out',
-    label: 'Zoom Out',
+    label: tr('Zoom Out'),
     group: 'Básicas',
-    hint: 'Encolhe até o tamanho final',
+    hint: tr('Encolhe até o tamanho final'),
     config: {
       enter: phase({ fade: true, zoom: 'out' }),
       exit: phase({ fade: true, zoom: 'out' }),
@@ -110,9 +111,9 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
   },
   ...(['up', 'down', 'left', 'right'] as Direction[]).map<AnimPreset>((d) => ({
     id: `slide-${d}`,
-    label: { up: 'Slide Up', down: 'Slide Down', left: 'Slide Left', right: 'Slide Right' }[d],
+    label: { up: tr('Slide Up'), down: tr('Slide Down'), left: tr('Slide Left'), right: tr('Slide Right') }[d],
     group: 'Movimento',
-    hint: { up: 'Sobe para o lugar', down: 'Desce para o lugar', left: 'Entra pela direita', right: 'Entra pela esquerda' }[d],
+    hint: { up: tr('Sobe para o lugar'), down: tr('Desce para o lugar'), left: tr('Entra pela direita'), right: tr('Entra pela esquerda') }[d],
     config: {
       enter: phase({ fade: true, slide: true }),
       exit: phase({ fade: true, slide: true }),
@@ -124,9 +125,9 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
   })),
   {
     id: 'float',
-    label: 'Movimento suave',
+    label: tr('Movimento suave'),
     group: 'Movimento',
-    hint: 'Entrada lenta e flutuação contínua',
+    hint: tr('Entrada lenta e flutuação contínua'),
     config: {
       enter: phase({ fade: true, slide: true }),
       exit: phase({ fade: true }),
@@ -140,9 +141,9 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
   },
   {
     id: 'rise-blur',
-    label: 'Sobe com desfoque',
+    label: tr('Sobe com desfoque'),
     group: 'Combinadas',
-    hint: 'Fade + slide + blur',
+    hint: tr('Fade + slide + blur'),
     config: {
       enter: phase({ fade: true, slide: true, blur: true }),
       exit: phase({ fade: true, blur: true }),
@@ -154,9 +155,9 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
   },
   {
     id: 'cinema',
-    label: 'Cinema',
+    label: tr('Cinema'),
     group: 'Combinadas',
-    hint: 'Zoom lento + desfoque + brilho de movimento',
+    hint: tr('Zoom lento + desfoque + brilho de movimento'),
     config: {
       enter: phase({ fade: true, zoom: 'out', blur: true }),
       exit: phase({ fade: true, zoom: 'out', blur: true }),
@@ -168,9 +169,9 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
   },
   {
     id: 'focus',
-    label: 'Foco',
+    label: tr('Foco'),
     group: 'Combinadas',
-    hint: 'Zoom In + blur, ideal para refrões',
+    hint: tr('Zoom In + blur, ideal para refrões'),
     config: {
       enter: phase({ fade: true, zoom: 'in', blur: true }),
       exit: phase({ fade: true, zoom: 'in', blur: true }),
@@ -182,9 +183,9 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
   },
   {
     id: 'by-line',
-    label: 'Linha por linha',
+    label: tr('Linha por linha'),
     group: 'Por texto',
-    hint: 'Cada linha entra em sequência',
+    hint: tr('Cada linha entra em sequência'),
     config: {
       enter: phase({ fade: true, slide: true }),
       exit: phase({ fade: true, slide: true }),
@@ -198,9 +199,9 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
   },
   {
     id: 'by-word',
-    label: 'Palavra por palavra',
+    label: tr('Palavra por palavra'),
     group: 'Por texto',
-    hint: 'Cada palavra surge em sequência',
+    hint: tr('Cada palavra surge em sequência'),
     config: {
       enter: phase({ fade: true, slide: true, blur: true }),
       exit: phase({ fade: true }),
@@ -215,9 +216,9 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
   },
   {
     id: 'by-phrase',
-    label: 'Frase inteira',
+    label: tr('Frase inteira'),
     group: 'Por texto',
-    hint: 'A frase entra de uma vez',
+    hint: tr('A frase entra de uma vez'),
     config: {
       enter: phase({ fade: true, slide: true }),
       exit: phase({ fade: true }),
@@ -247,8 +248,8 @@ export function applyPreset(id: string, current?: AnimationConfig): AnimationCon
 }
 
 export const DIRECTION_LABELS: Record<Direction, string> = {
-  up: 'Para cima',
-  down: 'Para baixo',
-  left: 'Para a esquerda',
-  right: 'Para a direita',
+  up: tr('Para cima'),
+  down: tr('Para baixo'),
+  left: tr('Para a esquerda'),
+  right: tr('Para a direita'),
 };

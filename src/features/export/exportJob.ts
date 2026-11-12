@@ -1,5 +1,6 @@
 import { ExportAbort } from '../../core/export/encode';
 import { createStore, useStore } from '../../store/createStore';
+import { tr } from '../../core/i18n';
 
 /**
  * Exportação de vídeos que continua em segundo plano: roda fora do diálogo (fechar não cancela),
@@ -72,14 +73,14 @@ export function startJob(meta: Pick<ExportJobState, 'kind' | 'ownerId' | 'title'
     .then((files) => {
       if (!mine()) return;
       patch({ status: 'done', files, progress: null, seen: exportJobs.get().dialog === meta.kind });
-      if (document.hidden) document.title = `✓ Vídeos prontos · ${baseTitle}`;
+      if (document.hidden) document.title = tr('✓ Vídeos prontos · {0}', baseTitle);
     })
     .catch((err) => {
       if (!mine()) return;
       if (err instanceof ExportAbort) exportJobs.set({ job: null });
       else {
         console.error(err);
-        patch({ status: 'error', progress: null, error: err instanceof Error ? err.message : 'Não foi possível gerar os vídeos.' });
+        patch({ status: 'error', progress: null, error: err instanceof Error ? err.message : tr('Não foi possível gerar os vídeos.') });
       }
     })
     .finally(() => {

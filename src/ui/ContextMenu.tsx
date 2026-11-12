@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { tr } from '../core/i18n';
 
 export interface ContextItem {
   /** título pequeno que separa grupos (não clicável) */
@@ -71,7 +72,7 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
       ref={ref}
       className="menu ctx-menu"
       role="menu"
-      aria-label="Ações do texto"
+      aria-label={tr('Ações do texto')}
       style={{ left: pos?.left ?? -9999, top: pos?.top ?? -9999, visibility: pos ? 'visible' : 'hidden' }}
       onContextMenu={(e) => e.preventDefault()}
     >

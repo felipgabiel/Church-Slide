@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { navigate, paths } from '../../app/router';
 import { editor, editorStore, flushSave } from '../../store/editor';
 import { toast } from '../../ui/toast';
+import { tr } from '../../core/i18n';
 
 const isTyping = (t: EventTarget | null) => {
   const el = t as HTMLElement | null;
@@ -27,7 +28,7 @@ export function useEditorShortcuts() {
 
       if (mod && key === 's') {
         e.preventDefault();
-        void flushSave().then(() => toast('Projeto salvo'));
+        void flushSave().then(() => toast(tr('Projeto salvo')));
         return;
       }
       if (mod && e.key === 'Enter') {

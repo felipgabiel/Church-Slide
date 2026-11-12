@@ -5,6 +5,7 @@ import type { LayerRole, TextLayer } from '../../core/types';
 import { editor, useActiveSlide, useEditor, useSelectedLayerIds } from '../../store/editor';
 import { IconButton } from '../../ui/Button';
 import { Menu, type MenuItem } from '../../ui/Menu';
+import { tr } from '../../core/i18n';
 
 const ROLE_ICON: Record<LayerRole, ReactNode> = {
   lyrics: <LuTextQuote />,
@@ -14,9 +15,9 @@ const ROLE_ICON: Record<LayerRole, ReactNode> = {
 };
 
 const ADD: { role: LayerRole; label: string; desc: string }[] = [
-  { role: 'free', label: 'Texto livre', desc: 'Uma frase solta, em qualquer lugar do palco' },
-  { role: 'title', label: 'Título da música', desc: 'Usa o nome do louvor' },
-  { role: 'credit', label: 'Crédito do artista', desc: 'Usa o artista do louvor' },
+  { role: 'free', label: tr('Texto livre'), desc: tr('Uma frase solta, em qualquer lugar do palco') },
+  { role: 'title', label: tr('Título da música'), desc: tr('Usa o nome do louvor') },
+  { role: 'credit', label: tr('Crédito do artista'), desc: tr('Usa o artista do louvor') },
 ];
 
 function iconOf(l: TextLayer) {
@@ -47,15 +48,15 @@ export function LayersPanel() {
     icon: ROLE_ICON[a.role],
     onClick: () => {
       if (a.role === 'free') editor.addFreeText();
-      else editor.addLayer(a.role, a.role === 'title' ? name : artist || 'Artista');
+      else editor.addLayer(a.role, a.role === 'title' ? name : artist || tr('Artista'));
     },
   }));
 
   return (
-    <section className="lyr" aria-label="Camadas do trecho">
+    <section className="lyr" aria-label={tr('Camadas do trecho')}>
       <header className="lyr-head">
         <h2>
-          Camadas <small>{n}</small>
+          {tr('Camadas')}{' '}<small>{n}</small>
         </h2>
         <Menu
           align="end"
@@ -66,25 +67,25 @@ export function LayersPanel() {
               <span className="btn-icon">
                 <LuPlus />
               </span>
-              Adicionar camada
+              {tr('Adicionar camada')}
             </button>
           )}
         />
       </header>
-      <ol className="dl-list lyr-list" aria-label="Camadas, da frente para trás" onDragLeave={() => setDrag((d) => (d ? { ...d, over: null } : d))}>
+      <ol className="dl-list lyr-list" aria-label={tr('Camadas, da frente para trás')} onDragLeave={() => setDrag((d) => (d ? { ...d, over: null } : d))}>
         {top.map((l, vi) => {
           const idx = n - 1 - vi;
           const preview = l.text.replace(/\s+/g, ' ').trim();
           const items: MenuItem[] = [
-            { label: 'Renomear', icon: <LuPencil />, onClick: () => setRenaming(l.id) },
-            { label: 'Duplicar', icon: <LuCopy />, onClick: () => editor.duplicateLayer(l.id) },
+            { label: tr('Renomear'), icon: <LuPencil />, onClick: () => setRenaming(l.id) },
+            { label: tr('Duplicar'), icon: <LuCopy />, onClick: () => editor.duplicateLayer(l.id) },
             { divider: true },
-            { label: 'Trazer para frente', icon: <LuChevronsUp />, disabled: !canMoveLayer(layers, l.id, 'front'), onClick: () => editor.moveLayer(l.id, 'front') },
-            { label: 'Subir uma camada', icon: <LuArrowUp />, disabled: !canMoveLayer(layers, l.id, 'up'), onClick: () => editor.moveLayer(l.id, 'up') },
-            { label: 'Descer uma camada', icon: <LuArrowDown />, disabled: !canMoveLayer(layers, l.id, 'down'), onClick: () => editor.moveLayer(l.id, 'down') },
-            { label: 'Enviar para trás', icon: <LuChevronsDown />, disabled: !canMoveLayer(layers, l.id, 'back'), onClick: () => editor.moveLayer(l.id, 'back') },
+            { label: tr('Trazer para frente'), icon: <LuChevronsUp />, disabled: !canMoveLayer(layers, l.id, 'front'), onClick: () => editor.moveLayer(l.id, 'front') },
+            { label: tr('Subir uma camada'), icon: <LuArrowUp />, disabled: !canMoveLayer(layers, l.id, 'up'), onClick: () => editor.moveLayer(l.id, 'up') },
+            { label: tr('Descer uma camada'), icon: <LuArrowDown />, disabled: !canMoveLayer(layers, l.id, 'down'), onClick: () => editor.moveLayer(l.id, 'down') },
+            { label: tr('Enviar para trás'), icon: <LuChevronsDown />, disabled: !canMoveLayer(layers, l.id, 'back'), onClick: () => editor.moveLayer(l.id, 'back') },
             { divider: true },
-            { label: 'Excluir', icon: <LuTrash2 />, danger: true, disabled: n <= 1, onClick: () => editor.removeLayer(l.id) },
+            { label: tr('Excluir'), icon: <LuTrash2 />, danger: true, disabled: n <= 1, onClick: () => editor.removeLayer(l.id) },
           ];
           return (
             <li
@@ -119,7 +120,7 @@ export function LayersPanel() {
                 onClick={(e) => editor.selectLayer(l.id, e.ctrlKey || e.metaKey || e.shiftKey)}
                 onDoubleClick={() => setRenaming(l.id)}
                 aria-pressed={selected.includes(l.id)}
-                title="Ctrl + clique seleciona várias · duplo clique renomeia"
+                title={tr('Ctrl + clique seleciona várias · duplo clique renomeia')}
               >
                 <span className="dl-ico" aria-hidden>
                   {iconOf(l)}
@@ -129,7 +130,7 @@ export function LayersPanel() {
                     className="dl-rename"
                     defaultValue={l.name}
                     autoFocus
-                    aria-label="Nome da camada"
+                    aria-label={tr('Nome da camada')}
                     onClick={(e) => e.stopPropagation()}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') e.currentTarget.blur();
@@ -146,19 +147,19 @@ export function LayersPanel() {
                   <span className="dl-name">
                     {l.name}
                     {preview && preview !== l.name && <small> · {preview.slice(0, 40)}</small>}
-                    {!preview && <small> · vazia</small>}
+                    {!preview && <small>{' '}{tr('· vazia')}</small>}
                   </span>
                 )}
               </button>
               <span className="dl-tools">
-                <IconButton label={l.visible ? `Ocultar ${l.name}` : `Mostrar ${l.name}`} icon={l.visible ? <LuEye /> : <LuEyeOff />} size="sm" className="dl-eye" onClick={() => editor.toggleLayer(l.id)} />
-                <IconButton label={`Excluir ${l.name}`} icon={<LuTrash2 />} size="sm" className="dl-more" disabled={n <= 1} onClick={() => editor.removeLayer(l.id)} />
+                <IconButton label={l.visible ? tr('Ocultar {0}', l.name) : tr('Mostrar {0}', l.name)} icon={l.visible ? <LuEye /> : <LuEyeOff />} size="sm" className="dl-eye" onClick={() => editor.toggleLayer(l.id)} />
+                <IconButton label={tr('Excluir {0}', l.name)} icon={<LuTrash2 />} size="sm" className="dl-more" disabled={n <= 1} onClick={() => editor.removeLayer(l.id)} />
                 <Menu
                   align="end"
                   width={230}
                   items={items}
                   trigger={(open, toggle) => (
-                    <button type="button" className="ibtn ibtn-sm dl-more" data-active={open ? '1' : undefined} aria-label={`Mais ações para ${l.name}`} aria-haspopup="menu" aria-expanded={open} onClick={toggle}>
+                    <button type="button" className="ibtn ibtn-sm dl-more" data-active={open ? '1' : undefined} aria-label={tr('Mais ações para {0}', l.name)} aria-haspopup="menu" aria-expanded={open} onClick={toggle}>
                       <LuEllipsis />
                     </button>
                   )}

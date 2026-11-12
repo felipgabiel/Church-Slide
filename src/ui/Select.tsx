@@ -1,6 +1,7 @@
 import { Children, isValidElement, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { LuCheck, LuChevronDown } from 'react-icons/lu';
+import { tr } from '../core/i18n';
 
 interface Opt {
   value: string;
@@ -170,7 +171,7 @@ export function Select({ value, onChange, children, label, className = '', optio
   const rendered: ReactNode[] = [];
   let lastGroup: string | undefined;
   opts.forEach((o, i) => {
-    if (o.group !== lastGroup && o.group) rendered.push(<div key={`g${i}`} className="sel-group" role="presentation">{o.group}</div>);
+    if (o.group !== lastGroup && o.group) rendered.push(<div key={`g${i}`} className="sel-group" role="presentation">{tr(o.group)}</div>);
     lastGroup = o.group;
     rendered.push(
       <div

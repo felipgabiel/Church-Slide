@@ -15,6 +15,7 @@ import { LayersPanel } from './LayersPanel';
 import { StageArea } from './StageArea';
 import { Topbar, type DialogName } from './Topbar';
 import { useEditorShortcuts } from './useEditorShortcuts';
+import { tr } from '../../core/i18n';
 
 export function Editor({ id }: { id: string }) {
   const loading = useEditor((s) => s.loading);
@@ -32,10 +33,10 @@ export function Editor({ id }: { id: string }) {
     return (
       <div className="fatal" role="alert">
         <div className="fatal-box">
-          <h1>Não foi possível abrir o louvor</h1>
+          <h1>{tr('Não foi possível abrir o louvor')}</h1>
           <p>{error}</p>
           <Button variant="primary" onClick={() => navigate(paths.library)}>
-            Voltar à biblioteca
+            {tr('Voltar à biblioteca')}
           </Button>
         </div>
       </div>
@@ -44,7 +45,7 @@ export function Editor({ id }: { id: string }) {
   if (loading || !ready) {
     return (
       <div className="fatal" role="status">
-        <LuLoaderCircle className="spin" style={{ fontSize: 26, color: 'var(--accent)' }} aria-label="Carregando" />
+        <LuLoaderCircle className="spin" style={{ fontSize: 26, color: 'var(--accent)' }} aria-label={tr('Carregando')} />
       </div>
     );
   }
@@ -77,7 +78,7 @@ function Workspace() {
     <div className="ed" data-left={left ? '1' : '0'} data-right={right ? '1' : '0'}>
       <Topbar left={left} right={right} onToggleLeft={() => setLeft(!left)} onToggleRight={() => setRight(!right)} open={setDialog} />
       {left && (
-        <aside className="ed-left" aria-label="Bibliotecas">
+        <aside className="ed-left" aria-label={tr('Bibliotecas')}>
           <LeftPanel onLyrics={() => setDialog('lyrics')} />
         </aside>
       )}
@@ -89,7 +90,7 @@ function Workspace() {
         </div>
       </main>
       {right && (
-        <aside className="ed-right" aria-label="Propriedades">
+        <aside className="ed-right" aria-label={tr('Propriedades')}>
           <RightPanel />
         </aside>
       )}

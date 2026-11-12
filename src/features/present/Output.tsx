@@ -9,6 +9,7 @@ import { loadCustomFonts, warmMedia } from '../../core/storage/media';
 import { ASPECT_RATIOS, type Project } from '../../core/types';
 import { FitBox } from '../../render/FitBox';
 import { Stage } from '../../render/Stage';
+import { tr } from '../../core/i18n';
 
 /**
  * Janela do público (telão/projetor). Mostra SOMENTE o palco: sem menus, sem cursor parado,
@@ -194,13 +195,13 @@ export function Output() {
 
       {!showProject && (
         <div className="out-wait" aria-live="polite">
-          {missing ? 'Louvor não encontrado neste computador.' : (live ?? emptyLiveState()).projectId ? 'Carregando…' : 'Aguardando o operador…'}
+          {missing ? tr('Louvor não encontrado neste computador.') : (live ?? emptyLiveState()).projectId ? tr('Carregando…') : tr('Aguardando o operador…')}
         </div>
       )}
 
       {!fs && (
         <div className="out-hint" role="note">
-          <LuMaximize aria-hidden /> Clique aqui ou aperte <kbd className="kbd">F</kbd> para tela cheia
+          <LuMaximize aria-hidden />{' '}{tr('Clique aqui ou aperte')}{' '}<kbd className="kbd">F</kbd>{' '}{tr('para tela cheia')}
         </div>
       )}
     </div>

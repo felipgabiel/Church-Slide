@@ -1,4 +1,5 @@
 import { readSetting, writeSetting } from '../settings';
+import { tr } from '../i18n';
 
 export type PresentAction =
   | { type: 'next' }
@@ -20,16 +21,16 @@ export type BindableAction = Exclude<PresentAction['type'], 'jump'>;
 export type Bindings = Record<BindableAction, string[]>;
 
 export const ACTION_LABELS: Record<BindableAction, string> = {
-  next: 'Próximo trecho',
-  prev: 'Trecho anterior',
-  first: 'Primeiro trecho',
-  last: 'Último trecho',
-  nextSong: 'Próximo louvor',
-  prevSong: 'Louvor anterior',
-  blackout: 'Tela preta',
-  fullscreen: 'Tela cheia',
-  replay: 'Repetir animação',
-  exit: 'Sair da apresentação',
+  next: tr('Próximo trecho'),
+  prev: tr('Trecho anterior'),
+  first: tr('Primeiro trecho'),
+  last: tr('Último trecho'),
+  nextSong: tr('Próximo louvor'),
+  prevSong: tr('Louvor anterior'),
+  blackout: tr('Tela preta'),
+  fullscreen: tr('Tela cheia'),
+  replay: tr('Repetir animação'),
+  exit: tr('Sair da apresentação'),
 };
 
 /** Ordem de exibição na interface. */
@@ -64,7 +65,7 @@ export function isReservedKey(key: string): boolean {
 }
 
 const KEY_NAMES: Record<string, string> = {
-  ' ': 'Espaço',
+  ' ': tr('Espaço'),
   ArrowRight: '→',
   ArrowLeft: '←',
   ArrowUp: '↑',
@@ -116,13 +117,13 @@ export type AssignResult = { ok: true; bindings: Bindings; stolenFrom?: Bindable
 /** Atribui uma tecla a uma ação. Se outra ação já usava a tecla, ela é movida (e avisamos qual perdeu). */
 export function assignKey(current: Bindings, action: BindableAction, rawKey: string): AssignResult {
   const key = normKey(rawKey);
-  if (isReservedKey(key)) return { ok: false, reason: /^[0-9]$/.test(key) ? 'Os números 1–9 já escolhem o trecho e não podem ser trocados.' : 'Essa tecla não pode ser usada como atalho.' };
+  if (isReservedKey(key)) return { ok: false, reason: /^[0-9]$/.test(key) ? tr('Os números 1–9 já escolhem o trecho e não podem ser trocados.') : tr('Essa tecla não pode ser usada como atalho.') };
   if (current[action].includes(key)) return { ok: true, bindings: current };
   const next = Object.fromEntries(ACTION_ORDER.map((a) => [a, [...current[a]]])) as Bindings;
   let stolenFrom: BindableAction | undefined;
   for (const a of ACTION_ORDER) {
     if (a !== action && next[a].includes(key)) {
-      if (REQUIRED.includes(a) && next[a].length === 1) return { ok: false, reason: `“${keyLabel(key)}” é a única tecla de “${ACTION_LABELS[a]}”. Dê outra tecla a essa ação antes.` };
+      if (REQUIRED.includes(a) && next[a].length === 1) return { ok: false, reason: tr('“{0}” é a única tecla de “{1}”. Dê outra tecla a essa ação antes.', keyLabel(key), ACTION_LABELS[a]) };
       next[a] = next[a].filter((k) => k !== key);
       stolenFrom = a;
     }
@@ -132,7 +133,7 @@ export function assignKey(current: Bindings, action: BindableAction, rawKey: str
 }
 
 export function removeKey(current: Bindings, action: BindableAction, key: string): AssignResult {
-  if (REQUIRED.includes(action) && current[action].length <= 1) return { ok: false, reason: `“${ACTION_LABELS[action]}” precisa ter ao menos uma tecla.` };
+  if (REQUIRED.includes(action) && current[action].length <= 1) return { ok: false, reason: tr('“{0}” precisa ter ao menos uma tecla.', ACTION_LABELS[action]) };
   return { ok: true, bindings: { ...current, [action]: current[action].filter((k) => k !== key) } };
 }
 
@@ -144,7 +145,7 @@ export interface ShortcutHelp {
 /** Lista para exibição, refletindo as teclas atuais. */
 export function shortcutHelp(b: Bindings = getBindings()): ShortcutHelp[] {
   const rows = ACTION_ORDER.map((a) => ({ keys: b[a].map(keyLabel).join('  ') || '—', label: ACTION_LABELS[a] }));
-  rows.splice(4, 0, { keys: '1 – 9', label: 'Ir direto ao trecho' });
+  rows.splice(4, 0, { keys: '1 – 9', label: tr('Ir direto ao trecho') });
   return rows;
 }
 
