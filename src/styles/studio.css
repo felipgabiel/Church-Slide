@@ -2,8 +2,8 @@
  * Mesma gramática do editor de letras: camadas à esquerda, palco no centro, ajustes à direita.
  */
 .studio {
-  --st-l: clamp(232px, 17vw, 300px);
-  --st-r: clamp(300px, 22vw, 380px);
+  --st-l: clamp(220px, 16vw, 400px);
+  --st-r: clamp(290px, 21vw, 520px);
   position: relative;
   height: 100%;
   min-height: 0;
@@ -525,7 +525,7 @@
 }
 .gal-starters {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(clamp(180px, 12vw, 300px), 1fr));
   gap: 14px;
   margin-top: 14px;
 }
@@ -705,15 +705,28 @@
   position: relative;
 }
 .dl-row[data-clip='1'] .dl-main::before {
+  /* ┌ : sai do nome e desce até a camada de baixo, que é o molde do recorte */
   content: '';
   position: absolute;
-  left: 14px;
-  top: 8px;
-  width: 7px;
-  height: 12px;
-  border-left: 1.5px solid var(--line-3);
-  border-bottom: 1.5px solid var(--line-3);
-  border-bottom-left-radius: 4px;
+  left: 13px;
+  top: 50%;
+  bottom: -10px;
+  width: 8px;
+  border-left: 1.5px solid var(--accent-line);
+  border-top: 1.5px solid var(--accent-line);
+  border-top-left-radius: 4px;
+  z-index: 1;
+}
+.dl-row[data-clip='1'] .dl-main::after {
+  /* ponta da seta, apontando para baixo */
+  content: '';
+  position: absolute;
+  left: 10px;
+  bottom: -11px;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--accent-line);
+  z-index: 1;
 }
 .insp-pair > .slider {
   margin-top: 0;

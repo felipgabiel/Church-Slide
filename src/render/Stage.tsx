@@ -70,6 +70,8 @@ function TextFrame({ frame, theme, shared, onExited }: { frame: Frame; theme: Th
     handle.current = h;
     t0.current = performance.now();
     enterEnd.current = h.total;
+    // terminou de entrar: cada camada refaz o ajuste de tamanho com o texto parado (igual ao vídeo)
+    void h.finished.then(() => ref.current?.querySelectorAll('.layer').forEach((l) => l.dispatchEvent(new Event('cs:refit'))));
     colorRun.current = startColorRun(ref.current, frame.slide.layers, h.total);
     return () => {
       h.cancel();

@@ -39,6 +39,9 @@ Use **Chrome ou Edge** atualizados: foi neles que tudo foi testado. A geração 
   louvor guarda a própria cópia) ou *Exportar vídeo* para levar só o fundo, em MP4 que repete sem emenda, para o Holyrics.
 - **Alinhar e mover vários:** arrastando, o texto gruda nas bordas, na margem segura e no centro (botão *Ímã* liga e
   desliga; Alt solta na hora). Ctrl + clique seleciona vários textos (ou camadas no Estúdio) para mover e ajustar juntos.
+- **Editar no palco:** dois cliques no texto abrem a edição ali mesmo. O botão *Texto* (barra de cima) cria um texto livre.
+- **Gerar vídeos sem esperar:** depois de *Gerar*, clique em *Continuar em segundo plano*; um aviso no canto mostra o
+  progresso em qualquer tela e baixa o .zip no fim.
 - **Inverter cores:** *Texto → Inverter cores* faz a letra mostrar o negativo do fundo, legível mesmo em fundos que mudam.
 - **Tema claro ou escuro:** botão de sol/lua no alto da tela. A escolha fica salva.
 - **Letra pequena demais?** *Texto → Legibilidade no telão → Letra mínima*: os ajustes automáticos nunca deixam a

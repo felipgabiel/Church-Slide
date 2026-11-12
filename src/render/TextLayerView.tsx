@@ -150,7 +150,19 @@ function useLayoutFit(ref: RefObject<HTMLDivElement | null>, deps: unknown[], o:
     const stage = el.closest('.stage') as HTMLElement | null;
     if (!stage) return;
     const lines = Array.from(el.querySelectorAll<HTMLElement>('.ln'));
+    // Mede SEMPRE o texto parado: no meio da entrada as palavras estão deslocadas/ampliadas pela animação
+    // e isso "transbordava" a caixa — o ajuste automático encolhia a letra e ela ficava pequena depois do
+    // play (só na prévia e no telão; o vídeo mede o estado final). A classe tira os transforms só durante a
+    // conta, que é síncrona: nada disso chega a ser pintado.
     const run = () => {
+      el.classList.add('fit-measure');
+      try {
+        measure();
+      } finally {
+        el.classList.remove('fit-measure');
+      }
+    };
+    const measure = () => {
       if (stage.clientHeight === 0 || stage.clientWidth === 0) return; // oculto (ex.: diálogo ainda abrindo)
       el.style.setProperty('--fit', '1');
       el.style.removeProperty('--wfit');
@@ -217,9 +229,12 @@ function useLayoutFit(ref: RefObject<HTMLDivElement | null>, deps: unknown[], o:
     const ro = new ResizeObserver(run);
     ro.observe(stage);
     document.fonts?.addEventListener?.('loadingdone', run);
+    // fim da entrada (TextFrame avisa): confere de novo, já com tudo parado no lugar
+    el.addEventListener('cs:refit', run);
     return () => {
       ro.disconnect();
       document.fonts?.removeEventListener?.('loadingdone', run);
+      el.removeEventListener('cs:refit', run);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, o.autoFit, o.equalize, o.minScale, o.minFont, o.canWiden]);

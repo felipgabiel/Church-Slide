@@ -30,6 +30,8 @@ import {
   readWord,
   removeLine as removeLineIn,
   removeWord as removeWordIn,
+  readWords,
+  removeWords as removeWordsIn,
   reorderLayers,
   type LayerMove,
 } from '../core/layers';
@@ -509,7 +511,7 @@ export const editor = {
 
   /* ---- camadas ---- */
 
-  addLayer(role: LayerRole, text = '', at?: { x: number; y: number }) {
+  addLayer(role: LayerRole, text = '', at?: { x: number; y: number }): string {
     const id = uid('l');
     mutate(
       (d) => {
@@ -523,8 +525,16 @@ export const editor = {
         }
         slide.layers.push(layer);
       },
-      { select: () => ({ layerId: id }) },
+      { select: () => ({ layerId: id, extraLayerIds: [] }) },
     );
+    return id;
+  },
+
+  /** Texto livre novo, no terço de baixo do slide, já aberto para digitar no palco. */
+  addFreeText() {
+    const id = editor.addLayer('free', 'Novo texto', { x: 50, y: 80 });
+    window.dispatchEvent(new CustomEvent('cs:edit-layer', { detail: id }));
+    return id;
   },
 
   removeLayer(id: string) {
@@ -573,7 +583,7 @@ export const editor = {
    * Tira uma palavra ou linha do texto e a transforma numa camada própria, no mesmo lugar e com o mesmo
    * tamanho (medidos na tela por quem chama). Depois é só arrastar. Devolve o id da camada nova.
    */
-  detach(src: { layerId: string; kind: 'word' | 'line'; index: number }, geom: { x: number; y: number; fontSize: number }): string | null {
+  detach(src: { layerId: string; kind: 'word' | 'line' | 'words'; index: number; indices?: number[] }, geom: { x: number; y: number; fontSize: number }): string | null {
     const nid = uid('l');
     let ok = false;
     mutate(
@@ -581,10 +591,12 @@ export const editor = {
         const slide = currentSlide(d);
         const from = slide?.layers.find((l) => l.id === src.layerId);
         if (!slide || !from) return;
-        const cut = src.kind === 'word' ? readWord(from, src.index) : readLine(from, src.index);
+        const many = src.kind === 'words' ? src.indices ?? [src.index] : null;
+        const cut = many ? readWords(from, many) : src.kind === 'word' ? readWord(from, src.index) : readLine(from, src.index);
         if (!cut) return;
         const layer = detachedLayer(from, cut, geom, nid);
-        if (src.kind === 'word') removeWordIn(from, src.index);
+        if (many) removeWordsIn(from, many);
+        else if (src.kind === 'word') removeWordIn(from, src.index);
         else removeLineIn(from, src.index);
         slide.layers.splice(slide.layers.findIndex((l) => l.id === from.id) + 1, 0, layer);
         ok = true;

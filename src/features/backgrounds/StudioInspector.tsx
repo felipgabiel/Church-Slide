@@ -118,8 +118,14 @@ export function StudioInspector({ api }: { api: StudioApi }) {
       </Section>
 
       <Section title="Camada">
+        <ToggleRow
+          label="Inverter cores"
+          hint="Mostra o negativo do que está atrás (como na letra): sobre o claro fica escuro e sobre o escuro, claro"
+          checked={l.blend === 'difference'}
+          onChange={(v) => set({ blend: v ? 'difference' : 'normal' })}
+        />
         <Slider label="Opacidade" value={l.opacity} min={0} max={100} unit="%" reset={100} onChange={(v) => set({ opacity: v })} />
-        <Row label="Mistura" hint="“Tela” e “Somar luz” fazem luz somar com luz">
+        <Row label="Mistura">
           <Select value={l.blend} onChange={(v) => set({ blend: v as DesignBlend })} label="Modo de mistura">
             {(Object.keys(BLEND_LABEL) as DesignBlend[]).map((b) => (
               <option key={b} value={b}>

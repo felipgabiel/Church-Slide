@@ -1,4 +1,4 @@
-import { LuCheck, LuChevronLeft, LuCloudOff, LuDownload, LuEllipsis, LuFilm, LuHistory, LuInfo, LuKeyboard, LuLayoutTemplate, LuLoaderCircle, LuMonitorPlay, LuPanelLeft, LuPanelRight, LuRedo2, LuSettings, LuUndo2, LuClipboardPaste } from 'react-icons/lu';
+import { LuCheck, LuChevronLeft, LuCloudOff, LuDownload, LuEllipsis, LuFilm, LuHistory, LuInfo, LuKeyboard, LuLayoutTemplate, LuLoaderCircle, LuMonitorPlay, LuPanelLeft, LuPanelRight, LuRedo2, LuSettings, LuUndo2, LuClipboardPaste, LuType } from 'react-icons/lu';
 import { ThemeToggle } from '../../ui/ThemeToggle';
 import { navigate, paths } from '../../app/router';
 import { slideText } from '../../core/defaults';
@@ -80,6 +80,10 @@ export function Topbar({ left, right, onToggleLeft, onToggleRight, open }: Props
       <div className="tb-center">
         <IconButton label="Desfazer (Ctrl+Z)" icon={<LuUndo2 />} onClick={() => editor.undo()} disabled={!canUndo} />
         <IconButton label="Refazer (Ctrl+Shift+Z)" icon={<LuRedo2 />} onClick={() => editor.redo()} disabled={!canRedo} />
+        <span className="tb-sep" />
+        <Button variant="ghost" size="sm" icon={<LuType />} onClick={() => editor.addFreeText()} title="Adicionar um texto livre neste trecho (duplo clique no palco edita)">
+          Texto
+        </Button>
         <span className="tb-sep" />
         <div className="tb-aspect">
           <Select value={aspect} onChange={(v) => editor.setProjectMeta({ aspect: v as Aspect })} label="Proporção da tela">

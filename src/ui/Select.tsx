@@ -70,6 +70,18 @@ export function Select({ value, onChange, children, label, className = '', optio
     return from;
   };
 
+  const openedAt = useRef(0);
+  const placeRef = useRef<() => void>(() => undefined);
+  placeRef.current = () => {
+    if (!btn.current) return;
+    const r = btn.current.getBoundingClientRect();
+    const below = window.innerHeight - r.bottom - 12;
+    const above = r.top - 12;
+    const up = below < 220 && above > below;
+    const maxH = Math.min(340, Math.max(140, up ? above : below));
+    const width = Math.max(r.width, 180);
+    setPos({ left: Math.min(r.left, window.innerWidth - width - 8), top: up ? r.top - 4 - Math.min(maxH, list.current?.scrollHeight ?? maxH) : r.bottom + 4, width, maxH });
+  };
   // posição: embaixo do botão; se não couber, em cima; nunca sai da janela
   useLayoutEffect(() => {
     if (!open || !btn.current) return;
@@ -81,19 +93,25 @@ export function Select({ value, onChange, children, label, className = '', optio
     } catch {
       /* navegador sem popover: segue como elemento fixo comum */
     }
-    const r = btn.current.getBoundingClientRect();
-    const below = window.innerHeight - r.bottom - 12;
-    const above = r.top - 12;
-    const up = below < 220 && above > below;
-    const maxH = Math.min(340, Math.max(140, up ? above : below));
-    const width = Math.max(r.width, 180);
-    setPos({ left: Math.min(r.left, window.innerWidth - width - 8), top: up ? r.top - 4 - Math.min(maxH, list.current?.scrollHeight ?? maxH) : r.bottom + 4, width, maxH });
+    openedAt.current = performance.now();
+    placeRef.current();
   }, [open]);
 
-  // mantém a opção ativa à vista
+  // mantém a opção ativa à vista — só quando ela muda pelo teclado (ou ao abrir). Rolar quando o mouse
+  // passa por cima fazia a lista "fugir" do ponteiro na opção de baixo, e ela tremia sem deixar clicar.
+  const byPointer = useRef(false);
   useEffect(() => {
     if (!open) return;
-    list.current?.querySelector<HTMLElement>(`[data-i="${active}"]`)?.scrollIntoView({ block: 'nearest' });
+    if (byPointer.current) {
+      byPointer.current = false;
+      return;
+    }
+    // rola só a própria lista (scrollIntoView rolava também o painel onde ela mora, e isso fechava o menu)
+    const L = list.current;
+    const el = L?.querySelector<HTMLElement>(`[data-i="${active}"]`);
+    if (!L || !el) return;
+    if (el.offsetTop < L.scrollTop) L.scrollTop = el.offsetTop;
+    else if (el.offsetTop + el.offsetHeight > L.scrollTop + L.clientHeight) L.scrollTop = el.offsetTop + el.offsetHeight - L.clientHeight;
   }, [open, active, pos]);
 
   // fecha ao clicar fora, rolar a página ou redimensionar
@@ -105,6 +123,8 @@ export function Select({ value, onChange, children, label, className = '', optio
     };
     const away = (e: Event) => {
       if (e.type === 'scroll' && list.current?.contains(e.target as Node)) return;
+      // o próprio clique pode rolar o painel para mostrar o botão (foco): isso não é "rolar para longe"
+      if (e.type === 'scroll' && performance.now() - openedAt.current < 300) return placeRef.current();
       close(false);
     };
     window.addEventListener('pointerdown', down, true);
@@ -162,7 +182,11 @@ export function Select({ value, onChange, children, label, className = '', optio
         aria-disabled={o.disabled || undefined}
         className="sel-opt"
         data-active={i === active ? '1' : undefined}
-        onPointerMove={() => enabled(i) && setActive(i)}
+        onPointerMove={() => {
+          if (!enabled(i) || active === i) return;
+          byPointer.current = true;
+          setActive(i);
+        }}
         onClick={() => choose(i)}
       >
         <span style={optionStyle?.(o.value)}>{o.label}</span>

@@ -194,6 +194,20 @@ desenho em torno do mesmo centro (caso "caixa girada" no teste de fidelidade).
   `isolation: isolate`); no vídeo, a camada é desenhada à parte e composta com `difference`. No Estúdio, o modo de
   mistura "Inverter cores" usa o mesmo operador do canvas. Casos de fidelidade cobrem os dois.
 
+### Texto no palco, exportação em segundo plano e tamanho estável
+
+- **Duplo clique no texto** abre uma caixa de edição por cima da camada (`InlineText` em `StageArea`); o palco acompanha
+  cada letra. O botão **Texto** da barra cria um texto livre no terço de baixo e já abre essa caixa (`cs:edit-layer`).
+- **Soltar várias palavras:** com palavras marcadas (Shift + clique) numa camada, o menu oferece "Soltar as N palavras
+  juntas" (`readWords`/`removeWords` em `core/layers.ts`): viram uma camada só, na ordem do texto, mantendo quebras.
+- **Exportação em segundo plano (`features/export/exportJob.ts`):** o trabalho vive fora do diálogo; fechar não cancela,
+  dá para trocar de tela e um aviso flutuante (`ExportPill`) mostra o progresso e baixa no fim. Entre quadros o
+  codificador cede a vez por `MessageChannel` (timers de abas escondidas são segurados pelo navegador). Vale também
+  para o vídeo só do fundo, que agora mostra o convite de apoio no fim.
+- **Tamanho estável no play:** o ajuste automático de tamanho mede o texto sem os transforms da animação
+  (`.fit-measure`) e mede de novo quando a entrada termina (`cs:refit`), igual ao que o vídeo mede.
+- A troca de cor saiu dos estilos prontos de animação: fica só na ferramenta "Troca de cor".
+
 ### Troca de cor (`core/anim/colorfx.ts`, `render/colorRun.ts`, `features/editor/panels/ColorChange.tsx`)
 
 A troca de cor é **sempre por palavra** (`WordOverride.colorFx`): só as palavras marcadas mudam de cor, as outras
@@ -308,8 +322,8 @@ Painéis laterais acompanham a largura do monitor (`clamp`), testados de 1280×7
 | Comando | O que faz |
 |---|---|
 | `npm run typecheck` | `tsc --noEmit` (ver limitação na seção 1) |
-| `npm test` | 111 testes unitários: easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
-| `npm run build && npm run e2e` | 36 etapas no navegador contra o build de produção (ver abaixo) |
+| `npm test` | 112 testes unitários: easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
+| `npm run build && npm run e2e` | 38 etapas no navegador contra o build de produção (ver abaixo) |
 | `npm run e2e:fidelity` | compara o desenho em canvas (vídeo) com o DOM do editor (PSNR; exige ffmpeg) |
 
 O e2e (`e2e/run.mjs`) cria um louvor pela interface, edita e confere a persistência após recarregar,

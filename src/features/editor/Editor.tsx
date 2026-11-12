@@ -65,6 +65,13 @@ function Workspace() {
 
   const close = () => setDialog(null);
 
+  // aviso flutuante da exportação em segundo plano: "Abrir" volta para este diálogo
+  useEffect(() => {
+    const on = () => setDialog('export');
+    window.addEventListener('cs:open-export', on);
+    return () => window.removeEventListener('cs:open-export', on);
+  }, []);
+
   return (
     <div className="ed" data-left={left ? '1' : '0'} data-right={right ? '1' : '0'}>
       <Topbar left={left} right={right} onToggleLeft={() => setLeft(!left)} onToggleRight={() => setRight(!right)} open={setDialog} />

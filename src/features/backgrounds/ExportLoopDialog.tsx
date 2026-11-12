@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LuDownload, LuTriangleAlert, LuX } from 'react-icons/lu';
-import { canEncodeVideo, ExportAbort } from '../../core/export/encode';
+import { canEncodeVideo } from '../../core/export/encode';
 import type { Quality } from '../../core/export/exportSong';
 import { exportDesignVideo, loopFileName, loopVideoSize, type LoopVideoOptions } from '../../core/export/loopVideo';
+import { cancelJob, clearJob, exportJobs, markSeen, startJob, useExportJob } from '../export/exportJob';
+import { SupportCard, supportDue } from '../support/SupportCard';
+import { toast } from '../../ui/toast';
 import { useSetting } from '../../core/settings';
 import { downloadBlob } from '../../core/storage/exchange';
 import type { BackgroundDesign } from '../../core/types';
@@ -12,7 +15,7 @@ import { Row, Segmented } from '../../ui/Controls';
 import { Modal } from '../../ui/Modal';
 
 type Prefs = Pick<LoopVideoOptions, 'height' | 'fps' | 'quality' | 'repeats'>;
-const DEFAULTS: Prefs = { height: 1080, fps: 30, quality: 'medium', repeats: 1 };
+const DEFAULT_PREFS: Prefs = { height: 1080, fps: 30, quality: 'medium', repeats: 1 };
 
 /** Exporta SÓ o fundo, sem letra, num MP4 que repete sem emenda (para usar de fundo no Holyrics). */
 export function ExportLoopDialog({ design, onClose }: { design: BackgroundDesign | null; onClose: () => void }) {
@@ -24,36 +27,42 @@ export function ExportLoopDialog({ design, onClose }: { design: BackgroundDesign
 }
 
 function ExportLoop({ design }: { design: BackgroundDesign }) {
-  const [prefs, setPrefs] = useSetting<Prefs>('loop-export', DEFAULTS);
-  const p = { ...DEFAULTS, ...prefs };
+  const [prefs, setPrefs] = useSetting<Prefs>('loop-export', DEFAULT_PREFS);
+  const p = { ...DEFAULT_PREFS, ...prefs };
   const set = (patch: Partial<Prefs>) => setPrefs({ ...p, ...patch });
-  const [phase, setPhase] = useState<'idle' | 'running' | 'done'>('idle');
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ blob: Blob; url: string } | null>(null);
-  const abort = useRef<AbortController | null>(null);
+  // roda como trabalho em segundo plano (exportJob): fechar o diálogo não cancela
+  const job = useExportJob();
+  const mine = job && job.kind === 'loop' && job.ownerId === design.id ? job : null;
+  const otherRunning = !!job && job.status === 'running' && !mine;
+  const phase: 'idle' | 'running' | 'done' = mine?.status === 'running' ? 'running' : mine?.status === 'done' ? 'done' : 'idle';
+  const progress = mine?.progress?.fraction ?? 0;
+  const error = mine?.status === 'error' ? mine.error : null;
+  const file = phase === 'done' ? mine?.files[0] ?? null : null;
+  const [url, setUrl] = useState<string | null>(null);
+  const [showSupport, setShowSupport] = useState(supportDue);
   const supported = canEncodeVideo();
   const size = loopVideoSize(p.height);
   const seconds = design.loopSec * p.repeats;
 
-  useEffect(() => () => abort.current?.abort(), []);
-  useEffect(() => () => {
-    if (result) URL.revokeObjectURL(result.url);
-  }, [result]);
+  useEffect(() => {
+    exportJobs.set({ dialog: 'loop' });
+    return () => exportJobs.set({ dialog: null });
+  }, []);
+  useEffect(() => {
+    if (!file) return setUrl(null);
+    markSeen();
+    const u = URL.createObjectURL(file.blob);
+    setUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [file]);
 
-  const start = async () => {
-    setError(null);
-    setPhase('running');
-    setProgress(0);
-    abort.current = new AbortController();
-    try {
-      const blob = await exportDesignVideo(design, { ...p, onProgress: setProgress, signal: abort.current.signal });
-      setResult({ blob, url: URL.createObjectURL(blob) });
-      setPhase('done');
-    } catch (err) {
-      setPhase('idle');
-      if (!(err instanceof ExportAbort)) setError(err instanceof Error ? err.message : 'Não foi possível gerar o vídeo.');
-    }
+  const start = () => {
+    const snapshot = structuredClone(design);
+    const ok = startJob({ kind: 'loop', ownerId: design.id, title: design.name }, async (r) => {
+      const blob = await exportDesignVideo(snapshot, { ...p, signal: r.signal, onProgress: (fraction) => r.progress({ index: 0, total: 1, name: snapshot.name, fraction }) });
+      return [{ name: loopFileName(snapshot), blob }];
+    });
+    if (!ok) toast('Já há vídeos sendo gerados. Espere terminar ou cancele.', 'info');
   };
 
   return (
@@ -92,14 +101,20 @@ function ExportLoop({ design }: { design: BackgroundDesign }) {
           <span>Gerando “{design.name}”… {Math.round(progress * 100)}%</span>
         </div>
       )}
-      {result && phase === 'done' && (
+      {file && url && (
         <div className="xd-preview">
-          <video src={result.url} controls autoPlay loop muted playsInline aria-label={`Prévia de ${design.name}`} />
+          <video src={url} controls autoPlay loop muted playsInline aria-label={`Prévia de ${design.name}`} />
           <small>
-            {loopFileName(design)} · {formatBytes(result.blob.size)}
+            {file.name} · {formatBytes(file.blob.size)}
           </small>
         </div>
       )}
+      {otherRunning && job && (
+        <p className="xd-warn" role="status">
+          <LuTriangleAlert aria-hidden /> Já há vídeos sendo gerados (“{job.title}”). Espere terminar ou cancele.
+        </p>
+      )}
+      {phase === 'done' && showSupport && <SupportCard onDismiss={() => setShowSupport(false)} />}
       {error && (
         <p className="xd-warn" role="alert">
           <LuTriangleAlert aria-hidden /> {error}
@@ -110,23 +125,23 @@ function ExportLoop({ design }: { design: BackgroundDesign }) {
         {phase === 'idle' && (
           <>
             <span className="xd-est">{seconds} s de vídeo · sem letra</span>
-            <Button variant="primary" icon={<LuDownload />} disabled={!supported} onClick={() => void start()}>
+            <Button variant="primary" icon={<LuDownload />} disabled={!supported || otherRunning} onClick={start}>
               Gerar vídeo
             </Button>
           </>
         )}
         {phase === 'running' && (
           <>
-            <span className="xd-est">Mantenha esta aba aberta até terminar.</span>
-            <Button icon={<LuX />} onClick={() => abort.current?.abort()}>
+            <span className="xd-est">Pode fechar esta janela: o vídeo segue sendo gerado.</span>
+            <Button icon={<LuX />} onClick={() => cancelJob()}>
               Cancelar
             </Button>
           </>
         )}
-        {phase === 'done' && result && (
+        {phase === 'done' && file && (
           <>
-            <Button onClick={() => setPhase('idle')}>Refazer</Button>
-            <Button variant="primary" icon={<LuDownload />} onClick={() => downloadBlob(result.blob, loopFileName(design))}>
+            <Button onClick={() => clearJob()}>Refazer</Button>
+            <Button variant="primary" icon={<LuDownload />} onClick={() => downloadBlob(file.blob, file.name)}>
               Baixar vídeo
             </Button>
           </>

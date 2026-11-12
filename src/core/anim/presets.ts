@@ -27,9 +27,10 @@ export function baseAnimation(): AnimationConfig {
  * à troca de efeito. Só os presets "Por texto" e "Sem animação" definem a granularidade.
  * Antes, todo efeito forçava `unit: 'block'` e `stagger: 0`, desligando "Palavra" ao escolher um efeito.
  */
-export type PresetGroup = 'Básicas' | 'Movimento' | 'Combinadas' | 'Por texto' | 'Troca de cor';
+/** A troca de cor não é mais um estilo pronto: fica só na ferramenta "Troca de cor", onde se escolhem as cores. */
+export type PresetGroup = 'Básicas' | 'Movimento' | 'Combinadas' | 'Por texto';
 
-export const PRESET_GROUPS: PresetGroup[] = ['Básicas', 'Movimento', 'Combinadas', 'Por texto', 'Troca de cor'];
+export const PRESET_GROUPS: PresetGroup[] = ['Básicas', 'Movimento', 'Combinadas', 'Por texto'];
 
 export interface AnimPreset {
   id: string;
@@ -227,96 +228,6 @@ export const ANIMATION_PRESETS: AnimPreset[] = [
       duration: 800,
       easing: 'ease-out',
     },
-  },
-  /*
-   * "Troca de cor": a letra ENTRA com uma animação simples e, depois, a cor das palavras marcadas vai mudando.
-   * Não mexem em `unit`/`stagger` do usuário. A cor de partida é a que o texto já tem (ex.: branco).
-   */
-  {
-    id: 'color-green',
-    label: 'Branco → verde',
-    group: 'Troca de cor',
-    hint: 'Aparece e vai ficando verde',
-    config: {
-      enter: phase({ fade: true, slide: true }),
-      exit: phase({ fade: true }),
-      direction: 'up',
-      motionBlur: 25,
-      duration: 800,
-      easing: 'ease-out',
-    },
-    color: { colors: ['#4ade80'], mode: 'all', start: 1600, duration: 1800, stagger: 0 },
-  },
-  {
-    id: 'color-gold',
-    label: 'Branco → dourado',
-    group: 'Troca de cor',
-    hint: 'Aparece e esquenta para dourado',
-    config: {
-      enter: phase({ fade: true, zoom: 'out' }),
-      exit: phase({ fade: true }),
-      motionBlur: 0,
-      duration: 900,
-      easing: 'smooth',
-    },
-    color: { colors: ['#fbbf24'], mode: 'all', start: 1600, duration: 1800, stagger: 0 },
-  },
-  {
-    id: 'color-words',
-    label: 'Cor palavra por palavra',
-    group: 'Troca de cor',
-    hint: 'Uma palavra de cada vez muda de cor',
-    config: {
-      enter: phase({ fade: true }),
-      exit: phase({ fade: true }),
-      motionBlur: 0,
-      duration: 700,
-      easing: 'smooth',
-    },
-    color: { colors: ['#4ade80'], mode: 'word', start: 1200, duration: 700, stagger: 260 },
-  },
-  {
-    id: 'color-letters',
-    label: 'Cor letra por letra',
-    group: 'Troca de cor',
-    hint: 'A cor corre pelas letras',
-    config: {
-      enter: phase({ fade: true, slide: true }),
-      exit: phase({ fade: true }),
-      direction: 'up',
-      motionBlur: 20,
-      duration: 800,
-      easing: 'ease-out',
-    },
-    color: { colors: ['#4ade80'], mode: 'letter', start: 1300, duration: 500, stagger: 55 },
-  },
-  {
-    id: 'color-pulse',
-    label: 'Brilho que passa',
-    group: 'Troca de cor',
-    hint: 'Uma onda de cor passa e volta ao normal',
-    config: {
-      enter: phase({ fade: true }),
-      exit: phase({ fade: true }),
-      motionBlur: 0,
-      duration: 700,
-      easing: 'smooth',
-    },
-    color: { colors: ['#fde047'], mode: 'letter', start: 1200, duration: 700, stagger: 60, back: true },
-  },
-  {
-    id: 'color-sequence',
-    label: 'Sequência de cores',
-    group: 'Troca de cor',
-    hint: 'Passa por várias cores e para na última',
-    config: {
-      enter: phase({ fade: true }),
-      exit: phase({ fade: true }),
-      motionBlur: 0,
-      duration: 800,
-      easing: 'smooth',
-    },
-    color: { colors: ['#38bdf8', '#a78bfa', '#f472b6'], mode: 'all', start: 1400, duration: 2400, stagger: 0 },
   },
 ];
 

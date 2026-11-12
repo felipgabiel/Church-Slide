@@ -164,16 +164,10 @@ test('sanitizeColorFx: sequência nova, limite de cores e cores inválidas desca
   assert.equal(DEFAULT_COLOR_FX.start, 2000);
 });
 
-test('presets: os de cor trazem a troca para as palavras, não para o trecho', () => {
-  const green = applyPreset('color-green');
-  assert.equal(green.colorFx, undefined, 'a troca de cor nunca vai para o trecho inteiro');
-  assert.ok(green.enter.fade, 'entra com animação básica antes de trocar de cor');
-  const p = ANIMATION_PRESETS.find((x) => x.id === 'color-green')!;
-  assert.deepEqual(p.color?.colors, ['#4ade80']);
-  for (const x of ANIMATION_PRESETS) assert.ok(PRESET_GROUPS.includes(x.group), x.id);
-  for (const x of ANIMATION_PRESETS.filter((y) => y.group === 'Troca de cor')) {
-    assert.ok(x.color && sanitizeColorFx(x.color), `${x.id} válido`);
-    assert.ok(x.color!.start! >= (x.config.duration ?? 0), `${x.id}: começa depois da entrada`);
+test('presets: nenhum estilo pronto troca a cor (isso fica só na ferramenta de cor)', () => {
+  for (const x of ANIMATION_PRESETS) {
+    assert.ok(PRESET_GROUPS.includes(x.group), x.id);
+    assert.equal(x.color, undefined, `${x.id} não deveria trazer troca de cor`);
+    assert.equal(applyPreset(x.id).colorFx, undefined, x.id);
   }
-  assert.ok(ANIMATION_PRESETS.some((x) => (x.color?.colors.length ?? 0) >= 3), 'há um estilo com sequência de várias cores');
 });

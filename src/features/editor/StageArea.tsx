@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { LuChevronLeft, LuChevronRight, LuClipboardPaste, LuGrid3X3, LuRotateCcw, LuRotateCw } from 'react-icons/lu';
 import { SnapToggle } from '../../ui/SnapToggle';
 import { slideText } from '../../core/defaults';
@@ -125,6 +125,13 @@ function Surface({ guides }: { guides: boolean }) {
   const replayKey = useEditor((s) => s.replayKey);
   const ref = useRef<HTMLDivElement>(null);
   const [boxes, setBoxes] = useState<Record<string, Box>>({});
+  const [editing, setEditing] = useState<string | null>(null);
+  // botão "Texto" da barra de cima: abre o texto novo já para digitar
+  useEffect(() => {
+    const on = (e: Event) => setEditing((e as CustomEvent<string>).detail);
+    window.addEventListener('cs:edit-layer', on);
+    return () => window.removeEventListener('cs:edit-layer', on);
+  }, []);
   const selIds = useSelectedLayerIds();
   const selKey = selIds.join(',');
   const box = layerId ? boxes[layerId] ?? null : null;
@@ -356,6 +363,13 @@ function Surface({ guides }: { guides: boolean }) {
           pendingWord.current = null;
         }}
         onPointerLeave={() => setHover(false)}
+        onDoubleClick={(e) => {
+          // duplo clique no texto: edita ali mesmo
+          const id = hit(e.clientX, e.clientY);
+          if (!id || !slide) return;
+          editor.selectLayer(id);
+          setEditing(id);
+        }}
         onContextMenu={(e) => {
           e.preventDefault();
           const root = ref.current;
@@ -382,7 +396,57 @@ function Surface({ guides }: { guides: boolean }) {
           <Handles box={box} layerName={layer.name} onBusy={setBusy} />
         </div>
       )}
+      {editing && slide && boxes[editing] && (
+        <InlineText
+          key={editing}
+          box={boxes[editing]}
+          text={slide.layers.find((l) => l.id === editing)?.text ?? ''}
+          onChange={(t) => editor.setLayerText(slide.id, editing, t)}
+          onDone={() => setEditing(null)}
+        />
+      )}
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
+    </div>
+  );
+}
+
+/**
+ * Edição no próprio palco (duplo clique): uma caixa por cima do texto, do tamanho dele. O palco atrás
+ * acompanha cada letra digitada. Enter quebra a linha; Esc, Ctrl+Enter ou clicar fora termina.
+ */
+function InlineText({ box, text, onChange, onDone }: { box: Box; text: string; onChange: (t: string) => void; onDone: () => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.focus();
+    el.select();
+  }, []);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  });
+  const w = Math.max(260, box.w);
+  return (
+    <div className="inline-edit" style={{ left: box.cx - w / 2, top: box.cy - box.h / 2, width: w }} onPointerDown={(e) => e.stopPropagation()}>
+      <textarea
+        ref={ref}
+        value={text}
+        aria-label="Editar texto no palco"
+        spellCheck
+        onChange={(e) => onChange(e.currentTarget.value)}
+        onBlur={onDone}
+        onKeyDown={(e) => {
+          e.stopPropagation(); // atalhos do editor não disparam enquanto digita
+          if (e.key === 'Escape' || (e.key === 'Enter' && (e.ctrlKey || e.metaKey))) {
+            e.preventDefault();
+            onDone();
+          }
+        }}
+      />
+      <small>Enter quebra a linha · Esc ou clicar fora termina</small>
     </div>
   );
 }

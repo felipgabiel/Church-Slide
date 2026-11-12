@@ -255,8 +255,8 @@
 .lib-content {
   display: grid;
   gap: 34px;
-  padding: 26px clamp(20px, 3vw, 40px) 96px;
-  max-width: 1480px;
+  /* ocupa a largura toda: em monitor grande os cartões crescem junto, sem faixa vazia ao lado */
+  padding: 26px clamp(20px, 3vw, 56px) 96px;
 }
 .lib-banner {
   display: flex;
@@ -557,7 +557,7 @@
 /* grade */
 .lib-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(clamp(220px, 15vw, 340px), 1fr));
   gap: 22px 18px;
 }
 .pcard {

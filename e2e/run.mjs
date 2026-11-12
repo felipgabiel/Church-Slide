@@ -28,6 +28,8 @@ const results = [];
 const consoleErrors = [];
 
 async function step(name, fn) {
+  // E2E_ONLY="regex": roda só as etapas cujo nome bate (para investigar uma falha sem esperar o resto)
+  if (process.env.E2E_ONLY && !new RegExp(process.env.E2E_ONLY).test(name)) return;
   const t0 = Date.now();
   try {
     await fn();
@@ -38,7 +40,7 @@ async function step(name, fn) {
       for (const pg of ctx.pages()) await pg.screenshot({ path: join(process.env.E2E_SHOTS, `${results.length}-${pg.url().split('#')[1]?.replace(/\W+/g, '_') ?? 'x'}.png`) }).catch(() => undefined);
     }
     results.push({ name, ok: false, err });
-    console.log(`  ✘ ${name}\n      ${String(err.message ?? err).split('\n')[0]}`);
+    console.log(`  ✘ ${name}\n      ${String(err.message ?? err).split("\n").slice(0, process.env.E2E_ONLY ? 8 : 1).join("\n      ")}`);
   }
 }
 
@@ -481,8 +483,10 @@ await step('troca de cor (branco → verde): aparece branca, termina verde na te
   await pg.getByRole('button', { name: /Criar e abrir/i }).click();
   await pg.waitForURL(/#\/edit\//);
   await pg.getByRole('tab', { name: /^Animação$/ }).click();
-  await pg.getByRole('combobox', { name: 'Predefinição de animação' }).click();
-  await pg.getByRole('option', { name: 'Branco → verde' }).click();
+  // a troca de cor fica só na ferramenta de cor (não é mais um estilo pronto): marca tudo e liga (verde é o padrão)
+  await pg.getByRole('button', { name: 'Marcar todas do trecho' }).click();
+  await pg.getByRole('switch', { name: 'Trocar a cor das palavras marcadas' }).click();
+  await pg.getByRole('button', { name: 'Ver animação' }).click();
   const colorOf = () =>
     pg.evaluate(() => {
       const w = document.querySelector('.surface [data-w]');
@@ -850,6 +854,9 @@ await step('apoio via Pix: convite opcional depois de gerar, QR lido como o cód
   await pg.waitForURL(/#\/edit\//);
   const gen = async () => {
     await pg.getByRole('button', { name: /Exportar vídeos/ }).click();
+    // o resultado anterior continua guardado (a exportação vive fora do diálogo): "Refazer" para gerar de novo
+    const redo = pg.locator('dialog[open]').getByRole('button', { name: 'Refazer', exact: true });
+    if (await redo.count()) await redo.click();
     await pg.getByRole('button', { name: /^Gerar 1 vídeo$/ }).click();
     await pg.getByRole('button', { name: /Baixar tudo/ }).waitFor({ timeout: 240000 });
   };
@@ -1124,6 +1131,101 @@ await step('seleção múltipla no editor (Ctrl + clique): arrastar move os dois
   await pg.close();
 });
 
+await step('texto: botão "Texto" na barra, duplo clique edita no palco, várias palavras marcadas se soltam juntas', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'texto no palco');
+  await pg.goto(BASE);
+  await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+  await pg.locator('dialog input').first().fill('No palco');
+  await pg.locator('dialog textarea').first().fill('vem sobre mim agora');
+  await pg.getByRole('button', { name: /Criar e abrir/i }).click();
+  await pg.waitForURL(/#\/edit\//);
+  const pid = pg.url().split('/edit/')[1];
+  const layersOf = () =>
+    pg.evaluate(
+      (id) =>
+        new Promise((res) => {
+          const r = indexedDB.open('church-slide');
+          r.onsuccess = () => {
+            const g = r.result.transaction('projects', 'readonly').objectStore('projects').get(id);
+            g.onsuccess = () => res(g.result.slides[0].layers.map((l) => ({ role: l.role, text: l.text })));
+          };
+        }),
+      pid,
+    );
+  await pg.locator('.surface [data-w]').first().waitFor();
+
+  // 1. botão "Texto": cria o texto livre e já abre para digitar
+  await pg.getByRole('button', { name: /^Texto$/ }).first().click();
+  const box = pg.getByRole('textbox', { name: 'Editar texto no palco' });
+  await box.waitFor();
+  await box.fill('Aleluia');
+  await pg.keyboard.press('Escape');
+  await box.waitFor({ state: 'detached' });
+  await pg.waitForTimeout(1200);
+  let ls = await layersOf();
+  assert(ls.some((l) => l.role === 'free' && l.text === 'Aleluia'), `o texto livre novo deveria ter "Aleluia": ${JSON.stringify(ls)}`);
+
+  // 2. duplo clique numa palavra da letra edita a letra ali mesmo
+  const w = await pg.locator('.surface [data-w]', { hasText: 'vem' }).first().boundingBox();
+  await pg.mouse.dblclick(w.x + w.width / 2, w.y + w.height / 2);
+  await box.waitFor();
+  const norm = (t) => t.replace(/\s+/g, ' ').trim();
+  assert(norm(await box.inputValue()) === 'vem sobre mim agora', `a caixa abre com o texto da camada clicada (${await box.inputValue()})`);
+  await box.fill('vem sobre mim agora Senhor');
+  await pg.locator('.sa-bar').click({ position: { x: 4, y: 4 } }); // clicar fora termina
+  await box.waitFor({ state: 'detached' });
+  await pg.waitForTimeout(1200);
+  ls = await layersOf();
+  assert(norm(ls.find((l) => l.role === 'lyrics').text) === 'vem sobre mim agora Senhor', 'a letra mudou pelo palco');
+
+  // 3. Shift + clique em "sobre" e "mim", botão direito numa delas: "Soltar as 2 palavras juntas"
+  const sobre = await pg.locator('.surface [data-w]', { hasText: /^sobre$/ }).first().boundingBox();
+  const mim = await pg.locator('.surface [data-w]', { hasText: /^mim$/ }).first().boundingBox();
+  await pg.mouse.click(sobre.x + sobre.width / 2, sobre.y + sobre.height / 2);
+  await pg.keyboard.down('Shift');
+  await pg.mouse.click(mim.x + mim.width / 2, mim.y + mim.height / 2);
+  await pg.keyboard.up('Shift');
+  await pg.mouse.click(mim.x + mim.width / 2, mim.y + mim.height / 2, { button: 'right' });
+  await pg.getByRole('menuitem', { name: /Soltar as 2 palavras juntas/ }).click();
+  await pg.waitForTimeout(1200);
+  ls = await layersOf();
+  assert(ls.some((l) => l.role === 'free' && norm(l.text) === 'sobre mim'), `"sobre mim" deveria virar uma camada só: ${JSON.stringify(ls)}`);
+  assert(norm(ls.find((l) => l.role === 'lyrics').text) === 'vem agora Senhor', 'as duas saíram da letra');
+
+  // 4. estilos prontos de animação não trazem mais "Troca de cor"
+  await pg.getByRole('tab', { name: /Animações/ }).click();
+  assert((await pg.locator('.lp-title', { hasText: 'Troca de cor' }).count()) === 0, 'o grupo "Troca de cor" saiu dos estilos prontos');
+  await pg.close();
+});
+
+await step('vídeos em segundo plano: fechar o diálogo não cancela, o aviso acompanha em outra tela e baixa no fim', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'segundo plano');
+  await pg.goto(BASE);
+  await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+  await pg.locator('dialog input').first().fill('Fundo de tela');
+  await pg.locator('dialog textarea').first().fill('Santo\n\nDigno');
+  await pg.getByRole('button', { name: /Criar e abrir/i }).click();
+  await pg.waitForURL(/#\/edit\//);
+  await pg.getByRole('button', { name: /Exportar vídeos/ }).click();
+  await pg.locator('dialog').getByRole('radio', { name: '720p' }).click();
+  await pg.getByRole('button', { name: /^Gerar 2 vídeos$/ }).click();
+  await pg.getByRole('button', { name: 'Continuar em segundo plano' }).click();
+  await pg.locator('dialog[open]').waitFor({ state: 'detached', timeout: 3000 }).catch(() => undefined);
+  const pill = pg.locator('.xpill');
+  await pill.waitFor();
+  assert(/Gerando vídeos de “Fundo de tela”/.test(await pill.innerText()), 'o aviso mostra o que está sendo gerado');
+  // vai para a biblioteca: continua gerando
+  await pg.getByRole('button', { name: 'Voltar à biblioteca' }).click().catch(() => pg.goto(BASE));
+  await pg.waitForURL(/#\/$/);
+  await pill.locator('text=/vídeos prontos/').waitFor({ timeout: 240000 });
+  const [dl] = await Promise.all([pg.waitForEvent('download'), pill.getByRole('button', { name: /Baixar \.zip/ }).click()]);
+  assert(/Fundo de tela - videos\.zip$/.test(dl.suggestedFilename()), `zip: ${dl.suggestedFilename()}`);
+  await pill.waitFor({ state: 'detached' });
+  await pg.close();
+});
+
 /* ------------------------------ Estúdio de Fundos ------------------------------ */
 
 /** Lê um registro direto do IndexedDB do app (o que ficou salvo de verdade). */
@@ -1236,8 +1338,12 @@ await step('Estúdio: camada nova, recorte, cores e movimento (ciclo de cores) p
   const op = st.getByLabel('Opacidade', { exact: true });
   await op.fill('40');
   await op.press('Enter');
+  await st.bringToFront();
   await st.locator('.studio-props').getByRole('combobox', { name: 'Modo de mistura' }).click();
-  await st.getByRole('option', { name: /Inverter cores/ }).click();
+  // pelo teclado: "Inverter cores" é a última opção (mais estável que clicar com várias abas abertas)
+  await st.getByRole('option', { name: /Inverter cores/ }).waitFor();
+  await st.keyboard.press('End');
+  await st.keyboard.press('Enter');
   await waitSaved(st);
   const rec = await idbGet(st, 'designs', designId);
   const both = rec.layers.filter((l) => l.name === 'Sol' || l.name === 'Brilho');
@@ -1264,13 +1370,15 @@ await step('Estúdio: camada nova, recorte, cores e movimento (ciclo de cores) p
   assert(rec3.layers.find((l) => l.name === 'Sol').x === 50 && rec3.layers.find((l) => l.name === 'Sol').opacity === 100, 'desfazer volta o grupo');
 });
 
-await step('Fundo em vídeo (só o fundo): MP4 de 12 s que repete sem emenda', async () => {
+await step('Fundo em vídeo (só o fundo): MP4 de 12 s que repete sem emenda, com o convite de apoio no fim', async () => {
+  await st.evaluate(() => localStorage.removeItem('cs:support-snooze-until'));
   await st.goto(BASE + '#/fundos');
   await st.getByRole('button', { name: 'Mais ações para Meu sol' }).click();
   await st.getByRole('menuitem', { name: /Exportar vídeo/ }).click();
   await st.locator('dialog').getByRole('radio', { name: '720p' }).click();
   await st.locator('dialog').getByRole('button', { name: 'Gerar vídeo' }).click();
   await st.locator('dialog').getByRole('button', { name: 'Baixar vídeo' }).waitFor({ timeout: 180000 });
+  assert((await st.locator('dialog .support').count()) === 1, 'o convite de apoio (Pix) aparece depois de gerar o fundo');
   const [dl] = await Promise.all([st.waitForEvent('download'), st.locator('dialog').getByRole('button', { name: 'Baixar vídeo' }).click()]);
   assert(/Meu sol \(loop 12s\)\.mp4$/.test(dl.suggestedFilename()), `nome: ${dl.suggestedFilename()}`);
   const dir = mkdtempSync(join(tmpdir(), 'cs-loop-'));

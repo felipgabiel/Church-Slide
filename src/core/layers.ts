@@ -180,6 +180,32 @@ export function readWord(layer: TextLayer, index: number): LineCut | null {
   return { text, words: ov ? { '0': structuredClone(ov) } : undefined, count: 1 };
 }
 
+/**
+ * Várias palavras marcadas (em qualquer ordem) como uma frase só, na ordem do texto. Palavras de linhas
+ * diferentes continuam em linhas diferentes. Os ajustes de cada palavra vão junto, renumerados.
+ */
+export function readWords(layer: TextLayer, indices: number[]): LineCut | null {
+  const idx = [...new Set(indices)].sort((a, b) => a - b).filter((i) => !!wordAt(layer.text, i));
+  if (!idx.length) return null;
+  if (idx.length === 1) return readWord(layer, idx[0]);
+  const lines = tokenizeText(layer.text);
+  const lineOf = (i: number) => lines.findIndex((l) => i >= l.first && i < l.first + l.count);
+  let text = '';
+  const words: WordMap = {};
+  idx.forEach((i, k) => {
+    if (k > 0) text += lineOf(i) !== lineOf(idx[k - 1]) ? '\n' : ' ';
+    text += wordAt(layer.text, i);
+    const ov = layer.words?.[String(i)];
+    if (ov) words[String(k)] = structuredClone(ov);
+  });
+  return { text, words: nonEmpty(words), count: idx.length };
+}
+
+/** Remove várias palavras (da última para a primeira, para os índices não andarem). */
+export function removeWords(layer: TextLayer, indices: number[]): void {
+  for (const i of [...new Set(indices)].sort((a, b) => b - a)) removeWord(layer, i);
+}
+
 /** Índice (depois de remover `removed` palavras a partir de `index`) de uma palavra que ficou; -1 se foi removida. */
 export function indexAfterRemoval(old: number, index: number, removed = 1): number {
   if (old < index) return old;

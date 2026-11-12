@@ -156,3 +156,14 @@ test('copyLayer: id novo, deslocada, e só o original continua sendo "a letra"',
   assert.ok(c.style.x > src.style.x && c.style.y > src.style.y);
   assert.equal(layerIsEmpty(layer('  \n ')), true);
 });
+
+test('várias palavras marcadas viram uma frase só (na ordem do texto, com as quebras de linha)', async () => {
+  const { readWords, removeWords } = await import('../src/core/layers');
+  const layer = { id: 'a', role: 'lyrics', name: 'Letra', text: 'vem sobre mim\nSENHOR Jesus', visible: true, style: {} as never, words: { '1': { style: { scale: 2 } }, '3': { style: { color: '#ff0000' } } } } as never as import('../src/core/types').TextLayer;
+  const cut = readWords(layer, [3, 1, 2])!;
+  assert.equal(cut.text, 'sobre mim\nSENHOR');
+  assert.equal(cut.count, 3);
+  assert.deepEqual(Object.keys(cut.words ?? {}), ['0', '2']);
+  removeWords(layer, [3, 1, 2]);
+  assert.equal(layer.text, 'vem\nJesus');
+});

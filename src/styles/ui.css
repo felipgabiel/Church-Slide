@@ -1067,3 +1067,114 @@
   font-size: 11.5px;
   line-height: 1.35;
 }
+/* exportação em segundo plano */
+.xpill {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(420px, calc(100vw - 40px));
+  padding: 12px 12px 12px 14px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-lg, 12px);
+  background: var(--bg-2);
+  box-shadow: var(--shadow-pop);
+  animation: xpill-in 0.2s var(--ease);
+}
+@keyframes xpill-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.xpill-ico {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 16px;
+}
+.xpill[data-state='error'] .xpill-ico {
+  background: var(--live-soft);
+  color: var(--live);
+}
+.xpill-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.xpill-body b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+.xpill-body small {
+  color: var(--text-3);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.xpill-bar {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-4);
+  overflow: hidden;
+}
+.xpill-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s linear;
+}
+.xpill-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+.xpill-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: var(--accent-ink, #fff);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.xpill-link {
+  height: 30px;
+  padding: 0 8px;
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  font-size: 12.5px;
+}
+.xpill-link:hover,
+.xpill-x:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+.xpill-x {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+}
+.app:has(.support-fab) .xpill {
+  bottom: 84px;
+}

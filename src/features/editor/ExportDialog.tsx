@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { SupportCard, supportDue } from '../support/SupportCard';
-import { LuCheck, LuDownload, LuFolderDown, LuFiles, LuPlay, LuTriangleAlert, LuX } from 'react-icons/lu';
+import { LuCheck, LuDownload, LuFolderDown, LuFiles, LuMinimize2, LuPlay, LuTriangleAlert, LuX } from 'react-icons/lu';
+import { cancelJob, clearJob, exportJobs, markSeen, startJob, useExportJob, type JobProgress } from '../export/exportJob';
 import { slideText } from '../../core/defaults';
-import { canEncodeVideo, ExportAbort } from '../../core/export/encode';
+import { canEncodeVideo } from '../../core/export/encode';
 import {
   bitrateFor,
   DEFAULT_SETTINGS,
@@ -27,13 +28,6 @@ import { toast, toastError } from '../../ui/toast';
 type Prefs = Omit<ExportSettings, 'slideIds'>;
 type Phase = 'idle' | 'running' | 'done';
 
-interface Progress {
-  index: number;
-  total: number;
-  name: string;
-  fraction: number;
-}
-
 const preview = (text: string) => text.replace(/\s+/g, ' ').trim();
 
 export function ExportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -50,20 +44,28 @@ function ExportBody({ onClose }: { onClose: () => void }) {
   const [saved, setSaved] = useSetting<Prefs>('export', DEFAULT_SETTINGS);
   const prefs: Prefs = { ...DEFAULT_SETTINGS, ...saved };
   const [selected, setSelected] = useState<Set<string>>(() => new Set(slides.map((s) => s.id)));
-  const [phase, setPhase] = useState<Phase>('idle');
-  // convite opcional de apoio (Pix): só depois de gerar, nunca dentro do vídeo; some por semanas após "Agora não"
+  // a exportação vive fora do diálogo (exportJob): fechar não cancela, e ao reabrir mostra onde parou
+  const job = useExportJob();
+  const mine = job && job.kind === 'song' && job.ownerId === project.id ? job : null;
+  const otherRunning = !!job && job.status === 'running' && !mine;
+  const phase: Phase = mine?.status === 'running' ? 'running' : mine?.status === 'done' ? 'done' : 'idle';
+  const progress = mine?.progress ?? null;
+  const clips = (mine?.files ?? []) as ClipResult[];
+  const error = mine?.status === 'error' ? mine.error : null;
+  // convite opcional de apoio (Pix): só depois de gerar, nunca dentro do vídeo; some por uns dias após "Agora não"
   const [showSupport, setShowSupport] = useState(supportDue);
-  const [progress, setProgress] = useState<Progress | null>(null);
-  const [clips, setClips] = useState<ClipResult[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewName, setPreviewName] = useState('');
-  const abort = useRef<AbortController | null>(null);
   const supported = canEncodeVideo();
   const hasFolder = typeof (window as unknown as { showDirectoryPicker?: unknown }).showDirectoryPicker === 'function';
 
-  // fechar o diálogo durante a exportação cancela (não deixa trabalho invisível rodando)
-  useEffect(() => () => abort.current?.abort(), []);
+  useEffect(() => {
+    exportJobs.set({ dialog: 'song' });
+    return () => exportJobs.set({ dialog: null });
+  }, []);
+  useEffect(() => {
+    if (phase === 'done') markSeen();
+  }, [phase]);
   useEffect(() => () => void (previewUrl && URL.revokeObjectURL(previewUrl)), [previewUrl]);
 
   const set = (patch: Partial<Prefs>) => setSaved({ ...prefs, ...patch });
@@ -73,40 +75,25 @@ function ExportBody({ onClose }: { onClose: () => void }) {
   const estBytes = (bitrateFor(size.width, size.height, prefs.fps, prefs.quality) / 8) * perClipSec * chosen.length;
 
   const start = async () => {
-    setError(null);
-    setClips([]);
     setPreviewUrl(null);
-    setPhase('running');
-    const ac = new AbortController();
-    abort.current = ac;
-    try {
-      await flushSave();
-      const done = await exportClips(editorStore.get().project!, { ...prefs, slideIds: chosen.map((s) => s.id) }, {
-        signal: ac.signal,
-        onClipStart: (index, total, name) => setProgress({ index, total, name, fraction: 0 }),
-        onProgress: (fraction) => setProgress((p) => (p ? { ...p, fraction } : p)),
-        onClip: (c) => setClips((cs) => [...cs, c]),
+    await flushSave();
+    const current = editorStore.get().project!;
+    const settings = { ...prefs, slideIds: chosen.map((s) => s.id) };
+    const ok = startJob({ kind: 'song', ownerId: current.id, title: current.name, zipName: zipFileName(current) }, async (r) => {
+      let at: JobProgress = { index: 0, total: settings.slideIds.length, name: '', fraction: 0 };
+      return exportClips(current, settings, {
+        signal: r.signal,
+        onClipStart: (index, total, name) => r.progress((at = { index, total, name, fraction: 0 })),
+        onProgress: (fraction) => r.progress((at = { ...at, fraction })),
+        onClip: (c) => r.file(c),
       });
-      setClips(done);
-      setPhase('done');
-    } catch (err) {
-      if (err instanceof ExportAbort) {
-        setPhase('idle');
-        toast('Exportação cancelada.', 'info');
-      } else {
-        console.error(err);
-        setError(err instanceof Error ? err.message : 'Não foi possível exportar.');
-        setPhase('idle');
-      }
-    } finally {
-      abort.current = null;
-      setProgress(null);
-    }
+    });
+    if (!ok) toast('Já há vídeos sendo gerados. Espere terminar ou cancele.', 'info');
   };
 
   const downloadZip = async () => {
     try {
-      downloadBlob(await zipClips(clips), zipFileName(editorStore.get().project!));
+      downloadBlob(await zipClips(clips), mine?.zipName ?? zipFileName(editorStore.get().project!));
     } catch (err) {
       console.error(err);
       toastError('Não foi possível montar o arquivo ZIP.');
@@ -250,6 +237,12 @@ function ExportBody({ onClose }: { onClose: () => void }) {
         </p>
       )}
 
+      {otherRunning && job && (
+        <p className="xd-warn" role="status">
+          <LuTriangleAlert aria-hidden /> Já há vídeos sendo gerados (“{job.title}”). Este começa quando aquele terminar ou for cancelado.
+        </p>
+      )}
+
       {phase === 'done' && showSupport && <SupportCard onDismiss={() => setShowSupport(false)} />}
 
       <div className="xd-foot">
@@ -258,22 +251,27 @@ function ExportBody({ onClose }: { onClose: () => void }) {
             <span className="xd-est">
               {chosen.length} {chosen.length === 1 ? 'vídeo' : 'vídeos'} · ≈ {formatBytes(estBytes)} no total
             </span>
-            <Button variant="primary" icon={<LuFiles />} disabled={!supported || chosen.length === 0} onClick={() => void start()}>
+            <Button variant="primary" icon={<LuFiles />} disabled={!supported || chosen.length === 0 || otherRunning} onClick={() => void start()}>
               Gerar {chosen.length} {chosen.length === 1 ? 'vídeo' : 'vídeos'}
             </Button>
           </>
         )}
         {running && (
           <>
-            <span className="xd-est">Mantenha esta aba aberta até terminar.</span>
-            <Button icon={<LuX />} onClick={() => abort.current?.abort()}>
-              Cancelar
-            </Button>
+            <span className="xd-est">Pode fechar esta janela e continuar editando: os vídeos seguem sendo gerados.</span>
+            <span className="xd-dl">
+              <Button icon={<LuX />} onClick={() => cancelJob()}>
+                Cancelar
+              </Button>
+              <Button variant="primary" icon={<LuMinimize2 />} onClick={onClose}>
+                Continuar em segundo plano
+              </Button>
+            </span>
           </>
         )}
         {phase === 'done' && (
           <>
-            <Button onClick={() => { setPhase('idle'); setClips([]); }}>Refazer</Button>
+            <Button onClick={() => clearJob()}>Refazer</Button>
             <span className="xd-dl">
               {hasFolder && (
                 <Button icon={<LuFolderDown />} onClick={() => void saveToFolder()}>

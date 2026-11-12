@@ -77,7 +77,7 @@ function lineEls(stage: HTMLElement, layerId: string, text: string, lineIdx: num
  * Tira a palavra/linha do texto e a deixa solta, exatamente onde estava. A posição e o tamanho vêm da tela;
  * depois de criada, a camada é medida de novo e corrigida, tudo no mesmo "desfazer".
  */
-export function detachFromStage(stage: HTMLElement, slide: Slide, layerId: string, kind: 'word' | 'line', index: number): boolean {
+export function detachFromStage(stage: HTMLElement, slide: Slide, layerId: string, kind: 'word' | 'line' | 'words', index: number, indices?: number[]): boolean {
   const layer = slide.layers.find((l) => l.id === layerId);
   if (!layer) return false;
   let m: Measured | null = null;
@@ -85,6 +85,11 @@ export function detachFromStage(stage: HTMLElement, slide: Slide, layerId: strin
   if (kind === 'word') {
     const el = wordEl(stage, layerId, index);
     m = el ? measure(stage, [el], el) : null;
+  } else if (kind === 'words') {
+    // a frase marcada: posição de todas juntas; tamanho da maior palavra (as outras ficam proporcionais)
+    const els = (indices ?? [index]).map((i) => wordEl(stage, layerId, i)).filter((e): e is HTMLElement => !!e);
+    const biggest = els.reduce<HTMLElement | null>((a, e) => (!a || parseFloat(getComputedStyle(e).fontSize) > parseFloat(getComputedStyle(a).fontSize) ? e : a), null);
+    m = biggest ? measure(stage, els, biggest) : null;
   } else {
     const found = lineEls(stage, layerId, layer.text, index);
     m = found ? measure(stage, found.els, found.block) : null;
@@ -93,7 +98,7 @@ export function detachFromStage(stage: HTMLElement, slide: Slide, layerId: strin
   target = { x: m.x, y: m.y };
   let id: string | null = null;
   flushSync(() => {
-    id = editor.detach({ layerId, kind, index }, m!);
+    id = editor.detach({ layerId, kind, index, indices }, m!);
   });
   if (!id) return false;
   const el = Array.from(stage.querySelectorAll<HTMLElement>(`[data-layer="${id}"]`)).pop();
@@ -129,8 +134,23 @@ export function buildStageMenu({ stage, slide, word, layerId, at, toast }: MenuA
     const line = lineOfWord(layer.text, word.index);
     const shown = text.length > 18 ? `${text.slice(0, 17)}…` : text;
     items.push({ heading: `Palavra “${shown}”` });
+    // várias palavras marcadas nesta camada (Shift + clique) e o clique foi numa delas: solta a frase inteira
+    const marked = wordSel
+      .get()
+      .keys.filter((k) => k.slice(0, k.lastIndexOf(':')) === layer.id)
+      .map((k) => Number(k.slice(k.lastIndexOf(':') + 1)));
+    if (marked.length > 1 && marked.includes(word.index)) {
+      items.push({
+        label: `Soltar as ${marked.length} palavras juntas`,
+        icon: <LuMove />,
+        hint: 'a frase marcada',
+        onClick: () => {
+          if (!detachFromStage(stage, slide, layer.id, 'words', word.index, marked)) toast('Não foi possível soltar as palavras.');
+        },
+      });
+    }
     items.push({
-      label: 'Soltar para mover',
+      label: marked.length > 1 && marked.includes(word.index) ? 'Soltar só esta palavra' : 'Soltar para mover',
       icon: <LuMove />,
       hint: 'arraste depois',
       onClick: () => {

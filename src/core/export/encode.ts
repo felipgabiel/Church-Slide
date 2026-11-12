@@ -58,7 +58,20 @@ export function canEncodeVideo(): boolean {
   return typeof VideoEncoder !== 'undefined' && typeof VideoFrame !== 'undefined';
 }
 
-const tick = () => new Promise<void>((r) => setTimeout(r, 0));
+/**
+ * Devolve a vez ao navegador entre quadros. Com MessageChannel (e não setTimeout), a exportação continua
+ * na velocidade normal mesmo com a aba em segundo plano: o Chrome segura timers de abas escondidas
+ * (até 1 por minuto), mas não mensagens.
+ */
+const channel = typeof MessageChannel !== 'undefined' ? new MessageChannel() : null;
+const waiting: (() => void)[] = [];
+if (channel) channel.port1.onmessage = () => waiting.shift()?.();
+const tick = () =>
+  new Promise<void>((r) => {
+    if (!channel) return void setTimeout(r, 0);
+    waiting.push(r);
+    channel.port2.postMessage(0);
+  });
 
 /** Renderiza quadro a quadro (mais rápido que o tempo real) e devolve um MP4. */
 export async function encodeMp4(o: EncodeOptions): Promise<Blob> {
@@ -103,7 +116,7 @@ export async function encodeMp4(o: EncodeOptions): Promise<Blob> {
       const frame = new VideoFrame(canvas, { timestamp: Math.round((i * 1e6) / o.fps), duration: Math.round(1e6 / o.fps) });
       encoder.encode(frame, { keyFrame: i % keyEvery === 0 });
       frame.close();
-      while (encoder.encodeQueueSize > 6) await new Promise((r) => setTimeout(r, 2)); // não acumula quadros na memória
+      while (encoder.encodeQueueSize > 6) await tick(); // não acumula quadros na memória
       if (i % 3 === 0) {
         o.onProgress?.(i / frames);
         await tick(); // deixa a interface respirar (barra de progresso, botão cancelar)
