@@ -298,13 +298,16 @@ export class DesignPainter {
         const n = Math.max(1, layer.count);
         const r = rng(hashString(layer.id));
         const stops = sortedStops(st.fill);
+        // a maior partícula possível (+ o desfoque da camada): a faixa de subida começa e termina fora da
+        // tela por essa margem, então ninguém some antes de cruzar a borda (nem nasce já visível)
+        const margin = layer.scale * U * 1.5 * st.scale * 0.5 + (layer.blur / 100) * 0.25 * h + 2;
         for (let i = 0; i < n; i++) {
           const sx = r();
           const sy = r();
           const sz = 0.5 + r();
           const seed = r();
           // sobe uma tela inteira por loop: periódico, a partícula que sai em cima reaparece embaixo
-          const y = (1.1 - frac(sy + p)) * h * 1.2 - h * 0.1;
+          const y = h + margin - frac(sy + p) * (h + 2 * margin);
           const x = (sx + 0.02 * Math.sin(TAU * (p + seed)) + st.dx / 100) * w;
           const rad = (layer.scale * U * sz * st.scale) / 2;
           if (rad < 0.3) continue;

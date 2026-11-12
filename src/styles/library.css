@@ -814,3 +814,33 @@
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
+/* "Apresentar" e "Usar modelo": ação principal de cada louvor, com a cor do app (antes ficavam apagados) */
+.btn.lib-go,
+.ibtn.lib-go {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.btn.lib-go:hover:not(:disabled),
+.ibtn.lib-go:hover:not(:disabled),
+.btn.lib-go:focus-visible,
+.ibtn.lib-go:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.btn.lib-go:disabled,
+.ibtn.lib-go:disabled {
+  border-color: var(--line-2);
+  background: transparent;
+  color: var(--text-4);
+}
+
+.trash-list .trash-thumb {
+  flex: none;
+  width: 104px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--bg-3);
+}

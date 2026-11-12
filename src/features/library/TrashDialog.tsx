@@ -4,6 +4,9 @@ import type { Project } from '../../core/types';
 import { timeAgo } from '../../core/util';
 import { Button } from '../../ui/Button';
 import { Modal } from '../../ui/Modal';
+import { LazyMount } from '../../ui/LazyMount';
+import { SlideThumb } from '../../render/SlideThumb';
+import { slideText } from '../../core/defaults';
 import { confirmDialog, toast, toastError } from '../../ui/toast';
 
 export function TrashDialog({ open, onClose, items, onChanged }: { open: boolean; onClose: () => void; items: Project[]; onChanged: () => void }) {
@@ -50,9 +53,15 @@ export function TrashDialog({ open, onClose, items, onChanged }: { open: boolean
         <ul className="trash-list">
           {items.map((p) => (
             <li key={p.id}>
+              <LazyMount className="trash-thumb">
+                <SlideThumb slide={p.slides.find((sl) => slideText(sl).trim()) ?? p.slides[0] ?? null} theme={p.theme} aspect={p.aspect} />
+              </LazyMount>
               <div>
                 <strong>{p.name}</strong>
-                <span>excluído {timeAgo(p.deletedAt ?? p.updatedAt)}</span>
+                <span>
+                  {p.artist ? `${p.artist} · ` : ''}
+                  {p.slides.length} {p.slides.length === 1 ? 'trecho' : 'trechos'} · excluído {timeAgo(p.deletedAt ?? p.updatedAt)}
+                </span>
               </div>
               <Button size="sm" icon={<LuArchiveRestore />} onClick={() => restore(p)}>
                 Restaurar

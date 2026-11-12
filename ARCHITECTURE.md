@@ -208,6 +208,26 @@ desenho em torno do mesmo centro (caso "caixa girada" no teste de fidelidade).
   (`.fit-measure`) e mede de novo quando a entrada termina (`cs:refit`), igual ao que o vídeo mede.
 - A troca de cor saiu dos estilos prontos de animação: fica só na ferramenta "Troca de cor".
 
+### Painel de camadas, zoom do palco, letra completa e repetidos
+
+- **Camadas embaixo do palco (`features/editor/LayersPanel.tsx`):** a faixa de baixo do editor (`.ed-bottom`) é meio
+  texto do trecho, meio lista de camadas, na ordem do palco (topo = na frente). Clique seleciona (Ctrl soma), duplo clique
+  renomeia (`editor.renameLayer`), arrastar reordena (`editor.moveLayerTo`), olho oculta, e o menu "…" duplica, sobe/desce,
+  traz para frente/envia para trás e exclui. A lista usa `contain: size`: a altura vem do editor de texto e ela rola.
+  O painel da direita só mostra o nome da camada em edição.
+- **Zoom (`features/editor/ZoomView.tsx`):** o palco fica de fato maior (sem `transform`) dentro de uma área com
+  rolagem, então cliques, alças e medidas continuam batendo. Ctrl + roda (com `passive: false`, para o navegador não dar
+  zoom na página) mantém sob o mouse o mesmo ponto do slide; as lupas da barra seguem degraus (50%–400%) pelo centro
+  (`cs:stage-zoom`); clicar na porcentagem volta a caber na tela. Espaço com o mouse sobre o palco ativa a mãozinha:
+  o `pointerdown` é tomado na fase de captura (nada do slide recebe o clique) e o `click` seguinte é descartado.
+- **Letra completa com palavras soltas:** a camada criada por "Soltar" guarda `detached` (`DetachOrigin`: camada de
+  origem, linha/coluna de cada palavra e linhas que ficaram vazias). `slideFullText` (em `core/layers.ts`) devolve as
+  palavras ao lugar ao montar a "Letra completa", então a frase continua inteira no texto.
+- **Louvor repetido (`core/duplicates.ts`):** mesmo nome e mesmo artista (sem diferenciar acentos/maiúsculas, fora
+  modelos e lixeira) pedem confirmação; seguindo, o novo vira "Nome (1)", "(2)"… Sem nome digitado não há aviso, só o
+  número. Renomear depois para um nome existente é permitido.
+- **Lixeira com miniaturas:** cada item mostra o primeiro trecho com texto (`SlideThumb` em `LazyMount`).
+
 ### Troca de cor (`core/anim/colorfx.ts`, `render/colorRun.ts`, `features/editor/panels/ColorChange.tsx`)
 
 A troca de cor é **sempre por palavra** (`WordOverride.colorFx`): só as palavras marcadas mudam de cor, as outras
@@ -322,8 +342,8 @@ Painéis laterais acompanham a largura do monitor (`clamp`), testados de 1280×7
 | Comando | O que faz |
 |---|---|
 | `npm run typecheck` | `tsc --noEmit` (ver limitação na seção 1) |
-| `npm test` | 112 testes unitários: easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
-| `npm run build && npm run e2e` | 38 etapas no navegador contra o build de produção (ver abaixo) |
+| `npm test` | 115 testes unitários: easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
+| `npm run build && npm run e2e` | 41 etapas no navegador contra o build de produção (ver abaixo) |
 | `npm run e2e:fidelity` | compara o desenho em canvas (vídeo) com o DOM do editor (PSNR; exige ffmpeg) |
 
 O e2e (`e2e/run.mjs`) cria um louvor pela interface, edita e confere a persistência após recarregar,
@@ -338,7 +358,9 @@ ordem da sequência, início no tempo escolhido, telão e vídeo iguais), legibi
 1600×900 e 1280×720 e os dois temas (botão, preferência salva, varredura de cores que sobraram do outro tema em
 biblioteca, editor, menus, diálogos e operador) e o Estúdio de Fundos (criar a partir de modelo, mover no palco, desfazer,
 salvar sozinho, camadas e movimentos, vídeo só do fundo com 360 quadros e emenda invisível, cópia no louvor, "Atualizar" e a
-ida e volta editor ↔ estúdio). Termina conferindo que não houve erros de console.
+ida e volta editor ↔ estúdio), o painel de camadas (adicionar, renomear, ocultar, reordenar, excluir), a palavra solta
+que continua na "Letra completa", o zoom (Ctrl + roda no ponto do mouse, lupas, Espaço + arrastar sem mover o texto), o aviso
+de louvor repetido e as miniaturas da lixeira. Termina conferindo que não houve erros de console.
 
 O build **falha** se `sw.js` sair com marcadores sem substituir — um bug anterior fazia o service
 worker não registrar e o modo offline nunca funcionava, sem nenhum aviso.

@@ -4,6 +4,7 @@ import {
   SCHEMA_VERSION,
   type Aspect,
   type Background,
+  type DetachOrigin,
   type LayerRole,
   type Project,
   type Slide,
@@ -161,6 +162,20 @@ function moveColorToWords(layers: TextLayer[], fx: ColorFx | undefined): void {
   }
 }
 
+/** Origem de uma camada solta (para a "Letra completa"); dados ruins somem sem quebrar nada. */
+function sanitizeDetach(raw: unknown): DetachOrigin | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Partial<DetachOrigin>;
+  if (typeof r.from !== 'string' || !Array.isArray(r.at)) return null;
+  const int = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : null);
+  const at = r.at
+    .map((p) => ({ line: int((p as { line?: unknown })?.line), col: int((p as { col?: unknown })?.col) }))
+    .filter((p): p is { line: number; col: number } => p.line !== null && p.col !== null);
+  if (!at.length) return null;
+  const removedLines = (Array.isArray(r.removedLines) ? r.removedLines : []).map(int).filter((v): v is number => v !== null);
+  return { from: r.from, at, removedLines };
+}
+
 /** Estilo de texto validado (campos novos recebem o padrão; valores desconhecidos voltam ao normal). */
 function textStyle(raw: unknown): TextStyle {
   const st = fillDefaults(defaultTextStyle(), raw);
@@ -201,6 +216,7 @@ export function normalizeProject(raw: unknown): Project {
           style: textStyle(layer.style),
           // sem isso, todo ajuste por palavra se perdia ao reabrir/importar o projeto
           ...(sanitizeWords(layer.words) ? { words: sanitizeWords(layer.words) } : {}),
+          ...(sanitizeDetach(layer.detached) ? { detached: sanitizeDetach(layer.detached)! } : {}),
         };
       },
     );

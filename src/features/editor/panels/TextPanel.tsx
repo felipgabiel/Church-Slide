@@ -91,7 +91,7 @@ export function TextPanel() {
             ]}
           />
         </Row>
-        <Slider label="Espaço entre letras" value={s.letterSpacing} min={-5} max={60} step={0.5} reset={1} onChange={(v) => set({ letterSpacing: v })} />
+        <Slider label="Espaço entre letras" value={s.letterSpacing} min={-20} max={60} step={0.5} reset={1} onChange={(v) => set({ letterSpacing: v })} />
         <Slider label="Espaço entre linhas" value={s.lineHeight} min={0.4} max={2.4} step={0.05} reset={1.25} onChange={(v) => set({ lineHeight: v })} />
       </Section>
 

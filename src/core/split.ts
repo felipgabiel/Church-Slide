@@ -1,5 +1,5 @@
 import type { Slide, SplitMode } from './types';
-import { slideText } from './defaults';
+import { slideFullText } from './layers';
 
 export interface LyricPart {
   label: string;
@@ -110,7 +110,7 @@ export function slidesToLyrics(slides: Slide[], mode: SplitMode): string {
   const sep = mode === 'manual' ? '\n---\n' : '\n\n';
   return slides
     .map((s) => {
-      const text = slideText(s);
+      const text = slideFullText(s);
       return s.label ? `[${s.label}]\n${text}` : text;
     })
     .filter((t) => t.trim() !== '')

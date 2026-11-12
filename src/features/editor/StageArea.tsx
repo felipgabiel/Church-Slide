@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
-import { LuChevronLeft, LuChevronRight, LuClipboardPaste, LuGrid3X3, LuRotateCcw, LuRotateCw } from 'react-icons/lu';
+import { LuChevronLeft, LuChevronRight, LuClipboardPaste, LuGrid3X3, LuRotateCcw, LuRotateCw, LuZoomIn, LuZoomOut } from 'react-icons/lu';
 import { SnapToggle } from '../../ui/SnapToggle';
 import { slideText } from '../../core/defaults';
 import { ASPECT_RATIOS } from '../../core/types';
 import { clamp } from '../../core/util';
 import { useSetting, writeSetting } from '../../core/settings';
 import { useWordSelection, wordKey, wordSelection } from '../../store/wordSelection';
-import { FitBox } from '../../render/FitBox';
+import { stepZoom, ZoomView, ZOOM_MAX, ZOOM_MIN } from './ZoomView';
 import { rotatedHalf, SAFE_MARGIN, snapAxis, SNAP_PX, SNAP_SETTING, type SnapHit } from '../../core/snap';
 import { Stage } from '../../render/Stage';
 import { editor, editorStore, useActiveSlide, useEditor, useSelectedLayerIds } from '../../store/editor';
@@ -457,6 +457,8 @@ export function StageArea({ onLyrics }: { onLyrics: () => void }) {
   const count = useEditor((s) => s.project!.slides.length);
   const allEmpty = useEditor((s) => s.project!.slides.every((x) => !slideText(x).trim()));
   const [guides, setGuides] = useSetting<boolean>('guides', false);
+  const [zoom, setZoom] = useState(1);
+  const zoomTo = (z: number) => window.dispatchEvent(new CustomEvent('cs:stage-zoom', { detail: z }));
 
   const go = (delta: number) => {
     const p = editorStore.get().project;
@@ -467,9 +469,9 @@ export function StageArea({ onLyrics }: { onLyrics: () => void }) {
   return (
     <section className="sa" aria-label="Pré-visualização">
       <div className="sa-view">
-        <FitBox ratio={ASPECT_RATIOS[aspect]} padding={22}>
+        <ZoomView ratio={ASPECT_RATIOS[aspect]} padding={22} zoom={zoom} onZoom={setZoom}>
           <Surface guides={guides} />
-        </FitBox>
+        </ZoomView>
         {allEmpty && (
           <div className="sa-empty">
             <h3>Comece pela letra</h3>
@@ -493,6 +495,13 @@ export function StageArea({ onLyrics }: { onLyrics: () => void }) {
           <Button size="sm" variant="ghost" icon={<LuRotateCcw />} onClick={() => editor.replay()} title="Repetir a animação de entrada e saída (R)">
             Repetir animação
           </Button>
+          <div className="sa-zoom" role="group" aria-label="Zoom do palco">
+            <IconButton label="Diminuir zoom (Ctrl + roda do mouse)" icon={<LuZoomOut />} size="sm" onClick={() => zoomTo(stepZoom(zoom, -1))} disabled={zoom <= ZOOM_MIN} />
+            <button type="button" className="sa-zoom-val" onClick={() => zoomTo(1)} title="Caber na tela" aria-label={`Zoom ${Math.round(zoom * 100)}%. Clique para caber na tela`}>
+              {Math.round(zoom * 100)}%
+            </button>
+            <IconButton label="Aumentar zoom (Ctrl + roda do mouse)" icon={<LuZoomIn />} size="sm" onClick={() => zoomTo(stepZoom(zoom, 1))} disabled={zoom >= ZOOM_MAX} />
+          </div>
           <SnapToggle />
           <IconButton label="Guias de centralização e área segura" icon={<LuGrid3X3 />} size="sm" active={guides} onClick={() => setGuides(!guides)} />
           <span className="chip">{aspect}</span>

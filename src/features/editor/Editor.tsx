@@ -11,6 +11,7 @@ import { LeftPanel } from './LeftPanel';
 import { LyricsDialog } from './LyricsDialog';
 import { RightPanel } from './panels/RightPanel';
 import { SlideTextEditor } from './SlideTextEditor';
+import { LayersPanel } from './LayersPanel';
 import { StageArea } from './StageArea';
 import { Topbar, type DialogName } from './Topbar';
 import { useEditorShortcuts } from './useEditorShortcuts';
@@ -82,7 +83,10 @@ function Workspace() {
       )}
       <main className="ed-center">
         <StageArea onLyrics={() => setDialog('lyrics')} />
-        <SlideTextEditor />
+        <div className="ed-bottom">
+          <SlideTextEditor />
+          <LayersPanel />
+        </div>
       </main>
       {right && (
         <aside className="ed-right" aria-label="Propriedades">

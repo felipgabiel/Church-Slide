@@ -1,5 +1,5 @@
-import type { TextLayer, WordOverride } from './types';
-import { tokenizeText } from './words';
+import type { DetachOrigin, Slide, TextLayer, WordOverride } from './types';
+import { tokenizeText, wordsOf } from './words';
 
 /**
  * Operações puras sobre camadas e palavras: tirar uma palavra do texto, separar uma linha,
@@ -206,6 +206,54 @@ export function removeWords(layer: TextLayer, indices: number[]): void {
   for (const i of [...new Set(indices)].sort((a, b) => b - a)) removeWord(layer, i);
 }
 
+/** De onde saem as palavras `indices` (linha e coluna de cada uma) e quais linhas ficam vazias. */
+export function detachOrigin(layer: TextLayer, indices: number[]): DetachOrigin {
+  const lines = tokenizeText(layer.text);
+  const set = new Set(indices);
+  const at: DetachOrigin['at'] = [];
+  const removedLines: number[] = [];
+  lines.forEach((l, li) => {
+    let gone = 0;
+    for (let k = 0; k < l.count; k++) {
+      if (set.has(l.first + k)) {
+        at.push({ line: li, col: k });
+        gone++;
+      }
+    }
+    if (l.count > 0 && gone === l.count) removedLines.push(li);
+  });
+  return { from: layer.id, at, removedLines };
+}
+
+/**
+ * Texto completo do trecho para a "Letra completa": a letra mais as palavras que foram soltas dela,
+ * de volta no lugar de onde saíram (desfazendo as saídas da mais recente para a mais antiga).
+ */
+export function slideFullText(slide: Slide): string {
+  const src = slide.layers.find((l) => l.role === 'lyrics') ?? slide.layers[0];
+  if (!src) return '';
+  const lines: string[][] = tokenizeText(src.text).map((l) => l.tokens.filter((t) => t.kind === 'word').map((t) => t.text));
+  const outs = slide.layers.filter((l) => l.detached?.from === src.id);
+  for (const d of [...outs].reverse()) {
+    const o = d.detached!;
+    const words = wordsOf(d.text);
+    if (!words.length || !o.at.length) continue;
+    for (const li of [...o.removedLines].sort((a, b) => a - b)) lines.splice(Math.min(li, lines.length), 0, []);
+    // se a camada solta foi editada (outra quantidade de palavras), o texto dela volta inteiro no primeiro lugar
+    const pairs = words.length === o.at.length ? o.at.map((p, k) => ({ p, w: [words[k]] })) : [{ p: o.at[0], w: words }];
+    pairs.sort((a, b) => a.p.line - b.p.line || a.p.col - b.p.col);
+    for (const { p, w } of pairs) {
+      while (lines.length <= p.line) lines.push([]);
+      const row = lines[p.line];
+      row.splice(Math.min(p.col, row.length), 0, ...w);
+    }
+  }
+  return lines
+    .map((l) => l.join(' '))
+    .join('\n')
+    .replace(/^\n+|\n+$/g, '');
+}
+
 /** Índice (depois de remover `removed` palavras a partir de `index`) de uma palavra que ficou; -1 se foi removida. */
 export function indexAfterRemoval(old: number, index: number, removed = 1): number {
   if (old < index) return old;
@@ -256,5 +304,6 @@ export function copyLayer(src: TextLayer, id: string): TextLayer {
   c.style.x = Math.min(100, Math.round((src.style.x + 4) * 10) / 10);
   c.style.y = Math.min(100, Math.round((src.style.y + 6) * 10) / 10);
   if (src.role === 'lyrics') c.role = 'free'; // só a camada original é "a letra" do trecho
+  delete c.detached; // a cópia não "volta" para a letra completa (senão a palavra apareceria duas vezes)
   return c;
 }

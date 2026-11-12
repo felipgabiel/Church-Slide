@@ -20,7 +20,7 @@ import type {
 } from '../core/types';
 import { applyImpactToLayer, DEFAULT_IMPACT } from '../core/impact';
 import { getThemePreset } from '../core/themes';
-import { clearWord, patchWord, pruneWords, wordCount, type WordPatch, type WordTarget } from '../core/words';
+import { clearWord, patchWord, pruneWords, tokenizeText, wordCount, type WordPatch, type WordTarget } from '../core/words';
 import {
   copyLayer,
   detachedLayer,
@@ -31,6 +31,7 @@ import {
   removeLine as removeLineIn,
   removeWord as removeWordIn,
   readWords,
+  detachOrigin,
   removeWords as removeWordsIn,
   reorderLayers,
   type LayerMove,
@@ -553,6 +554,28 @@ export const editor = {
     });
   },
 
+  /** Leva a camada para a posição `to` da pilha (0 = atrás de todas). Usado ao arrastar no painel de camadas. */
+  moveLayerTo(id: string, to: number) {
+    mutate((d) => {
+      const slide = currentSlide(d);
+      const from = slide?.layers.findIndex((l) => l.id === id) ?? -1;
+      if (!slide || from < 0) return;
+      const t = clamp(Math.round(to), 0, slide.layers.length - 1);
+      if (t === from) return;
+      const [it] = slide.layers.splice(from, 1);
+      slide.layers.splice(t, 0, it);
+    });
+  },
+
+  renameLayer(id: string, name: string) {
+    const v = name.trim().slice(0, 60);
+    if (!v) return;
+    mutate((d) => {
+      const layer = currentSlide(d)?.layers.find((l) => l.id === id);
+      if (layer) layer.name = v;
+    });
+  },
+
   duplicateLayer(id: string) {
     const nid = uid('l');
     mutate(
@@ -595,6 +618,12 @@ export const editor = {
         const cut = many ? readWords(from, many) : src.kind === 'word' ? readWord(from, src.index) : readLine(from, src.index);
         if (!cut) return;
         const layer = detachedLayer(from, cut, geom, nid);
+        // lembra de onde saiu: a "Letra completa" continua mostrando a frase inteira
+        const idx = many ?? (src.kind === 'word' ? [src.index] : (() => {
+          const l = tokenizeText(from.text)[src.index];
+          return l ? Array.from({ length: l.count }, (_, k) => l.first + k) : [];
+        })());
+        layer.detached = detachOrigin(from, idx);
         if (many) removeWordsIn(from, many);
         else if (src.kind === 'word') removeWordIn(from, src.index);
         else removeLineIn(from, src.index);

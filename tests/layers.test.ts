@@ -167,3 +167,27 @@ test('várias palavras marcadas viram uma frase só (na ordem do texto, com as q
   removeWords(layer, [3, 1, 2]);
   assert.equal(layer.text, 'vem\nJesus');
 });
+
+test('letra completa: palavras soltas continuam na frase, no lugar de onde saíram', async () => {
+  const { detachOrigin, removeWords, removeLine, slideFullText } = await import('../src/core/layers');
+  const mk = (id: string, role: string, text: string) => ({ id, role, name: id, text, visible: true, style: {} }) as never as import('../src/core/types').TextLayer;
+  const lyr = mk('a', 'lyrics', 'Quando meu eu\nse rende a Ti\nSenhor');
+  // solta "eu" (fim da linha 1)
+  const d1 = mk('b', 'free', 'eu');
+  d1.detached = detachOrigin(lyr, [2]);
+  removeWords(lyr, [2]);
+  // depois solta a linha inteira "Senhor" (agora linha 2)
+  const d2 = mk('c', 'free', 'Senhor');
+  d2.detached = detachOrigin(lyr, [6]);
+  removeLine(lyr, 2);
+  // e "rende Ti" juntas
+  const d3 = mk('d', 'free', 'rende Ti');
+  d3.detached = detachOrigin(lyr, [3, 5]);
+  removeWords(lyr, [3, 5]);
+  assert.equal(lyr.text, 'Quando meu\nse a');
+  const slide = { id: 's', label: '', layers: [lyr, d1, d2, d3] } as never as import('../src/core/types').Slide;
+  assert.equal(slideFullText(slide), 'Quando meu eu\nse rende a Ti\nSenhor');
+  // camada solta apagada: a palavra sai da letra completa também
+  const slide2 = { ...(slide as object), layers: [lyr, d1, d3] } as never as import('../src/core/types').Slide;
+  assert.equal(slideFullText(slide2), 'Quando meu eu\nse rende a Ti');
+});

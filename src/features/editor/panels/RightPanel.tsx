@@ -1,10 +1,8 @@
 import type { ReactNode } from 'react';
-import { LuALargeSmall, LuChevronDown, LuEye, LuEyeOff, LuLayers, LuPlus, LuClapperboard, LuTrash2, LuType, LuImage } from 'react-icons/lu';
+import { LuALargeSmall, LuLayers, LuClapperboard, LuType, LuImage } from 'react-icons/lu';
 import { useSetting } from '../../../core/settings';
-import type { LayerRole } from '../../../core/types';
-import { editor, useActiveSlide, useEditor, type EditScope } from '../../../store/editor';
+import { editor, useActiveLayer, useEditor, useSelectedLayerIds, type EditScope } from '../../../store/editor';
 import { Segmented } from '../../../ui/Controls';
-import { Menu, type MenuItem } from '../../../ui/Menu';
 import { AnimationPanel } from './AnimationPanel';
 import { BackgroundPanel } from './BackgroundPanel';
 import { TextPanel } from './TextPanel';
@@ -12,58 +10,17 @@ import { WordsPanel } from './WordsPanel';
 
 type Tab = 'text' | 'words' | 'background' | 'animation';
 
-const ROLE_ITEMS: { role: LayerRole; label: string }[] = [
-  { role: 'title', label: 'Título da música' },
-  { role: 'credit', label: 'Crédito do artista' },
-  { role: 'free', label: 'Texto livre' },
-];
-
-/**
- * Camada que está sendo editada, num botão só. A lista completa (trocar, ocultar, excluir, adicionar)
- * fica no menu — no dia a dia há uma camada só ("Letra") e ela não precisa ocupar espaço.
- */
-function LayerPicker() {
-  const slide = useActiveSlide();
-  const layerId = useEditor((s) => s.layerId);
-  const name = useEditor((s) => s.project!.name);
-  const artist = useEditor((s) => s.project!.artist);
-  if (!slide) return null;
-  const cur = slide.layers.find((l) => l.id === layerId) ?? slide.layers[0];
-  const items: MenuItem[] = [
-    ...slide.layers.map((l) => ({
-      label: l.name,
-      hint: l.visible ? (l.text.split('\n')[0] || 'vazio').slice(0, 22) : 'oculta',
-      checked: l.id === cur?.id,
-      onClick: () => editor.selectLayer(l.id),
-    })),
-    { divider: true },
-    ...(cur
-      ? [
-          { label: cur.visible ? 'Ocultar esta camada' : 'Mostrar esta camada', icon: cur.visible ? <LuEyeOff /> : <LuEye />, onClick: () => editor.toggleLayer(cur.id) },
-          { label: 'Excluir esta camada', icon: <LuTrash2 />, danger: true, disabled: slide.layers.length <= 1, onClick: () => editor.removeLayer(cur.id) },
-          { divider: true },
-        ]
-      : []),
-    ...ROLE_ITEMS.map((r) => ({
-      label: `Adicionar ${r.label.toLowerCase()}`,
-      icon: <LuPlus />,
-      onClick: () => editor.addLayer(r.role, r.role === 'title' ? name : r.role === 'credit' ? artist : 'Novo texto'),
-    })),
-  ];
+/** Só mostra qual camada está sendo editada; a lista completa fica no painel "Camadas", embaixo do palco. */
+function ActiveLayerName() {
+  const layer = useActiveLayer();
+  const n = useSelectedLayerIds().length;
+  if (!layer) return null;
   return (
-    <Menu
-      align="start"
-      width={260}
-      items={items}
-      trigger={(open, toggle) => (
-        <button type="button" className="ctx-layer" data-hidden={cur && !cur.visible ? '1' : undefined} aria-label={`Camada: ${cur?.name ?? ''}. Trocar, ocultar ou adicionar camadas`} aria-haspopup="menu" aria-expanded={open} onClick={toggle}>
-          <LuLayers aria-hidden />
-          <b>{cur?.name}</b>
-          {slide.layers.length > 1 && <em>{slide.layers.length}</em>}
-          <LuChevronDown aria-hidden className="ctx-caret" />
-        </button>
-      )}
-    />
+    <span className="ctx-layer" data-static="1" data-hidden={layer.visible ? undefined : '1'} title="Troque a camada no painel Camadas, embaixo do palco">
+      <LuLayers aria-hidden />
+      <b>{layer.name}</b>
+      {n > 1 && <em>+{n - 1}</em>}
+    </span>
   );
 }
 
@@ -74,7 +31,7 @@ export function RightPanel() {
     <div className="panel">
       {/* uma linha só: o que está sendo editado (camada) e onde vale (este trecho ou todos) */}
       <div className="ctx">
-        <LayerPicker />
+        <ActiveLayerName />
         <Segmented<EditScope>
           size="sm"
           label="Escopo das alterações"

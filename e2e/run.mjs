@@ -665,7 +665,7 @@ await step('legibilidade: frases curtas, médias e longas nunca abaixo da letra 
     for (const [theme, text] of cases) {
       await pg.goto(BASE);
       await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
-      await pg.locator('dialog input').first().fill('Legível');
+      await pg.locator('dialog input').first().fill(`Legível ${label} ${cases.indexOf(cases.find((c) => c[1] === text))}`);
       await pg.locator('dialog textarea').first().fill(text);
       await pg.locator('dialog').getByText(theme, { exact: true }).click();
       await pg.getByRole('button', { name: /Criar e abrir/i }).click();
@@ -1448,6 +1448,181 @@ await step('Editar no estúdio a partir do louvor e voltar com "Aplicar neste lo
   const p = await idbGet(st, 'projects', projectId);
   assert(p.theme.background.design.layers.find((l) => l.name === 'Sol').y === 55, 'o louvor recebeu a edição');
   await st.close();
+});
+
+await step('camadas embaixo do palco: adicionar, renomear, ocultar, reordenar; palavra solta continua na "Letra completa"', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'camadas');
+  await pg.goto(BASE);
+  await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+  await pg.locator('dialog input').first().fill('Painel de camadas');
+  await pg.locator('dialog textarea').first().fill('Quando meu eu\nse rende a Ti');
+  await pg.getByRole('button', { name: /Criar e abrir/i }).click();
+  await pg.waitForURL(/#\/edit\//);
+  const pid = pg.url().split('/edit/')[1];
+  const lyr = pg.locator('section.lyr');
+  await lyr.locator('.dl-row').first().waitFor();
+  assert((await lyr.locator('.dl-row').count()) === 1, 'começa só com a Letra');
+
+  // adicionar o título pelo painel
+  await lyr.getByRole('button', { name: 'Adicionar camada' }).click();
+  await pg.getByRole('menuitem', { name: /Título da música/ }).click();
+  assert((await lyr.locator('.dl-row').count()) === 2, 'o título entrou na lista');
+  assert((await lyr.locator('.dl-row').first().textContent()).includes('Título'), 'a camada nova fica no topo (na frente)');
+
+  // renomear com duplo clique
+  await lyr.locator('.dl-row').first().locator('.dl-main').dblclick();
+  const ren = lyr.getByRole('textbox', { name: 'Nome da camada' });
+  await ren.fill('Cabeçalho');
+  await ren.press('Enter');
+  // ocultar pelo olho
+  await lyr.getByRole('button', { name: 'Ocultar Cabeçalho' }).click();
+  // mandar para trás pelo menu
+  await lyr.getByRole('button', { name: 'Mais ações para Cabeçalho' }).click();
+  await pg.getByRole('menuitem', { name: 'Enviar para trás' }).click();
+  await pg.waitForTimeout(1200);
+  let p = await idbGet(pg, 'projects', pid);
+  let ls = p.slides[0].layers;
+  assert(ls[0].name === 'Cabeçalho' && ls[0].visible === false && ls[1].role === 'lyrics', `ordem/nome/visibilidade salvos: ${JSON.stringify(ls.map((l) => [l.name, l.visible]))}`);
+  // clicar na linha seleciona a camada (o painel da direita mostra o nome)
+  await lyr.locator('.dl-row', { hasText: 'Cabeçalho' }).locator('.dl-main').click();
+  await pg.locator('.ctx-layer', { hasText: 'Cabeçalho' }).waitFor();
+  await lyr.getByRole('button', { name: 'Mais ações para Cabeçalho' }).click();
+  await pg.getByRole('menuitem', { name: 'Excluir' }).click();
+  assert((await lyr.locator('.dl-row').count()) === 1, 'excluir tira da lista');
+
+  // soltar "eu" da frase: continua aparecendo na Letra completa
+  await lyr.locator('.dl-row').first().locator('.dl-main').click();
+  const w = await pg.locator('.surface [data-w]', { hasText: /^eu$/ }).first().boundingBox();
+  await pg.mouse.click(w.x + w.width / 2, w.y + w.height / 2, { button: 'right' });
+  await pg.getByRole('menuitem', { name: /Soltar para mover/ }).click();
+  await pg.waitForTimeout(400);
+  assert((await lyr.locator('.dl-row').count()) === 2, 'a palavra solta aparece como camada');
+  await pg.getByRole('button', { name: /Mais opções|Mais/ }).first().click();
+  await pg.getByRole('menuitem', { name: /Letra completa/ }).click();
+  const area = pg.locator('dialog[open] textarea').first();
+  await area.waitFor();
+  const full = (await area.inputValue()).replace(/\s+/g, ' ').trim();
+  assert(full === 'Quando meu eu se rende a Ti', `a Letra completa mantém a palavra solta no lugar: "${full}"`);
+  await pg.keyboard.press('Escape');
+  await pg.close();
+});
+
+await step('zoom no palco: Ctrl + roda no ponto do mouse, lupas, Espaço + arrastar move a vista sem mexer no texto', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'zoom');
+  await pg.goto(BASE);
+  await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+  await pg.locator('dialog input').first().fill('Zoom');
+  await pg.locator('dialog textarea').first().fill('Quando meu eu\nse rende a Ti');
+  await pg.getByRole('button', { name: /Criar e abrir/i }).click();
+  await pg.waitForURL(/#\/edit\//);
+  const pid = pg.url().split('/edit/')[1];
+  await pg.locator('.surface [data-w]').first().waitFor();
+  await pg.waitForTimeout(600);
+  const surf = pg.locator('.surface');
+  const w0 = (await surf.boundingBox()).width;
+  const word = () => pg.locator('.surface [data-w]', { hasText: /^eu$/ }).first().boundingBox();
+  const a = await word();
+  const px = a.x + a.width / 2;
+  const py = a.y + a.height / 2;
+  await pg.mouse.move(px, py);
+  await pg.keyboard.down('Control');
+  for (let i = 0; i < 5; i++) {
+    await pg.mouse.wheel(0, -100);
+    await pg.waitForTimeout(50);
+  }
+  await pg.keyboard.up('Control');
+  await pg.waitForTimeout(300);
+  const w1 = (await surf.boundingBox()).width;
+  assert(w1 > w0 * 1.8, `Ctrl + roda aumenta o palco (${w0} → ${w1})`);
+  assert((await pg.evaluate(() => window.visualViewport.scale)) === 1, 'a página em si não ganhou zoom');
+  const b = await word();
+  assert(Math.abs(b.x + b.width / 2 - px) < 6 && Math.abs(b.y + b.height / 2 - py) < 6, 'o ponto sob o mouse fica no lugar');
+  const label = await pg.locator('.sa-zoom-val').textContent();
+  assert(/^\d+%$/.test(label) && label !== '100%', `mostra a porcentagem (${label})`);
+
+  // Espaço + arrastar: a vista anda, o texto não sai do lugar no slide
+  const before = (await idbGet(pg, 'projects', pid)).slides[0].layers.map((l) => [l.style.x, l.style.y]);
+  const view = await pg.locator('.zv').boundingBox();
+  const sc0 = await pg.locator('.zv').evaluate((e) => [e.scrollLeft, e.scrollTop, e.scrollWidth - e.clientWidth, e.scrollHeight - e.clientHeight]);
+  await pg.mouse.move(view.x + view.width / 2, view.y + view.height / 2);
+  await pg.keyboard.down('Space');
+  assert((await pg.locator('.zv').evaluate((e) => getComputedStyle(e).cursor)) === 'grab', 'cursor de mãozinha com Espaço');
+  await pg.mouse.down();
+  await pg.mouse.move(view.x + view.width / 2 - 150, view.y + view.height / 2 - 60, { steps: 6 });
+  await pg.mouse.up();
+  await pg.keyboard.up('Space');
+  await pg.waitForTimeout(1200);
+  const sc1 = await pg.locator('.zv').evaluate((e) => [e.scrollLeft, e.scrollTop]);
+  assert(Math.abs(sc1[0] - Math.min(sc0[2], sc0[0] + 150)) < 3 && Math.abs(sc1[1] - Math.min(sc0[3], sc0[1] + 60)) < 3, `a vista andou (${sc0} → ${sc1})`);
+  const after = (await idbGet(pg, 'projects', pid)).slides[0].layers.map((l) => [l.style.x, l.style.y]);
+  assert(JSON.stringify(before) === JSON.stringify(after), 'nenhuma camada se moveu');
+
+  // lupas e "caber na tela"
+  await pg.locator('.sa-zoom-val').click();
+  await pg.waitForTimeout(200);
+  assert((await pg.locator('.sa-zoom-val').textContent()) === '100%' && Math.abs((await surf.boundingBox()).width - w0) < 2, 'clicar na porcentagem volta a caber na tela');
+  await pg.getByRole('button', { name: /Aumentar zoom/ }).click();
+  assert((await pg.locator('.sa-zoom-val').textContent()) === '125%', 'lupa + aumenta um degrau');
+  await pg.getByRole('button', { name: /Diminuir zoom/ }).click();
+  await pg.getByRole('button', { name: /Diminuir zoom/ }).click();
+  assert((await pg.locator('.sa-zoom-val').textContent()) === '90%', 'lupa − diminui um degrau');
+  await pg.close();
+});
+
+await step('louvor repetido: avisa, cria como "Nome (1)"; lixeira mostra a miniatura de cada item', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'duplicados');
+  await pg.goto(BASE);
+  const make = async () => {
+    await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+    await pg.locator('dialog input').first().fill('Grande é o Senhor');
+    await pg.locator('dialog textarea').first().fill('Santo, Santo, Santo');
+    await pg.getByRole('button', { name: /Criar e abrir/i }).click();
+  };
+  await make();
+  await pg.getByText('Este louvor já existe').waitFor();
+  await pg.getByRole('button', { name: 'Criar “Grande é o Senhor (1)”' }).click();
+  await pg.waitForURL(/#\/edit\//);
+  const pid = pg.url().split('/edit/')[1];
+  await pg.waitForTimeout(800);
+  assert((await idbGet(pg, 'projects', pid)).name === 'Grande é o Senhor (1)', 'o novo ganhou o número');
+  // cancelar não cria nada
+  await pg.goto(BASE);
+  await make();
+  await pg.getByText('Este louvor já existe').waitFor();
+  await pg.getByRole('button', { name: 'Cancelar' }).last().click();
+  await pg.waitForTimeout(300);
+  assert(!/#\/edit\//.test(pg.url()), 'cancelar não abre o editor');
+  await pg.keyboard.press('Escape');
+
+  // manda o "(1)" para a lixeira e confere a miniatura
+  await pg.goto(BASE);
+  await pg.evaluate(
+    (id) =>
+      new Promise((res) => {
+        const r = indexedDB.open('church-slide');
+        r.onsuccess = () => {
+          const t = r.result.transaction('projects', 'readwrite');
+          const os = t.objectStore('projects');
+          const g = os.get(id);
+          g.onsuccess = () => {
+            os.put({ ...g.result, deletedAt: Date.now() });
+            t.oncomplete = () => res();
+          };
+        };
+      }),
+    pid,
+  );
+  await pg.reload();
+  await pg.getByRole('button', { name: /Lixeira/ }).first().click();
+  const row = pg.locator('.trash-list li', { hasText: 'Grande é o Senhor (1)' });
+  await row.waitFor();
+  await row.locator('.trash-thumb .surface, .trash-thumb canvas, .trash-thumb [data-w]').first().waitFor({ timeout: 5000 });
+  const tb = await row.locator('.trash-thumb').boundingBox();
+  assert(tb.width > 80 && tb.height > 40, `miniatura visível (${tb.width}×${tb.height})`);
+  await pg.close();
 });
 
 await step('nenhum erro de console durante todo o fluxo', async () => {

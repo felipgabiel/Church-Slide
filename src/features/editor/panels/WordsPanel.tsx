@@ -180,7 +180,7 @@ export function WordsPanel() {
             <Slider
               label="Espaço entre letras"
               value={st.letterSpacing ?? layer.style.letterSpacing}
-              min={-10}
+              min={-20}
               max={60}
               unit=""
               reset={layer.style.letterSpacing}

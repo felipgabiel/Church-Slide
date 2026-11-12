@@ -538,11 +538,11 @@ function ProjectRow({ n, project: p, onOpen, items, template, onUseTemplate }: {
       <td className="c-act">
         <span className="lrow-actions">
           {template ? (
-            <Button size="sm" variant="ghost" onClick={onUseTemplate}>
+            <Button size="sm" variant="ghost" className="lib-go" onClick={onUseTemplate}>
               Usar modelo
             </Button>
           ) : (
-            <IconButton label={filled ? `Apresentar ${p.name}` : 'Adicione a letra para apresentar'} icon={<LuMonitorPlay />} size="sm" disabled={!filled} onClick={() => navigate(paths.present(p.id))} />
+            <IconButton label={filled ? `Apresentar ${p.name}` : 'Adicione a letra para apresentar'} icon={<LuMonitorPlay />} size="sm" className="lib-go" disabled={!filled} onClick={() => navigate(paths.present(p.id))} />
           )}
           <Menu
             align="end"
@@ -602,11 +602,11 @@ function ProjectCard({ project: p, onOpen, items, template, onUseTemplate }: { p
         <span>{timeAgo(p.updatedAt)}</span>
         {p.category && <span className="chip">{p.category}</span>}
         {template ? (
-          <Button size="sm" className="pcard-go" onClick={onUseTemplate}>
+          <Button size="sm" className="pcard-go lib-go" onClick={onUseTemplate}>
             Usar modelo
           </Button>
         ) : (
-          <Button size="sm" className="pcard-go" icon={<LuMonitorPlay />} onClick={() => navigate(paths.present(p.id))} disabled={filled === 0} title={filled === 0 ? 'Adicione a letra para apresentar' : 'Abrir o modo de apresentação'}>
+          <Button size="sm" className="pcard-go lib-go" icon={<LuMonitorPlay />} onClick={() => navigate(paths.present(p.id))} disabled={filled === 0} title={filled === 0 ? 'Adicione a letra para apresentar' : 'Abrir o modo de apresentação'}>
             Apresentar
           </Button>
         )}

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { defaultTheme, newSlide } from '../../core/defaults';
 import { splitLyrics, SPLIT_MODE_LABELS } from '../../core/split';
-import { createProject, saveProject } from '../../core/storage/projects';
+import { createProject, listProjects, saveProject } from '../../core/storage/projects';
+import { findDuplicate, numberedName } from '../../core/duplicates';
 import { THEME_PRESETS } from '../../core/themes';
 import { applyImpactToLayer, DEFAULT_IMPACT } from '../../core/impact';
 import type { Aspect, Project, SplitMode, Theme } from '../../core/types';
@@ -9,7 +10,7 @@ import { SlideThumb } from '../../render/SlideThumb';
 import { Button } from '../../ui/Button';
 import { Segmented, Select } from '../../ui/Controls';
 import { Modal } from '../../ui/Modal';
-import { toastError } from '../../ui/toast';
+import { confirmDialog, toastError } from '../../ui/toast';
 
 interface Props {
   open: boolean;
@@ -59,7 +60,22 @@ export function NewProjectDialog({ open, onClose, categories, templates, onCreat
     if (busy) return;
     setBusy(true);
     try {
-      let p = await createProject(name.trim() || 'Novo louvor', { theme: chosen.theme, aspect: chosen.aspect ?? aspect, category: category.trim(), artist: artist.trim() });
+      // mesmo nome e mesmo autor de um louvor que já existe: avisa; seguindo, o novo ganha um número
+      let finalName = name.trim() || 'Novo louvor';
+      const all = await listProjects();
+      const dup = findDuplicate(all, finalName, artist);
+      if (dup) {
+        const numbered = numberedName(finalName, all.filter((x) => !x.isTemplate && !x.deletedAt).map((x) => x.name));
+        // sem nome digitado não há o que avisar: o "Novo louvor" só ganha o número
+        const ok = !name.trim() || (await confirmDialog({
+          title: 'Este louvor já existe',
+          message: `Você já tem “${dup.name}”${dup.artist ? ` de ${dup.artist}` : ''}. Criar mesmo assim? O novo vai se chamar “${numbered}” (dá para renomear depois).`,
+          confirmLabel: `Criar “${numbered}”`,
+        }));
+        if (!ok) return;
+        finalName = numbered;
+      }
+      let p = await createProject(finalName, { theme: chosen.theme, aspect: chosen.aspect ?? aspect, category: category.trim(), artist: artist.trim() });
       if (lyrics.trim()) {
         const slides = splitLyrics(lyrics, { mode }).map((x) => newSlide(x.text, p.theme, x.label));
         if (chosen.autoLayout === 'impact') for (const sl of slides) for (const l of sl.layers) if (l.role === 'lyrics') applyImpactToLayer(l, DEFAULT_IMPACT);

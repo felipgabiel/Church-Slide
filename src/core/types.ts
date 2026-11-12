@@ -150,6 +150,20 @@ export interface TextLayer {
    * as posições continuam valendo — por isso o painel avisa ao mudar a contagem.
    */
   words?: Record<string, WordOverride>;
+  /**
+   * Camada que nasceu de palavras soltas de outra ("Soltar para mover"). Guarda de onde vieram para a
+   * "Letra completa" continuar mostrando a frase inteira, com as palavras no lugar original.
+   */
+  detached?: DetachOrigin;
+}
+
+export interface DetachOrigin {
+  /** camada de onde as palavras saíram */
+  from: string;
+  /** posição (linha, coluna em palavras) de cada palavra no texto original, no momento em que saiu */
+  at: { line: number; col: number }[];
+  /** linhas que ficaram vazias e sumiram da camada original (índices no texto original) */
+  removedLines: number[];
 }
 
 export type BackgroundKind = 'solid' | 'gradient' | 'image' | 'video' | 'animated' | 'design';
