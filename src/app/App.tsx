@@ -1,5 +1,6 @@
 import { DialogHost } from '../ui/toast';
 import { useThemeMode } from './theme';
+import { useFormFactor } from './formFactor';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useRoute } from './router';
 import { Library } from '../features/library/Library';
@@ -13,6 +14,7 @@ import { Welcome } from '../features/onboarding/Welcome';
 export function App() {
   const route = useRoute();
   useThemeMode(); // acompanha a troca de tema feita em outra janela
+  useFormFactor(); // <html data-form="phone|desktop">
   // biblioteca e galeria de fundos são a mesma tela (só muda a seção): não remonta ao trocar
   const key = route.name === 'library' || route.name === 'backgrounds' ? 'library' : route.name === 'output' ? route.name : `${route.name}:${route.id}`;
   return (

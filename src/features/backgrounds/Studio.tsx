@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LuChevronLeft, LuFilm, LuRedo2, LuSparkles, LuUndo2 } from 'react-icons/lu';
+import { LuChevronLeft, LuFilm, LuLayers, LuRedo2, LuSlidersHorizontal, LuSparkles, LuUndo2 } from 'react-icons/lu';
+import { useFormFactor } from '../../app/formFactor';
 import { navigate, paths } from '../../app/router';
 import { updateDesignInProject } from '../../core/design/apply';
 import { copyDesign, MAX_LAYERS, newDesignLayer } from '../../core/design/model';
@@ -82,6 +83,9 @@ export function Studio({ id, from }: { id: string; from?: string }) {
   const selectedId = selectedIds.length ? selectedIds[selectedIds.length - 1] : null;
   const setSelectedId = (id: string | null) => setSelectedIds(id ? [id] : []);
   const [status, setStatus] = useState<Status>('saved');
+  const phone = useFormFactor() === 'phone';
+  // celular: palco sempre em cima; embaixo, camadas OU ajustes
+  const [pane, setPane] = useState<'layers' | 'props'>('layers');
   const [fromName, setFromName] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -384,12 +388,16 @@ export function Studio({ id, from }: { id: string; from?: string }) {
   };
 
   return (
-    <div className="studio">
+    <div className="studio" data-phone={phone ? '1' : undefined} data-pane={pane}>
       <header className="tb studio-tb">
         <div className="tb-left">
-          <Button variant="ghost" size="sm" icon={<LuChevronLeft />} onClick={back} title={tr('Voltar (Esc)')}>
-            {from ? (fromName ? tr('Voltar para “{0}”', fromName) : tr('Voltar ao louvor')) : tr('Fundos')}
-          </Button>
+          {phone ? (
+            <IconButton label={from ? tr('Voltar ao louvor') : tr('Fundos')} icon={<LuChevronLeft />} onClick={back} />
+          ) : (
+            <Button variant="ghost" size="sm" icon={<LuChevronLeft />} onClick={back} title={tr('Voltar (Esc)')}>
+              {from ? (fromName ? tr('Voltar para “{0}”', fromName) : tr('Voltar ao louvor')) : tr('Fundos')}
+            </Button>
+          )}
         </div>
         <div className="tb-center">
           <input
@@ -418,13 +426,22 @@ export function Studio({ id, from }: { id: string; from?: string }) {
           <IconButton label={tr('Desfazer (Ctrl+Z)')} icon={<LuUndo2 />} size="sm" disabled={!past.current.length} onClick={undo} />
           <IconButton label={tr('Refazer (Ctrl+Shift+Z)')} icon={<LuRedo2 />} size="sm" disabled={!future.current.length} onClick={redo} />
           <SettingsButton />
-          <ThemeToggle />
-          <Button variant="ghost" size="sm" icon={<LuFilm />} onClick={() => setExporting(true)} title={tr('Exportar só o fundo, sem letra, em MP4')}>
-            {tr('Exportar vídeo')}
-          </Button>
-          <Button variant="primary" size="sm" icon={<LuSparkles />} onClick={() => void applyHere()}>
-            {from ? tr('Aplicar neste louvor') : tr('Usar num louvor')}
-          </Button>
+          {phone ? (
+            <>
+              <IconButton label={tr('Exportar vídeo')} icon={<LuFilm />} onClick={() => setExporting(true)} />
+              <IconButton label={from ? tr('Aplicar neste louvor') : tr('Usar num louvor')} icon={<LuSparkles />} className="tb-present" onClick={() => void applyHere()} />
+            </>
+          ) : (
+            <>
+              <ThemeToggle />
+              <Button variant="ghost" size="sm" icon={<LuFilm />} onClick={() => setExporting(true)} title={tr('Exportar só o fundo, sem letra, em MP4')}>
+                {tr('Exportar vídeo')}
+              </Button>
+              <Button variant="primary" size="sm" icon={<LuSparkles />} onClick={() => void applyHere()}>
+                {from ? tr('Aplicar neste louvor') : tr('Usar num louvor')}
+              </Button>
+            </>
+          )}
         </div>
       </header>
 
@@ -443,6 +460,19 @@ export function Studio({ id, from }: { id: string; from?: string }) {
       <aside className="studio-right" aria-label={tr('Ajustes')}>
         <StudioInspector api={api} />
       </aside>
+
+      {phone && (
+        <nav className="ph-tabs studio-ph-tabs" aria-label={tr('Partes do estúdio')}>
+          <button type="button" data-on={pane === 'layers' ? '1' : undefined} aria-current={pane === 'layers' ? 'page' : undefined} onClick={() => setPane('layers')}>
+            <LuLayers />
+            <span>{tr('Camadas')}</span>
+          </button>
+          <button type="button" data-on={pane === 'props' ? '1' : undefined} aria-current={pane === 'props' ? 'page' : undefined} onClick={() => setPane('props')}>
+            <LuSlidersHorizontal />
+            <span>{tr('Ajustes')}</span>
+          </button>
+        </nav>
+      )}
 
       <ExportLoopDialog design={exporting ? design : null} onClose={() => setExporting(false)} />
       <ApplyDialog design={applying ? design : null} onClose={() => setApplying(false)} />

@@ -39,6 +39,9 @@ Use **Chrome ou Edge** atualizados: foi neles que tudo foi testado. A geração 
   louvor guarda a própria cópia) ou *Exportar vídeo* para levar só o fundo, em MP4 que repete sem emenda, para o Holyrics.
 - **Alinhar e mover vários:** arrastando, o texto gruda nas bordas, na margem segura e no centro (botão *Ímã* liga e
   desliga; Alt solta na hora). Ctrl + clique seleciona vários textos (ou camadas no Estúdio) para mover e ajustar juntos.
+- **No celular:** abra o mesmo endereço no navegador do celular (dá para "Adicionar à tela inicial"). O site percebe sozinho
+  e mostra a versão de celular, com abas embaixo. Na apresentação, *Tela cheia* usa o próprio celular como telão (ligado à
+  TV por cabo ou espelhamento): toque à direita avança, à esquerda volta. Para forçar uma versão: *Configurações → Layout*.
 - **Backup:** *Configurações → Backup e armazenamento → Baixar backup de tudo* gera um .zip com todos os louvores, fundos,
   imagens, vídeos e fontes. Guarde num pendrive ou na nuvem. Em outro computador, *Restaurar de um backup* junta tudo
   (nada é apagado).

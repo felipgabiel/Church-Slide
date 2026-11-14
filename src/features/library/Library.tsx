@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 import { SupportCard } from '../support/SupportCard';
 import { ThemeToggle } from '../../ui/ThemeToggle';
 import { SettingsButton } from '../settings/Settings';
+import { useFormFactor } from '../../app/formFactor';
 import {
   LuArchive,
   LuClock3,
@@ -65,6 +66,7 @@ const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCa
 export function Library({ section = 'songs' }: { section?: 'songs' | 'backgrounds' }) {
   const designs = useDesigns();
   const inBg = section === 'backgrounds';
+  const phone = useFormFactor() === 'phone';
   const { projects, loading, error, reload } = useProjects();
   const [query, setQuery] = useState('');
   const [filter, setFilterState] = useState<Filter>({ kind: 'all' });
@@ -222,7 +224,43 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
   };
 
   return (
-    <div className="lib">
+    <div className="lib" data-phone={phone ? '1' : undefined}>
+      {phone && (
+        <>
+          <nav className="lib-ph-tabs" aria-label={tr('Navegação')}>
+            <button type="button" data-on={!inBg && filter.kind !== 'templates' ? '1' : undefined} aria-current={!inBg && filter.kind !== 'templates' ? 'page' : undefined} onClick={() => (inBg ? navigate(paths.library) : setFilter({ kind: 'all' }))}>
+              <LuLibrary />
+              <span>{tr('Louvores')}</span>
+            </button>
+            <button
+              type="button"
+              data-on={!inBg && filter.kind === 'templates' ? '1' : undefined}
+              aria-current={!inBg && filter.kind === 'templates' ? 'page' : undefined}
+              onClick={() => {
+                if (inBg) navigate(paths.library);
+                setFilter({ kind: 'templates' });
+              }}
+            >
+              <LuLayoutTemplate />
+              <span>{tr('Modelos')}</span>
+            </button>
+            <button type="button" data-on={inBg ? '1' : undefined} aria-current={inBg ? 'page' : undefined} onClick={() => navigate(paths.backgrounds)}>
+              <LuPalette />
+              <span>{tr('Fundos')}</span>
+            </button>
+            <button type="button" onClick={() => setTrashOpen(true)}>
+              <LuArchive />
+              <span>
+                {tr('Lixeira')}
+                {trashed.length > 0 && <em>{trashed.length}</em>}
+              </span>
+            </button>
+          </nav>
+          <button type="button" className="lib-ph-fab" aria-label={inBg ? tr('Novo fundo') : tr('Novo louvor')} onClick={() => (inBg ? void startFromStarter(STARTERS[STARTERS.length - 1]) : startNew())}>
+            <LuPlus />
+          </button>
+        </>
+      )}
       <aside className="lib-side" aria-label={tr('Navegação')}>
         <div className="lib-brand">
           <Wordmark />
@@ -268,8 +306,10 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
           <div className="lib-bar-actions">
             <input ref={fileRef} type="file" accept=".json,application/json" multiple hidden onChange={(e) => void doImport(e.currentTarget.files)} />
             <SettingsButton />
-            <ThemeToggle />
-            {inBg ? (
+            {!phone && <ThemeToggle />}
+            {phone ? (
+              <IconButton label={inBg ? tr('Importar um fundo salvo em arquivo (.csfundo.json)') : tr('Importar')} icon={<LuUpload />} onClick={() => fileRef.current?.click()} />
+            ) : inBg ? (
               <>
                 <Button variant="ghost" icon={<LuUpload />} onClick={() => fileRef.current?.click()} title={tr('Importar um fundo salvo em arquivo (.csfundo.json)')}>
                   {tr('Importar')}
@@ -292,6 +332,24 @@ export function Library({ section = 'songs' }: { section?: 'songs' | 'background
         </header>
 
         <div className="lib-content">
+          {phone && !inBg && categories.length > 0 && (
+            <nav className="lib-ph-cats" aria-label={tr('Categorias')}>
+              <button type="button" data-on={filter.kind === 'all' ? '1' : undefined} onClick={() => setFilter({ kind: 'all' })}>
+                {tr('Todos')}
+              </button>
+              {categories.map((c) => (
+                <button key={c} type="button" data-on={filter.kind === 'category' && filter.name === c ? '1' : undefined} onClick={() => setFilter({ kind: 'category', name: c })}>
+                  {c}
+                </button>
+              ))}
+              {uncategorized > 0 && categories.length > 0 && (
+                <button type="button" data-on={filter.kind === 'none' ? '1' : undefined} onClick={() => setFilter({ kind: 'none' })}>
+                  {tr('Sem categoria')}
+                </button>
+              )}
+            </nav>
+          )}
+          {phone && !inBg && <BackupNudge show={songs.length > 0} />}
           {inBg && <Gallery query={query} />}
           {!inBg && storageMode === 'memory' && (
             <div className="lib-banner" role="alert">

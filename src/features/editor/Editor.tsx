@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
-import { LuLoaderCircle } from 'react-icons/lu';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { LuLayers, LuListOrdered, LuLoaderCircle, LuMonitor, LuPalette } from 'react-icons/lu';
+import { useFormFactor } from '../../app/formFactor';
+import { SlideThumb } from '../../render/SlideThumb';
 import { navigate, paths } from '../../app/router';
 import { useSetting } from '../../core/settings';
 import { listProjects, collectCategories } from '../../core/storage/projects';
-import { editor, useEditor } from '../../store/editor';
+import { editor, useActiveSlide, useEditor } from '../../store/editor';
 import { Button } from '../../ui/Button';
 import { InfoDialog, ShortcutsDialog } from './Dialogs';
 import { ExportDialog } from './ExportDialog';
@@ -52,7 +54,90 @@ export function Editor({ id }: { id: string }) {
   return <Workspace />;
 }
 
+type PhoneView = 'slide' | 'slides' | 'style' | 'layers';
+
+/** Prévia do trecho atual no topo das abas de ajuste (no celular o palco não cabe junto). */
+function PhonePreview() {
+  const slide = useActiveSlide();
+  const theme = useEditor((s) => s.project!.theme);
+  const aspect = useEditor((s) => s.project!.aspect);
+  if (!slide) return null;
+  return (
+    <div className="ph-preview" aria-hidden>
+      <SlideThumb slide={slide} theme={theme} aspect={aspect} />
+    </div>
+  );
+}
+
+/**
+ * Editor no celular: uma coisa por vez, com abas embaixo (Slide, Trechos, Estilo, Camadas).
+ * São os mesmos painéis do computador; só a arrumação muda.
+ */
+function PhoneWorkspace({ dialog, setDialog, categories }: { dialog: DialogName | null; setDialog: (d: DialogName | null) => void; categories: string[] }) {
+  const [view, setView] = useState<PhoneView>('slide');
+  const close = () => setDialog(null);
+  // escolher um trecho na lista leva de volta ao slide
+  const slideId = useEditor((s) => s.slideId);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    setView((v) => (v === 'slides' ? 'slide' : v));
+  }, [slideId]);
+  const tabs: { id: PhoneView; label: string; icon: ReactNode }[] = [
+    { id: 'slide', label: tr('Slide'), icon: <LuMonitor /> },
+    { id: 'slides', label: tr('Trechos'), icon: <LuListOrdered /> },
+    { id: 'style', label: tr('Estilo'), icon: <LuPalette /> },
+    { id: 'layers', label: tr('Camadas'), icon: <LuLayers /> },
+  ];
+  return (
+    <div className="ed ed-phone" data-view={view}>
+      <Topbar left right onToggleLeft={() => undefined} onToggleRight={() => undefined} open={setDialog} />
+      <main className="ph-main">
+        {view === 'slide' && (
+          <div className="ph-slide">
+            <StageArea onLyrics={() => setDialog('lyrics')} />
+            <SlideTextEditor />
+          </div>
+        )}
+        {view === 'slides' && (
+          <aside className="ed-left ph-pane" aria-label={tr('Bibliotecas')}>
+            <LeftPanel onLyrics={() => setDialog('lyrics')} />
+          </aside>
+        )}
+        {view === 'style' && (
+          <aside className="ed-right ph-pane" aria-label={tr('Propriedades')}>
+            <PhonePreview />
+            <RightPanel />
+          </aside>
+        )}
+        {view === 'layers' && (
+          <div className="ph-pane ph-layers">
+            <PhonePreview />
+            <LayersPanel />
+          </div>
+        )}
+      </main>
+      <nav className="ph-tabs" aria-label={tr('Partes do editor')}>
+        {tabs.map((t) => (
+          <button key={t.id} type="button" aria-current={view === t.id ? 'page' : undefined} data-on={view === t.id ? '1' : undefined} onClick={() => setView(t.id)}>
+            {t.icon}
+            <span>{t.label}</span>
+          </button>
+        ))}
+      </nav>
+      <LyricsDialog open={dialog === 'lyrics'} onClose={close} />
+      <InfoDialog open={dialog === 'info'} onClose={close} categories={categories} />
+      <ShortcutsDialog open={dialog === 'shortcuts'} onClose={close} />
+      <ExportDialog open={dialog === 'export'} onClose={close} />
+    </div>
+  );
+}
+
 function Workspace() {
+  const form = useFormFactor();
   const [left, setLeft] = useSetting<boolean>('panel-left', true);
   const [right, setRight] = useSetting<boolean>('panel-right', true);
   const [dialog, setDialog] = useState<DialogName | null>(null);
@@ -73,6 +158,8 @@ function Workspace() {
     window.addEventListener('cs:open-export', on);
     return () => window.removeEventListener('cs:open-export', on);
   }, []);
+
+  if (form === 'phone') return <PhoneWorkspace dialog={dialog} setDialog={setDialog} categories={categories} />;
 
   return (
     <div className="ed" data-left={left ? '1' : '0'} data-right={right ? '1' : '0'}>

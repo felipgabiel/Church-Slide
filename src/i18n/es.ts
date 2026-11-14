@@ -387,7 +387,7 @@ export const es: Record<string, string> = {
   "Este louvor ainda não tem trechos com letra.": "Esta canción todavía no tiene secciones con letra.",
   "Tempo com a letra parada": "Tiempo con la letra quieta",
   "Trechos (": "Secciones (",
-  "Todos": "Todas",
+  "Todos": "Todos",
   "Nenhum": "Ninguna",
   "Trechos a exportar": "Secciones a exportar",
   "Ver o vídeo {0}": "Ver el video {0}",
@@ -1014,5 +1014,17 @@ export const es: Record<string, string> = {
   "Backup restaurado": "Copia restaurada",
   "{0} louvores novos e {1} atualizados, {2} fundos novos e {3} atualizados, {4} arquivos de mídia. Recarregue a página para ver tudo.": "{0} canciones nuevas y {1} actualizadas, {2} fondos nuevos y {3} actualizados, {4} archivos de medios. Recarga la página para ver todo.",
   "Recarregar a página": "Recargar la página",
-  "Não foi possível restaurar o backup.": "No se pudo restaurar la copia de seguridad."
+  "Não foi possível restaurar o backup.": "No se pudo restaurar la copia de seguridad.",
+  "Partes do estúdio": "Partes del estudio",
+  "Partes do editor": "Partes del editor",
+  "Sair da tela cheia": "Salir de pantalla completa",
+  "Automático usa a versão de celular em telas pequenas": "Automático usa la versión de celular en pantallas pequeñas",
+  "Slide": "Diapositiva",
+  "Estilo": "Estilo",
+  "Tela": "Pantalla",
+  "Layout": "Diseño",
+  "Computador": "Computadora",
+  "Celular": "Celular",
+  "Mostrar os controles": "Mostrar los controles",
+  "Adicionar texto livre": "Agregar texto libre"
 };

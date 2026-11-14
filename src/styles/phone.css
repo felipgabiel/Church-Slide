@@ -1,0 +1,690 @@
+/* ===========================================================================
+ * Celular (<html data-form="phone">, definido em app/formFactor.ts)
+ * Uma coisa por vez, alvos de toque de 40 px ou mais, nada que dependa de passar o mouse.
+ * O computador não é afetado: tudo aqui fica atrás de [data-form='phone'].
+ * ======================================================================== */
+
+[data-form='phone'] {
+  --topbar-h: 52px;
+  --ph-tabs-h: 58px;
+}
+[data-form='phone'] body {
+  /* sem o "puxar para atualizar" do navegador por cima do app */
+  overscroll-behavior: none;
+}
+
+/* ----- botões maiores para o dedo ----- */
+[data-form='phone'] .ibtn.ibtn-md,
+[data-form='phone'] .ibtn:not(.ibtn-sm) {
+  width: 40px;
+  height: 40px;
+}
+[data-form='phone'] .btn:not(.btn-sm) {
+  min-height: 40px;
+}
+
+/* ----- diálogos viram "folhas" de baixo, na largura toda ----- */
+[data-form='phone'] .modal {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  max-height: calc(100dvh - 24px) !important;
+  margin: auto 0 0 !important;
+  border-radius: 16px 16px 0 0;
+  border-width: 1px 0 0;
+}
+[data-form='phone'] .modal-head {
+  padding: 16px 14px 4px 18px;
+}
+[data-form='phone'] .modal-head h2 {
+  font-size: 18px;
+}
+[data-form='phone'] .modal-body {
+  padding: 10px 16px 18px;
+}
+[data-form='phone'] .modal-foot {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  flex-wrap: wrap;
+}
+[data-form='phone'] [role='menu'] {
+  max-width: calc(100vw - 16px);
+}
+
+/* ======================= Editor ======================= */
+.ed-phone {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--topbar-h) minmax(0, 1fr) calc(var(--ph-tabs-h) + env(safe-area-inset-bottom));
+  grid-template-areas: 'top' 'main' 'tabs';
+  background: var(--bg-0);
+}
+.ed-phone .tb {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 2px;
+  padding: 0 4px 0 2px;
+}
+.ed-phone .tb-logo,
+.ed-phone .tb-sep {
+  display: none;
+}
+.ed-phone .tb-left {
+  gap: 2px;
+}
+.ed-phone .tb-name {
+  min-width: 0;
+  flex: 1;
+  font-size: 14px;
+}
+/* "Salvo" vira só o ícone */
+.ed-phone .save {
+  font-size: 0;
+  gap: 0;
+  padding: 0 4px;
+}
+.ed-phone .save svg {
+  font-size: 15px;
+}
+.ed-phone .save-bad {
+  font-size: 11px;
+}
+.ed-phone .tb-center,
+.ed-phone .tb-right {
+  gap: 0;
+}
+[data-form='phone'] .tb-present {
+  background: var(--accent);
+  color: var(--accent-ink);
+  margin-left: 2px;
+}
+[data-form='phone'] .tb-present:disabled {
+  background: var(--bg-3);
+  color: var(--text-4);
+}
+.ph-main {
+  grid-area: main;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.ph-slide {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+/* palco do tamanho da largura, sem roubar a tela do texto */
+.ph-slide .sa {
+  flex: none;
+  height: min(46dvh, calc(100vw * 0.5625 + 90px));
+}
+.ph-slide .sa-bar {
+  height: 46px;
+  padding: 0 6px;
+  overflow-x: auto;
+  gap: 6px;
+}
+.ph-slide .sa-tools {
+  gap: 0;
+}
+.ph-slide .te {
+  flex: 1 0 auto;
+  border-top: 0;
+}
+.ph-slide .te textarea {
+  font-size: 16px; /* 16 px: o iPhone não dá zoom sozinho ao tocar */
+}
+.ph-pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 0 !important;
+}
+.ph-pane > .panel,
+.ph-pane > .lp,
+.ph-pane > .lyr {
+  flex: 1;
+  min-height: 0;
+}
+.ph-layers .lyr {
+  contain: none;
+  border-left: 0;
+  padding: 10px 12px;
+}
+.ph-layers .lyr .dl-row {
+  height: 44px;
+}
+.ph-preview {
+  flex: none;
+  width: min(100%, 300px);
+  margin: 8px auto 6px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px -6px rgb(0 0 0 / 0.5);
+}
+.ph-tabs {
+  grid-area: tabs;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.ph-tabs button {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 560;
+}
+.ph-tabs button svg {
+  font-size: 20px;
+}
+.ph-tabs button[data-on='1'] {
+  color: var(--accent);
+}
+/* textos de ajuda que pedem mouse não fazem sentido no celular */
+[data-form='phone'] .lp-hint,
+[data-form='phone'] .sl-hint {
+  display: none;
+}
+[data-form='phone'] input:not([type]),
+[data-form='phone'] input[type='text'],
+[data-form='phone'] input[type='search'],
+[data-form='phone'] textarea {
+  font-size: max(16px, 1em);
+}
+
+/* ======================= Biblioteca ======================= */
+.lib[data-phone='1'] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) calc(var(--ph-tabs-h) + env(safe-area-inset-bottom));
+}
+.lib[data-phone='1'] .lib-side {
+  display: none;
+}
+.lib[data-phone='1'] .lib-main {
+  grid-row: 1;
+  scrollbar-gutter: auto;
+}
+.lib[data-phone='1'] .lib-bar {
+  height: 56px;
+  gap: 4px;
+  padding: 0 6px 0 12px;
+}
+.lib[data-phone='1'] .lib-search {
+  display: block;
+  max-width: none;
+}
+.lib[data-phone='1'] .lib-search kbd {
+  display: none;
+}
+.lib[data-phone='1'] .lib-bar-actions {
+  gap: 0;
+}
+.lib[data-phone='1'] .lib-content {
+  gap: 22px;
+  padding: 16px 14px 96px;
+}
+.lib[data-phone='1'] .lib-hello h1 {
+  font-size: 26px;
+}
+.lib[data-phone='1'] .lib-hello p {
+  font-size: 13.5px;
+}
+/* recentes: uma fileira que rola para o lado */
+.lib[data-phone='1'] .lib-recent-row {
+  display: flex;
+  overflow-x: auto;
+  gap: 12px;
+  margin: 0 -14px;
+  padding: 2px 14px 6px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.lib[data-phone='1'] .lib-recent-row > * {
+  flex: none;
+  width: 62vw;
+  max-width: 260px;
+  scroll-snap-align: start;
+}
+/* cabeçalho da lista */
+.lib[data-phone='1'] .lib-head {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+.lib[data-phone='1'] .lib-head h2 {
+  white-space: nowrap;
+}
+.lib[data-phone='1'] .lib-sort {
+  width: auto;
+  min-width: 170px;
+}
+.lib[data-phone='1'] .lib-view {
+  display: none;
+}
+/* lista: linha = miniatura + nome + ações (sem colunas que não cabem) */
+.lib[data-phone='1'] .lib-table thead,
+.lib[data-phone='1'] .lib-table .c-n,
+.lib[data-phone='1'] .lib-table .c-cat,
+.lib[data-phone='1'] .lib-table .c-num,
+.lib[data-phone='1'] .lib-table .c-when {
+  display: none;
+}
+.lib[data-phone='1'] .lib-table td {
+  height: 68px;
+  padding: 0 4px;
+}
+.lib[data-phone='1'] .lib-table .c-act {
+  width: 88px;
+}
+.lib[data-phone='1'] .lrow-actions {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+.lib[data-phone='1'] .lib-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.lib[data-phone='1'] .support-fab {
+  bottom: calc(var(--ph-tabs-h) + env(safe-area-inset-bottom) + 84px);
+  right: 18px;
+  width: 44px;
+  height: 44px;
+  font-size: 18px;
+}
+.lib-ph-tabs {
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.lib-ph-tabs button {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 560;
+}
+.lib-ph-tabs button svg {
+  font-size: 20px;
+}
+.lib-ph-tabs button[data-on='1'] {
+  color: var(--accent);
+}
+.lib-ph-tabs em {
+  margin-left: 3px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--bg-3);
+  font-style: normal;
+  font-size: 10px;
+}
+.lib-ph-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--ph-tabs-h) + env(safe-area-inset-bottom) + 16px);
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 24px;
+  box-shadow: 0 8px 22px -8px rgb(0 0 0 / 0.55);
+}
+.lib-ph-fab:active {
+  transform: scale(0.95);
+}
+.lib-ph-cats {
+  display: flex;
+  gap: 6px;
+  margin: -4px -14px 0;
+  padding: 0 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.lib-ph-cats button {
+  flex: none;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 16px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+.lib-ph-cats button[data-on='1'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+/* esconde o botão "Novo" do topo: o botão redondo faz isso */
+.lib[data-phone='1'] .lib-bar-actions > .btn-primary {
+  display: none;
+}
+/* novo louvor: visuais em 2 colunas */
+[data-form='phone'] .np {
+  grid-template-columns: 1fr;
+}
+/* galeria de fundos */
+.lib[data-phone='1'] .gal-starters {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* sem mouse não existe "passar por cima": as ações ficam sempre à vista */
+[data-form='phone'] .si-actions,
+[data-form='phone'] .dl-lock,
+[data-form='phone'] .dl-more,
+[data-form='phone'] .rcard-play {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* ======================= Apresentação (operador) ======================= */
+.op[data-phone='1'] .op-top {
+  gap: 4px;
+  padding: 0 6px 0 2px;
+}
+.op[data-phone='1'] .op-logo {
+  display: none;
+}
+.op[data-phone='1'] .op-top-l,
+.op[data-phone='1'] .op-top-r {
+  gap: 2px;
+  min-width: 0;
+}
+.op[data-phone='1'] .op-title {
+  min-width: 0;
+}
+.op[data-phone='1'] .op-title b,
+.op[data-phone='1'] .op-title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* tudo numa coluna que rola: ao vivo, próximo, trechos e roteiro; os botões ficam presos embaixo */
+.op[data-phone='1'] .op-body {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding-bottom: calc(150px + env(safe-area-inset-bottom));
+}
+.op[data-phone='1'] .op-main {
+  order: 1;
+  flex: none;
+  padding: 10px 12px 0;
+  gap: 10px;
+}
+.op[data-phone='1'] .op-slides {
+  order: 2;
+  flex: none;
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin-top: 12px;
+}
+.op[data-phone='1'] .op-rail {
+  order: 3;
+  flex: none;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+.op[data-phone='1'] .op-slide-list,
+.op[data-phone='1'] .op-songs {
+  overflow: visible;
+  max-height: none;
+}
+.op[data-phone='1'] .op-monitors {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto;
+  gap: 10px;
+}
+.op[data-phone='1'] .op-slide-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+.op[data-phone='1'] .op-mon-live .op-mon-view {
+  touch-action: pan-y;
+}
+.op[data-phone='1'] .op-mon-next {
+  width: 52%;
+}
+.op[data-phone='1'] .op-transport {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 8px;
+  padding: 10px 12px max(12px, env(safe-area-inset-bottom));
+  border-radius: 16px 16px 0 0;
+  border-width: 1px 0 0;
+  box-shadow: 0 -8px 24px -12px rgb(0 0 0 / 0.5);
+}
+.op[data-phone='1'] .op-transport > .btn {
+  min-height: 52px;
+  justify-content: center;
+}
+.op[data-phone='1'] .op-next {
+  min-width: 0;
+}
+.op[data-phone='1'] .op-sep,
+.op[data-phone='1'] .op-grow,
+.op[data-phone='1'] .op-transport .seg {
+  display: none;
+}
+.op[data-phone='1'] .op-tool,
+.op[data-phone='1'] .op-auto-sw {
+  justify-content: center;
+  min-height: 40px;
+}
+.op[data-phone='1'] .op-auto-sw {
+  grid-column: span 2;
+}
+
+/* apresentar no próprio celular */
+.op-here {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #000;
+  touch-action: none;
+  user-select: none;
+}
+.op-here-stage {
+  position: absolute;
+  inset: 0;
+}
+.op-here-fill {
+  position: absolute;
+  inset: 0;
+}
+.op-here-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+.op-here-prev {
+  left: 0;
+  width: 33%;
+}
+.op-here-mid {
+  left: 33%;
+  width: 34%;
+}
+.op-here-next {
+  right: 0;
+  width: 33%;
+}
+.op-here-bar {
+  position: absolute;
+  top: max(10px, env(safe-area-inset-top));
+  right: max(10px, env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgb(255 255 255 / 0.85);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  transition: opacity 0.25s;
+}
+.op-here[data-chrome='0'] .op-here-bar {
+  opacity: 0;
+  pointer-events: none;
+}
+.op-here-x {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.14);
+  color: #fff;
+  font-size: 20px;
+}
+
+/* ======================= Estúdio de Fundos ======================= */
+.studio[data-phone='1'] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--topbar-h) auto minmax(0, 1fr) calc(var(--ph-tabs-h) + env(safe-area-inset-bottom));
+  grid-template-areas: 'top' 'center' 'pane' 'tabs';
+}
+.studio[data-phone='1'] .studio-tb {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 2px;
+  padding: 0 4px 0 2px;
+}
+.studio[data-phone='1'] .studio-tb .tb-center {
+  justify-content: flex-start;
+  min-width: 0;
+}
+.studio[data-phone='1'] .studio-tb .tb-name {
+  min-width: 0;
+  width: 100%;
+  font-size: 14px;
+}
+.studio[data-phone='1'] .studio-status {
+  display: none;
+}
+.studio[data-phone='1'] .studio-tb .tb-right {
+  gap: 0;
+}
+.studio[data-phone='1'] .studio-center {
+  height: min(44dvh, calc(100vw * 0.5625 + 96px));
+}
+.studio[data-phone='1'] .studio-left,
+.studio[data-phone='1'] .studio-right {
+  grid-area: pane;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+.studio[data-phone='1'][data-pane='layers'] .studio-right,
+.studio[data-phone='1'][data-pane='props'] .studio-left {
+  display: none;
+}
+.studio-ph-tabs {
+  grid-template-columns: repeat(2, 1fr);
+}
+.studio[data-phone='1'] .st-bar {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.studio[data-phone='1'] .sl-panel .dl-row {
+  height: 44px;
+}
+.op[data-phone='1'] .op-slides {
+  display: flex !important;
+}
+[data-form='phone'] .sl-panel-hint {
+  display: none;
+}
+/* alças do texto: área de toque maior que o desenho */
+[data-form='phone'] .grip::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
+}
+[data-form='phone'] .grip,
+[data-form='phone'] .hit,
+[data-form='phone'] .grip-rot {
+  touch-action: none;
+}
+/* nos diálogos, rótulo em cima e controle embaixo, na largura toda */
+[data-form='phone'] .modal .row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+[data-form='phone'] .modal .row-ctl {
+  width: 100%;
+  justify-content: flex-start;
+}
+[data-form='phone'] .modal .row-ctl > .seg,
+[data-form='phone'] .modal .row-ctl > .select {
+  width: 100%;
+  max-width: none;
+}
+[data-form='phone'] .modal .row-ctl > .seg button {
+  flex: 1;
+}
+
+/* ----- celular deitado: pouca altura ----- */
+@media (orientation: landscape) and (max-height: 520px) {
+  [data-form='phone'] {
+    --topbar-h: 46px;
+    --ph-tabs-h: 46px;
+  }
+  .ph-tabs button,
+  .lib-ph-tabs button {
+    grid-auto-flow: column;
+    gap: 6px;
+  }
+  /* o palco ocupa a altura; o texto do trecho fica logo abaixo (rolando) */
+  .ph-slide .sa {
+    height: calc(100dvh - var(--topbar-h) - var(--ph-tabs-h) - env(safe-area-inset-bottom));
+  }
+  .studio[data-phone='1'] .studio-center {
+    height: 62dvh;
+  }
+  /* operador: ao vivo e próximo lado a lado; botões numa linha só */
+  .op[data-phone='1'] .op-monitors {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  }
+  .op[data-phone='1'] .op-mon-next {
+    width: auto;
+  }
+  /* o ao vivo cabe inteiro acima dos botões */
+  .op[data-phone='1'] .op-mon-view {
+    max-height: calc(100dvh - var(--topbar-h) - 120px);
+  }
+  .op[data-phone='1'] .op-body {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+  .op[data-phone='1'] .op-transport {
+    grid-template-columns: 1fr 1.6fr auto auto;
+    padding-top: 8px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  .op[data-phone='1'] .op-transport > .btn {
+    min-height: 44px;
+  }
+  .op[data-phone='1'] .op-auto-sw {
+    display: none;
+  }
+}

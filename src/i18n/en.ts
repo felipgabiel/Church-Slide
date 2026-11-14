@@ -1110,5 +1110,16 @@ export const en: Record<string, string> = {
   "Backup restaurado": "Backup restored",
   "{0} louvores novos e {1} atualizados, {2} fundos novos e {3} atualizados, {4} arquivos de mídia. Recarregue a página para ver tudo.": "{0} new and {1} updated songs, {2} new and {3} updated backgrounds, {4} media files. Reload the page to see everything.",
   "Recarregar a página": "Reload the page",
-  "Não foi possível restaurar o backup.": "Couldn't restore the backup."
+  "Não foi possível restaurar o backup.": "Couldn't restore the backup.",
+  "Partes do estúdio": "Studio sections",
+  "Partes do editor": "Editor sections",
+  "Sair da tela cheia": "Exit full screen",
+  "Automático usa a versão de celular em telas pequenas": "Automatic uses the phone version on small screens",
+  "Slide": "Slide",
+  "Tela": "Screen",
+  "Layout": "Layout",
+  "Computador": "Computer",
+  "Celular": "Phone",
+  "Mostrar os controles": "Show controls",
+  "Adicionar texto livre": "Add free text"
 };

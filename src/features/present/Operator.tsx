@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type CSSProperties, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type CSSProperties, type MutableRefObject, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { useFormFactor } from '../../app/formFactor';
 import { ThemeToggle } from '../../ui/ThemeToggle';
 import { SettingsButton } from '../settings/Settings';
 import {
@@ -84,6 +85,10 @@ export function Operator({ id }: { id: string }) {
   const [reload, setReload] = useState(() => Date.now());
   const [replay, setReplay] = useState(0);
   const [dialog, setDialog] = useState<null | 'add' | 'keys'>(null);
+  const phone = useFormFactor() === 'phone';
+  const [here, setHere] = useState(false);
+  // deslizar no "Ao vivo" (celular): para a esquerda avança, para a direita volta
+  const swipe = useSwipe((dir) => dispatch({ type: dir === 'left' ? 'next' : 'prev' }));
 
   const songRefs: SongRef[] = useMemo(() => setlist.map((sid) => ({ id: sid, project: songs[sid] ?? null })), [setlistKey, songs]); // eslint-disable-line react-hooks/exhaustive-deps
   const ready = setlist.every((sid) => sid in songs);
@@ -316,9 +321,10 @@ export function Operator({ id }: { id: string }) {
   }
 
   const ratio = current ? ASPECT_RATIOS[current.aspect] : 16 / 9;
+  const liveStage = current && <Stage theme={current.theme} slide={slide} mode="live" replayKey={replay} blackout={blackout} />;
 
   return (
-    <div className="op" onClickCapture={(e: ReactMouseEvent) => (e.target as HTMLElement).closest('button')?.blur()}>
+    <div className="op" data-phone={phone ? '1' : undefined} onClickCapture={(e: ReactMouseEvent) => (e.target as HTMLElement).closest('button')?.blur()}>
       <header className="op-top">
         <div className="op-top-l">
           <IconButton label={tr('Voltar à biblioteca')} icon={<LuChevronLeft />} onClick={() => navigate(paths.library)} />
@@ -336,13 +342,34 @@ export function Operator({ id }: { id: string }) {
           )}
         </div>
         <div className="op-top-r">
-          <OutputControls bus={busRef} link={link} />
-          <IconButton label={tr('Atalhos de teclado')} icon={<LuKeyboard />} onClick={() => setDialog('keys')} />
+          {phone ? (
+            <Button variant="primary" icon={<LuMaximize />} onClick={() => setHere(true)}>
+              {tr('Tela cheia')}
+            </Button>
+          ) : (
+            <>
+              <OutputControls bus={busRef} link={link} />
+              <IconButton label={tr('Atalhos de teclado')} icon={<LuKeyboard />} onClick={() => setDialog('keys')} />
+            </>
+          )}
           <SettingsButton initial="present" />
-          <ThemeToggle />
+          {!phone && <ThemeToggle />}
         </div>
       </header>
 
+      {here && (
+        <PhoneFullscreen
+          ratio={ratio}
+          fit={fit}
+          onClose={() => setHere(false)}
+          onPrev={() => dispatch({ type: 'prev' })}
+          onNext={() => dispatch({ type: 'next' })}
+          label={pos ? `${number}/${playable.length}` : ''}
+          swipe={swipe}
+        >
+          {liveStage}
+        </PhoneFullscreen>
+      )}
       <div className="op-body">
         <aside className="op-rail" aria-label={tr('Roteiro do culto')}>
           <div className="op-rail-head">
@@ -398,8 +425,8 @@ export function Operator({ id }: { id: string }) {
                 {blackout && <span className="op-tag op-tag-black">{tr('Tela preta')}</span>}
                 <span className="op-mon-label">{slide?.label}</span>
               </header>
-              <div className="op-mon-view" style={{ '--ratio': String(ratio) } as CSSProperties}>
-                <FitBox ratio={ratio}>{current && <Stage theme={current.theme} slide={slide} mode="live" replayKey={replay} blackout={blackout} />}</FitBox>
+              <div className="op-mon-view" style={{ '--ratio': String(ratio) } as CSSProperties} {...(phone ? swipe : {})}>
+                {!here && <FitBox ratio={ratio}>{liveStage}</FitBox>}
               </div>
               {auto && autoSecs > 0 && pos && nextP && nextP.songId === pos.songId && <i key={`${pos.songId}${pos.index}${replay}`} className="op-auto" style={{ animationDuration: `${autoSecs}s` }} />}
             </section>
@@ -485,7 +512,8 @@ export function Operator({ id }: { id: string }) {
                     data-current={isCur ? '1' : '0'}
                     data-next={isNext ? '1' : '0'}
                     ref={(el: HTMLButtonElement | null) => {
-                      if (el && isCur) el.scrollIntoView({ block: 'nearest' });
+                      // no celular a página inteira rola: não puxar a tela para a lista (o "Ao vivo" fica em cima)
+                      if (el && isCur && !phone) el.scrollIntoView({ block: 'nearest' });
                     }}
                     onClick={() => go({ songId: pos.songId, index: idx })}
                     title={slideText(s).split('\n')[0]}
@@ -649,5 +677,74 @@ function AddSongDialog({ open, onClose, existing, onAdd }: { open: boolean; onCl
         })}
       </ul>
     </Modal>
+  );
+}
+
+/** Deslizar o dedo para os lados (só toque; o mouse continua clicando normal). */
+function useSwipe(on: (dir: 'left' | 'right') => void) {
+  const start = useRef<{ x: number; y: number; t: number } | null>(null);
+  const cb = useRef(on);
+  cb.current = on;
+  return {
+    onPointerDown: (e: ReactPointerEvent<HTMLElement>) => {
+      start.current = e.pointerType === 'mouse' ? null : { x: e.clientX, y: e.clientY, t: Date.now() };
+    },
+    onPointerUp: (e: ReactPointerEvent<HTMLElement>) => {
+      const s = start.current;
+      start.current = null;
+      if (!s) return;
+      const dx = e.clientX - s.x;
+      const dy = e.clientY - s.y;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5 && Date.now() - s.t < 800) cb.current(dx < 0 ? 'left' : 'right');
+    },
+    onPointerCancel: () => {
+      start.current = null;
+    },
+  };
+}
+
+/**
+ * Apresentar no próprio celular (ligado à TV por cabo ou espelhamento): o slide ocupa a tela inteira.
+ * Toque na metade direita avança, na esquerda volta; deslizar também funciona. O "x" sai.
+ */
+function PhoneFullscreen({ ratio, fit, onClose, onPrev, onNext, label, swipe, children }: { ratio: number; fit: FitMode; onClose: () => void; onPrev: () => void; onNext: () => void; label: string; swipe: ReturnType<typeof useSwipe>; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [chrome, setChrome] = useState(true);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    const el = ref.current;
+    void el?.requestFullscreen?.().catch(() => undefined);
+    // tela sempre acesa enquanto apresenta (quando o navegador permite)
+    let lock: { release(): Promise<void> } | null = null;
+    const nav = navigator as Navigator & { wakeLock?: { request(t: 'screen'): Promise<{ release(): Promise<void> }> } };
+    void nav.wakeLock?.request('screen').then((l) => (lock = l)).catch(() => undefined);
+    const t = setTimeout(() => setChrome(false), 2500);
+    const onFs = () => {
+      if (!document.fullscreenElement) closeRef.current();
+    };
+    document.addEventListener('fullscreenchange', onFs);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('fullscreenchange', onFs);
+      void lock?.release().catch(() => undefined);
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+    };
+  }, []);
+  return (
+    <div ref={ref} className="op-here" data-chrome={chrome ? '1' : '0'} {...swipe}>
+      <div className="op-here-stage">
+        {fit === 'fill' ? <div className="op-here-fill">{children}</div> : <FitBox ratio={ratio}>{children}</FitBox>}
+      </div>
+      <button type="button" className="op-here-zone op-here-prev" aria-label={tr('Trecho anterior')} onClick={onPrev} />
+      <button type="button" className="op-here-zone op-here-mid" aria-label={tr('Mostrar os controles')} onClick={() => setChrome((c) => !c)} />
+      <button type="button" className="op-here-zone op-here-next" aria-label={tr('Próximo trecho')} onClick={onNext} />
+      <div className="op-here-bar">
+        <span>{label}</span>
+        <button type="button" className="op-here-x" aria-label={tr('Sair da tela cheia')} onClick={onClose}>
+          <LuX />
+        </button>
+      </div>
+    </div>
   );
 }

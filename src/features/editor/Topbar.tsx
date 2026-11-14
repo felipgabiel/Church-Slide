@@ -11,7 +11,8 @@ import { editor, editorStore, flushSave, useEditor } from '../../store/editor';
 import { Button, IconButton } from '../../ui/Button';
 import { Select } from '../../ui/Controls';
 import { LogoMark } from '../../ui/Logo';
-import { Menu } from '../../ui/Menu';
+import { Menu, type MenuItem } from '../../ui/Menu';
+import { useFormFactor } from '../../app/formFactor';
 import { confirmDialog, promptDialog, toast, toastError, useNow } from '../../ui/toast';
 import { startPresenting } from './useEditorShortcuts';
 import { tr } from '../../core/i18n';
@@ -57,6 +58,17 @@ export function Topbar({ left, right, onToggleLeft, onToggleRight, open }: Props
   const canUndo = useEditor((s) => s.past.length > 0);
   const canRedo = useEditor((s) => s.future.length > 0);
   const hasText = useEditor((s) => s.project!.slides.some((x) => slideText(x).trim()));
+  const phone = useFormFactor() === 'phone';
+  // no celular, o que não cabe na barra vai para o menu "…"
+  const phoneItems: MenuItem[] = phone
+    ? [
+        { label: tr('Exportar vídeos'), icon: <LuFilm />, disabled: !hasText, onClick: () => open('export') },
+        { label: tr('Adicionar texto livre'), icon: <LuType />, onClick: () => editor.addFreeText() },
+        { divider: true },
+        ...(Object.keys(ASPECT_RATIOS) as Aspect[]).map((a) => ({ label: tr('Proporção {0}', a), checked: a === aspect, onClick: () => editor.setProjectMeta({ aspect: a }) })),
+        { divider: true },
+      ]
+    : [];
 
   return (
     <header className="tb">
@@ -79,9 +91,11 @@ export function Topbar({ left, right, onToggleLeft, onToggleRight, open }: Props
         <SaveStatus />
       </div>
 
-      <div className="tb-center">
+      <div className="tb-center" data-phone={phone ? '1' : undefined}>
         <IconButton label={tr('Desfazer (Ctrl+Z)')} icon={<LuUndo2 />} onClick={() => editor.undo()} disabled={!canUndo} />
         <IconButton label={tr('Refazer (Ctrl+Shift+Z)')} icon={<LuRedo2 />} onClick={() => editor.redo()} disabled={!canRedo} />
+        {!phone && (
+          <>
         <span className="tb-sep" />
         <Button variant="ghost" size="sm" icon={<LuType />} onClick={() => editor.addFreeText()} title={tr('Adicionar um texto livre neste trecho (duplo clique no palco edita)')}>
           {tr('Texto')}
@@ -96,17 +110,24 @@ export function Topbar({ left, right, onToggleLeft, onToggleRight, open }: Props
             ))}
           </Select>
         </div>
+          </>
+        )}
       </div>
 
       <div className="tb-right">
         <SettingsButton />
-        <ThemeToggle />
-        <IconButton label={left ? tr('Ocultar painel esquerdo') : tr('Mostrar painel esquerdo')} icon={<LuPanelLeft />} active={left} onClick={onToggleLeft} />
-        <IconButton label={right ? tr('Ocultar painel direito') : tr('Mostrar painel direito')} icon={<LuPanelRight />} active={right} onClick={onToggleRight} />
+        {!phone && (
+          <>
+            <ThemeToggle />
+            <IconButton label={left ? tr('Ocultar painel esquerdo') : tr('Mostrar painel esquerdo')} icon={<LuPanelLeft />} active={left} onClick={onToggleLeft} />
+            <IconButton label={right ? tr('Ocultar painel direito') : tr('Mostrar painel direito')} icon={<LuPanelRight />} active={right} onClick={onToggleRight} />
+          </>
+        )}
         <Menu
           align="end"
           width={270}
           items={[
+            ...phoneItems,
             { label: tr('Letra completa…'), icon: <LuClipboardPaste />, onClick: () => open('lyrics') },
             { label: tr('Informações do louvor…'), icon: <LuInfo />, onClick: () => open('info') },
             { divider: true },
@@ -158,12 +179,18 @@ export function Topbar({ left, right, onToggleLeft, onToggleRight, open }: Props
           ]}
           trigger={(isOpen, toggle) => <IconButton label={tr('Mais opções')} icon={<LuEllipsis />} active={isOpen} aria-haspopup="menu" aria-expanded={isOpen} onClick={toggle} />}
         />
+        {phone ? (
+          <IconButton label={tr('Apresentar')} icon={<LuMonitorPlay />} className="tb-present" onClick={() => void startPresenting()} disabled={!hasText} />
+        ) : (
+          <>
         <Button icon={<LuFilm />} onClick={() => open('export')} disabled={!hasText} title={hasText ? tr('Gerar um vídeo MP4 por trecho (animação + letra parada)') : tr('Adicione a letra para exportar')}>
           {tr('Exportar vídeos')}
         </Button>
         <Button variant="primary" icon={<LuMonitorPlay />} onClick={() => void startPresenting()} disabled={!hasText} title={hasText ? tr('Abrir o modo de apresentação (Ctrl+Enter)') : tr('Adicione a letra para apresentar')}>
           {tr('Apresentar')}
         </Button>
+          </>
+        )}
       </div>
     </header>
   );

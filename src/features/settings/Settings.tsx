@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { LuClapperboard, LuDownload, LuGlobe, LuHardDrive, LuMonitorPlay, LuPenLine, LuSettings, LuUpload } from 'react-icons/lu';
 import { LAST_BACKUP_SETTING } from '../../core/storage/backup';
 import { downloadBackup, restoreFromFile } from './backupActions';
+import { LAYOUT_SETTING, type LayoutChoice } from '../../app/formFactor';
 import { LANG, LANGS, setLang, tr, type Lang } from '../../core/i18n';
 import { DEFAULT_SETTINGS, type ExportSettings } from '../../core/export/exportSong';
 import type { FitMode } from '../../core/present/channel';
@@ -68,11 +69,26 @@ export function SettingsDialog({ open, onClose, initial = 'general' }: { open: b
 function General() {
   const [theme, setTheme] = useSetting<'light' | 'dark' | null>('theme', null);
   const choice: ThemeChoice = theme === 'light' || theme === 'dark' ? theme : 'system';
+  const [layout, setLayout] = useSetting<LayoutChoice>(LAYOUT_SETTING, 'auto');
   return (
     <>
       <h3>{tr('Idioma')}</h3>
       <Row label={tr('Idioma do site')} hint={tr('A página recarrega para trocar')}>
         <Segmented<Lang> size="sm" label={tr('Idioma do site')} value={LANG} onChange={(v) => v !== LANG && setLang(v)} options={LANGS.map((l) => ({ value: l.id, label: l.label }))} />
+      </Row>
+      <h3>{tr('Tela')}</h3>
+      <Row label={tr('Layout')} hint={tr('Automático usa a versão de celular em telas pequenas')}>
+        <Segmented<LayoutChoice>
+          size="sm"
+          label={tr('Layout')}
+          value={layout}
+          onChange={setLayout}
+          options={[
+            { value: 'auto', label: tr('Automático') },
+            { value: 'desktop', label: tr('Computador') },
+            { value: 'phone', label: tr('Celular') },
+          ]}
+        />
       </Row>
       <h3>{tr('Aparência')}</h3>
       <Row label={tr('Tema da interface')} hint={tr('O telão é sempre escuro')}>

@@ -311,6 +311,26 @@ O tamanho que a pessoa escolhe à mão não é limitado. O vídeo mede o mesmo D
   preferências só entram se ainda não existem. Nada é apagado; restaurar duas vezes não duplica. Fica em
   *Configurações → Backup e armazenamento*, e a biblioteca mostra um lembrete quando não há backup há mais de 2 semanas.
 
+### Versão para celular (`app/formFactor.ts`, `styles/phone.css`)
+
+- **Mesma página, outro arranjo.** `useFormFactor()` decide entre `phone` e `desktop` pelo tamanho da tela (até 860 px de
+  largura, ou celular deitado com tela de toque baixa) e grava em `<html data-form>`; em *Configurações → Geral → Layout* dá
+  para fixar "Computador" ou "Celular". Todo o CSS do celular fica atrás de `[data-form='phone']`, então o computador não muda.
+- **Biblioteca:** abas embaixo (Louvores, Modelos, Fundos, Lixeira), busca no topo, categorias em "chips", botão redondo de
+  "Novo", lista sem as colunas que não cabem e ações sempre à vista (não há "passar o mouse").
+- **Editor:** uma coisa por vez, com abas embaixo — *Slide* (palco + texto do trecho), *Trechos* (painel esquerdo),
+  *Estilo* (painel direito, com a prévia do trecho em cima) e *Camadas*. Escolher um trecho volta ao slide. O que não cabe na
+  barra (exportar, texto livre, proporção) vai para o menu "…". Alças com área de toque maior.
+- **Apresentação:** ao vivo, próximo, trechos e roteiro numa coluna; Anterior/Próximo presos embaixo; deslizar o dedo no
+  "Ao vivo" troca o trecho. **Tela cheia** apresenta no próprio aparelho (para ligar na TV por cabo ou espelhamento): toque
+  à direita avança, à esquerda volta, no meio mostra os controles; a tela fica acesa (Wake Lock) enquanto apresenta.
+- **Estúdio:** palco sempre em cima; embaixo, *Camadas* ou *Ajustes*.
+- **Diálogos** viram folhas que sobem de baixo, com rótulo em cima e controle embaixo. Campos de texto com 16 px (o iPhone
+  não dá zoom sozinho). Celular deitado: palco na altura toda e botões da apresentação numa linha.
+- Correção que veio junto: um diálogo de confirmação aberto logo depois de outro (ex.: "Restaurar?" → "Backup restaurado")
+  podia fechar sozinho, porque o evento `close` do primeiro chegava depois; o `Modal` agora ignora o fechamento que ele
+  mesmo pediu.
+
 ### Apoio opcional via Pix (`core/support.ts`, `features/support/SupportCard.tsx`)
 
 O site é gratuito. Depois de gerar os vídeos, o diálogo de exportação mostra um convite discreto com o QR Code e o
@@ -389,7 +409,7 @@ Painéis laterais acompanham a largura do monitor (`clamp`), testados de 1280×7
 |---|---|
 | `npm run typecheck` | `tsc --noEmit` (ver limitação na seção 1) |
 | `npm test` | 123 testes unitários: backup (ZIP de ida e volta, deflate), camada de mídia, idiomas (marcadores e cobertura do dicionário), easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
-| `npm run build && npm run e2e` | 45 etapas no navegador contra o build de produção (ver abaixo) |
+| `npm run build && npm run e2e` | 47 etapas no navegador contra o build de produção (ver abaixo) |
 | `npm run e2e:fidelity` | compara o desenho em canvas (vídeo) com o DOM do editor (PSNR; exige ffmpeg) |
 
 O e2e (`e2e/run.mjs`) cria um louvor pela interface, edita e confere a persistência após recarregar,
@@ -409,7 +429,8 @@ que continua na "Letra completa", o zoom (Ctrl + roda no ponto do mouse, lupas, 
 de louvor repetido, as miniaturas da lixeira e o primeiro acesso (boas-vindas, prévias de tema, site em inglês e espanhol
 e a volta ao português) a engrenagem (cada seção das configurações valendo no editor e na exportação), a camada "Imagem ou vídeo" (foto cobrindo o
 palco, caixa livre, vídeo com loop igualado e exportado em 75 quadros, fundo salvo e importado em arquivo) e o backup (baixar,
-restaurar num navegador vazio com tudo igual, restaurar de novo sem duplicar). Termina conferindo que não houve erros de console.
+restaurar num navegador vazio com tudo igual, restaurar de novo sem duplicar) e o celular (390×844 com toque: abas da biblioteca, do editor e do estúdio, sem rolagem
+lateral, deslizar e tela cheia na apresentação, troca para "Computador" e de volta; e o computador sem nada de celular). Termina conferindo que não houve erros de console.
 
 O build **falha** se `sw.js` sair com marcadores sem substituir — um bug anterior fazia o service
 worker não registrar e o modo offline nunca funcionava, sem nenhum aviso.

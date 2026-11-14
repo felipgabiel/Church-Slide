@@ -1934,6 +1934,109 @@ await step('backup de tudo: baixa um .zip e, num navegador vazio, restaura louvo
   await c2.close();
 });
 
+await step('celular: layout automático com abas embaixo (biblioteca, editor, estúdio), apresentar no próprio aparelho e trocar para computador', async () => {
+  const c = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'pt-BR' });
+  await c.addInitScript(PT);
+  const pg = await c.newPage();
+  watch(pg, 'celular');
+  const noSideScroll = async (where) => {
+    const [sw, iw] = await pg.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth]);
+    assert(sw <= iw + 1, `${where}: a página passa da largura da tela (${sw} > ${iw})`);
+  };
+  await pg.goto(BASE);
+  assert((await pg.evaluate(() => document.documentElement.dataset.form)) === 'phone', 'detectou celular sozinho');
+  const tabs = pg.locator('.lib-ph-tabs');
+  for (const t of ['Louvores', 'Modelos', 'Fundos', 'Lixeira']) await tabs.getByRole('button', { name: new RegExp(t) }).waitFor();
+  assert(!(await pg.locator('.lib-side').isVisible()), 'sem a barra lateral do computador');
+  await noSideScroll('biblioteca');
+  // botão redondo cria o louvor
+  await pg.locator('.lib-ph-fab').tap();
+  await pg.locator('dialog[open] input').first().fill('No celular');
+  await pg.locator('dialog[open] textarea').first().fill('Santo santo santo\nÉ o Senhor\n\nDigno é o Cordeiro\nQue foi morto');
+  await pg.getByRole('button', { name: /Criar e abrir/i }).tap();
+  await pg.waitForURL(/#\/edit\//);
+  const id = pg.url().split('/edit/')[1];
+  const ph = pg.locator('.ph-tabs');
+  for (const t of ['Slide', 'Trechos', 'Estilo', 'Camadas']) await ph.getByRole('button', { name: t }).waitFor();
+  await pg.locator('.ph-slide .surface').waitFor();
+  await pg.locator('.ph-slide textarea').first().waitFor();
+  await noSideScroll('editor');
+  // Trechos: tocar no 2º volta ao slide, já no 2º
+  await ph.getByRole('button', { name: 'Trechos' }).tap();
+  await pg.locator('.sl-list > li').nth(1).locator('.si-main').tap();
+  await pg.locator('.ph-slide .sa-pos').waitFor();
+  assert((await pg.locator('.sa-pos').innerText()).replace(/\s+/g, ' ').startsWith('2'), `foi para o 2º trecho (${await pg.locator('.sa-pos').innerText()})`);
+  // Estilo: painel de texto com a prévia do trecho em cima
+  await ph.getByRole('button', { name: 'Estilo' }).tap();
+  await pg.getByRole('tab', { name: 'Texto', exact: true }).waitFor();
+  await pg.locator('.ph-preview').waitFor();
+  await ph.getByRole('button', { name: 'Camadas' }).tap();
+  await pg.locator('section.lyr .dl-row').first().waitFor();
+  // o que não cabe na barra está no menu
+  await pg.getByRole('button', { name: 'Mais opções' }).tap();
+  for (const t of ['Exportar vídeos', 'Adicionar texto livre', 'Proporção 4:3']) await pg.getByRole('menuitem', { name: t }).waitFor();
+  await pg.keyboard.press('Escape');
+
+  // apresentação: tela cheia no próprio aparelho, toque à direita avança, deslizar volta
+  await pg.goto(BASE + '#/present/' + id);
+  await pg.locator('.op-mon-live .surface, .op-mon-live .stage').first().waitFor();
+  await noSideScroll('apresentação');
+  const count = () => pg.locator('.op-count').innerText().then((t) => t.replace(/\s+/g, ''));
+  assert((await count()) === '1/2', `começa no 1 (${await count()})`);
+  // deslizar o dedo para a esquerda no "Ao vivo" avança
+  const live = await pg.locator('.op-mon-live .op-mon-view').boundingBox();
+  await pg.locator('.op-mon-live .op-mon-view').evaluate((el, b) => {
+    const y = b.y + b.height / 2;
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', clientX: b.x + b.width - 20, clientY: y }));
+    el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch', clientX: b.x + 20, clientY: y + 5 }));
+  }, live);
+  await pg.waitForTimeout(200);
+  assert((await count()) === '2/2', `deslizar avançou (${await count()})`);
+  await pg.getByRole('button', { name: 'Tela cheia' }).tap();
+  const here = pg.locator('.op-here');
+  await here.waitFor();
+  await here.getByRole('button', { name: 'Trecho anterior' }).tap();
+  await pg.waitForTimeout(200);
+  assert((await here.locator('.op-here-bar span').innerText()) === '1/2', 'toque à esquerda volta');
+  await here.getByRole('button', { name: 'Próximo trecho' }).tap();
+  await pg.waitForTimeout(200);
+  assert((await here.locator('.op-here-bar span').innerText()) === '2/2', 'toque à direita avança (e a tela cheia continua aberta)');
+  // os controles somem sozinhos; tocar no meio mostra de novo
+  if ((await here.getAttribute('data-chrome')) === '0') await here.getByRole('button', { name: 'Mostrar os controles' }).tap();
+  await here.getByRole('button', { name: 'Sair da tela cheia' }).tap();
+  await here.waitFor({ state: 'detached' });
+
+  // estúdio: palco em cima, camadas ou ajustes embaixo
+  await pg.goto(BASE + '#/fundos');
+  await pg.getByRole('button', { name: /Sol poente/ }).first().tap();
+  await pg.waitForURL(/#\/fundos\/.+/);
+  const st = pg.locator('.studio[data-phone="1"]');
+  await st.waitFor();
+  assert(await pg.locator('.studio-left').isVisible(), 'começa nas camadas');
+  await pg.locator('.studio-ph-tabs').getByRole('button', { name: 'Ajustes' }).tap();
+  assert(!(await pg.locator('.studio-left').isVisible()) && (await pg.locator('.studio-right').isVisible()), 'aba Ajustes troca o painel');
+  assert(await pg.locator('.st-view canvas').first().isVisible(), 'o palco continua à vista');
+  await noSideScroll('estúdio');
+
+  // escolher "Computador" nas configurações muda o layout na hora; "Automático" volta
+  await pg.goto(BASE);
+  await pg.getByRole('button', { name: 'Configurações', exact: true }).tap();
+  await pg.locator('dialog[open]').getByRole('radio', { name: 'Computador' }).tap();
+  await pg.waitForFunction(() => document.documentElement.dataset.form === 'desktop');
+  await pg.locator('dialog[open]').getByRole('radio', { name: 'Automático' }).first().tap();
+  await pg.waitForFunction(() => document.documentElement.dataset.form === 'phone');
+  await c.close();
+});
+
+await step('computador continua igual: sem abas de celular', async () => {
+  const pg = await ctx.newPage();
+  await pg.goto(BASE);
+  assert((await pg.evaluate(() => document.documentElement.dataset.form)) === 'desktop', 'computador');
+  assert((await pg.locator('.lib-ph-tabs, .lib-ph-fab').count()) === 0, 'sem elementos de celular');
+  assert(await pg.locator('.lib-side').isVisible(), 'barra lateral à vista');
+  await pg.close();
+});
+
 await step('nenhum erro de console durante todo o fluxo', async () => {
   assert(consoleErrors.length === 0, `${consoleErrors.length} erro(s):\n      ${consoleErrors.slice(0, 5).join('\n      ')}`);
 });

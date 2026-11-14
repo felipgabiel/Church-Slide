@@ -19,12 +19,18 @@ export function Modal({ open, onClose, title, description, children, footer, wid
   const ref = useRef<HTMLDialogElement>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
+  const byProp = useRef(false);
 
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
     if (open && !d.open) d.showModal();
-    if (!open && d.open) d.close();
+    if (!open && d.open) {
+      // fechado por quem usa o diálogo: o evento "close" (que chega depois) não deve chamar onClose de novo,
+      // senão um diálogo aberto logo em seguida no mesmo lugar seria fechado junto
+      byProp.current = true;
+      d.close();
+    }
   }, [open]);
 
   return (
@@ -33,7 +39,14 @@ export function Modal({ open, onClose, title, description, children, footer, wid
       className={`modal ${className}`}
       style={{ width: `min(${width}px, calc(100vw - 32px))` }}
       aria-label={title}
-      onClose={() => closeRef.current()}
+      onClose={() => {
+        if (byProp.current) {
+          byProp.current = false;
+          return;
+        }
+        if (ref.current?.open) return; // já foi reaberto
+        closeRef.current();
+      }}
       onMouseDown={(e) => {
         if (e.target === ref.current) ref.current?.close();
       }}
