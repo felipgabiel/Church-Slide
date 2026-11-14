@@ -12,6 +12,16 @@ import { uploadFiles } from '../MediaGrid';
 import { bumpMedia } from '../hooks';
 import { tr } from '../../../core/i18n';
 
+const LAYER_WEIGHTS: { v: string; label: string }[] = [
+  { v: '300', label: tr('Fina (300)') },
+  { v: '400', label: tr('Normal (400)') },
+  { v: '500', label: tr('Média (500)') },
+  { v: '600', label: tr('Seminegrito (600)') },
+  { v: '700', label: tr('Negrito (700)') },
+  { v: '800', label: tr('Extranegrito (800)') },
+  { v: '900', label: tr('Preta (900)') },
+];
+
 export function TextPanel() {
   const layer = useActiveLayer();
   const fonts = useCustomFonts();
@@ -51,7 +61,10 @@ export function TextPanel() {
       )}
       <Section title={tr('Fonte')}>
         <div className="font-row">
-          <Select value={s.fontFamily} onChange={(v) => set({ fontFamily: v })} label={tr('Fonte')} optionStyle={(v) => ({ fontFamily: v })}>
+          <Select
+            value={s.fontFamily}
+            onChange={(v) => set(options.find((o) => o.value === v)?.single ? { fontFamily: v, bold: false, weight: 400 } : { fontFamily: v })}
+            label={tr('Fonte')} optionStyle={(v) => ({ fontFamily: v })}>
             {!known && <option value={s.fontFamily}>{tr('Personalizada')}</option>}
             {groups.map((g) => (
               <optgroup key={g} label={tr(g)}>
@@ -74,10 +87,19 @@ export function TextPanel() {
         </Row>
         <Row label={tr('Estilo')}>
           <div className="tgl">
-            <IconButton label={tr('Negrito')} icon={<LuBold />} size="sm" active={s.bold} onClick={() => set({ bold: !s.bold })} />
+            <IconButton label={tr('Negrito')} icon={<LuBold />} size="sm" active={s.bold} onClick={() => set({ bold: !s.bold, weight: s.bold ? 400 : 800 })} />
             <IconButton label={tr('Itálico')} icon={<LuItalic />} size="sm" active={s.italic} onClick={() => set({ italic: !s.italic })} />
             <IconButton label={tr('Tudo em maiúsculas')} icon={<LuCaseUpper />} size="sm" active={s.uppercase} onClick={() => set({ uppercase: !s.uppercase })} />
           </div>
+        </Row>
+        <Row label={tr('Peso')}>
+          <Select value={String(s.weight ?? (s.bold ? 800 : 400))} onChange={(v) => set({ weight: Number(v), bold: Number(v) >= 600 })} label={tr('Peso da fonte')}>
+            {LAYER_WEIGHTS.map((w) => (
+              <option key={w.v} value={w.v}>
+                {w.label}
+              </option>
+            ))}
+          </Select>
         </Row>
         <Row label={tr('Alinhamento')}>
           <Segmented<Align>

@@ -8,6 +8,7 @@ import { Button } from '../../../ui/Button';
 import { Row, Section, Segmented, Select, Slider, Switch } from '../../../ui/Controls';
 import { useDebouncedReplay } from '../hooks';
 import { ColorChange } from './ColorChange';
+import { AnimDuration } from './AnimDuration';
 import { applyAnimationPreset } from '../applyPreset';
 import { tr } from '../../../core/i18n';
 
@@ -24,6 +25,9 @@ function PhaseControls({ title, value, onChange }: { title: string; value: AnimP
       </Row>
       <Row label={tr('Desfocar (blur)')}>
         <Switch checked={value.blur} onChange={(v) => onChange({ blur: v })} label={tr('{0}: blur', title)} />
+      </Row>
+      <Row label={tr('Afastar (palavras se separam)')}>
+        <Switch checked={!!value.spread} onChange={(v) => onChange({ spread: v })} label={tr('{0}: afastar', title)} />
       </Row>
       <Row label={tr('Zoom')}>
         <Segmented<AnimPhase['zoom']>
@@ -93,6 +97,7 @@ export function AnimationPanel() {
             ))}
           </Select>
         </Row>
+        <AnimDuration />
         <Button size="sm" icon={<LuRotateCcw />} className="props-upload" onClick={() => editor.replay()}>
           {tr('Ver animação')}
         </Button>

@@ -184,7 +184,8 @@ test('pruneWords descarta ajustes de palavras que não existem mais', () => {
 test('"Palavra por palavra": TODO efeito altera cada palavra e as palavras entram em sequência', () => {
   // regressão do relato "a maioria das animações não funciona com Palavra por Palavra"
   const base = { ...baseAnimation(), unit: 'word' as const, stagger: 90 };
-  const EFFECT_PRESETS = ANIMATION_PRESETS.filter((p) => !['none', 'by-line', 'by-phrase'].includes(p.id));
+  // os estilos "Por texto" escolhem a granularidade de propósito (o "Afastar" move todas as palavras juntas)
+  const EFFECT_PRESETS = ANIMATION_PRESETS.filter((p) => !['none', 'by-line', 'by-phrase', 'spread', 'spread-lines'].includes(p.id));
   assert.ok(EFFECT_PRESETS.length >= 12);
   for (const p of EFFECT_PRESETS) {
     const cfg = applyPreset(p.id, base);
@@ -206,4 +207,49 @@ test('"Palavra por palavra": TODO efeito altera cada palavra e as palavras entra
       assert.equal(Math.abs(end.tx) + Math.abs(end.ty), 0);
     });
   }
+});
+
+test('Afastar: palavras medidas por linha (centro da linha) e linhas pelo centro do bloco', async () => {
+  const { spreadOffsets } = await import('../src/core/anim/engine');
+  // duas linhas: "grande é o" e "SENHOR"
+  const rects = [
+    { x: 0, y: 0, w: 100, h: 40, group: 0 },
+    { x: 110, y: 2, w: 20, h: 40, group: 0 },
+    { x: 140, y: 0, w: 20, h: 40, group: 0 },
+    { x: 20, y: 50, w: 120, h: 60, group: 0 },
+  ];
+  const w = spreadOffsets(rects, 'word');
+  assert.equal(w[0].ux, 50 - 80); // centro da linha 1 = 80
+  assert.equal(w[2].ux, 150 - 80);
+  assert.equal(w[3].ux, 0, 'palavra sozinha na linha não anda');
+  assert.ok(w.every((o) => o.uy === 0));
+  const l = spreadOffsets([rects[0], rects[3]], 'line');
+  assert.equal(l[0].uy, 20 - 55);
+  assert.equal(l[1].uy, 80 - 55);
+  assert.ok(spreadOffsets(rects, 'block').every((o) => o.ux === 0 && o.uy === 0));
+  // camadas diferentes não se misturam
+  const g = spreadOffsets([{ x: 0, y: 0, w: 10, h: 10, group: 0 }, { x: 100, y: 0, w: 10, h: 10, group: 1 }], 'word');
+  assert.deepEqual(g.map((o) => o.ux), [0, 0]);
+});
+
+test('Afastar: entra junto do centro e termina no lugar; a saída volta ao centro', () => {
+  const cfg = applyPreset('spread');
+  const ease = getEase(cfg.easing);
+  const peak = easePeakSpeed(cfg.easing);
+  const off = { ux: 200, uy: 0 };
+  const a = unitState(cfg, 'enter', 0, geo, ease, peak, off);
+  assert.ok(a.tx < -150, `começa puxada para o centro (${a.tx})`);
+  assert.equal(a.opacity, 0);
+  const mid = unitState(cfg, 'enter', 0.3, geo, ease, peak, off);
+  assert.ok(mid.tx > a.tx && mid.tx < 0, 'vai se afastando');
+  const z = unitState(cfg, 'enter', 1, geo, ease, peak, off);
+  assert.equal(z.tx, 0);
+  assert.equal(z.opacity, 1);
+  const out = unitState(cfg, 'exit', 1, geo, ease, peak, { ux: -100, uy: 0 });
+  assert.ok(out.tx > 50, 'na saída a palavra da esquerda volta para o centro');
+  // palavra do lado esquerdo vai para o outro sentido
+  assert.ok(unitState(cfg, 'enter', 0, geo, ease, peak, { ux: -100, uy: 0 }).tx > 0);
+  // estilo "Afastar" anima por palavra, todas juntas
+  assert.equal(cfg.unit, 'word');
+  assert.equal(cfg.stagger, 0);
 });

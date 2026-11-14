@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { TextLayerView } from '../../render/TextLayerView';
 import { layerColorPlan, layerNeedsLetters } from '../../render/colorRun';
 import { partOf, type ColorWordPlan } from '../anim/colorfx';
-import { collectOverrides, type UnitOverride } from '../anim/engine';
+import { collectOverrides, measureUnitRects, spreadOffsets, type UnitOverride } from '../anim/engine';
 import { resolveAnimation } from '../defaults';
 import type { AnimationConfig, ColorFx, Project, Slide, TextStyle } from '../types';
 import { hasWordAnim } from '../words';
@@ -44,6 +44,9 @@ export interface UnitBox {
   /** centro da unidade (origem das transformações de escala) */
   cx: number;
   cy: number;
+  /** distância ao centro da linha/bloco (efeito "Afastar") */
+  ux: number;
+  uy: number;
 }
 
 export interface Scene {
@@ -109,9 +112,10 @@ export async function measureScene(project: Project, slide: Slide, width: number
     const stage = m.host.querySelector('.stage') as HTMLElement;
     const origin = stage.getBoundingClientRect();
     const unitEls = Array.from(m.host.querySelectorAll<HTMLElement>('[data-unit]'));
-    const units: UnitBox[] = unitEls.map((u) => {
+    const offs = spreadOffsets(measureUnitRects(unitEls), unit);
+    const units: UnitBox[] = unitEls.map((u, i) => {
       const r = u.getBoundingClientRect();
-      return { cx: r.left - origin.left + r.width / 2, cy: r.top - origin.top + r.height / 2 };
+      return { cx: r.left - origin.left + r.width / 2, cy: r.top - origin.top + r.height / 2, ...offs[i] };
     });
     const layerEls = Array.from(m.host.querySelectorAll<HTMLElement>('[data-layer]'));
     const visible = slide.layers.filter((l) => l.visible);

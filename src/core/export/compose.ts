@@ -119,7 +119,7 @@ export function createCompositor(scene: Scene): Compositor {
     if (instant) return FINAL;
     const p = plans[unit];
     if (!p) return FINAL;
-    return unitState(p.cfg, 'enter', (t - p.start) / p.duration, geo, ease, peak);
+    return unitState(p.cfg, 'enter', (t - p.start) / p.duration, geo, ease, peak, units[unit]);
   };
 
   function drawGrouped(ctx: CanvasRenderingContext2D, wd: WordBox, style: TextStyle, s: UnitState, pieces: Piece[]) {

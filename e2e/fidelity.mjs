@@ -81,6 +81,14 @@ cases.push({ name: 'texto: sombra + brilho + contorno', min: 22, shot: true, run
 cases.push({ name: 'texto: caixa girada (-12°) fora do centro', min: 24, shot: true, run: () => page.evaluate(() => window.H.text({ text: 'Vem sobre mim Senhor', impact: true, patch: (p) => { const s = p.slides[0].layers[0].style; s.rotation = -12; s.x = 42; s.y = 46; } })) });
 cases.push({ name: 'texto: inverter cores (diferença) sobre degradê', min: 24, shot: true, run: () => page.evaluate(() => window.H.text({ text: 'Vem sobre mim Senhor', impact: true, patch: (p) => { p.theme.background = { ...p.theme.background, kind: 'gradient', gradient: { angle: 90, stops: [{ color: '#ffffff', at: 0 }, { color: '#e11d48', at: 50 }, { color: '#0b0b12', at: 100 }] } }; const s = p.slides[0].layers[0].style; s.blend = 'difference'; s.color = '#ffffff'; } })) });
 cases.push({ name: 'texto: inverter cores com sombra e cor amarela', min: 22, shot: true, run: () => page.evaluate(() => window.H.text({ text: 'Santo\nSanto', patch: (p) => { p.theme.background = { ...p.theme.background, kind: 'gradient', gradient: { angle: 0, stops: [{ color: '#1d4ed8', at: 0 }, { color: '#fde68a', at: 100 }] } }; const s = p.slides[0].layers[0].style; s.blend = 'difference'; s.color = '#facc15'; s.shadow = { enabled: true, color: '#000000', x: 0, y: 4, blur: 12 }; } })) });
+for (const [fam, weight] of [['Bebas Neue', 400], ['Montserrat', 800], ['Playfair Display', 700], ['Great Vibes', 400], ['Barlow Condensed', 900]]) {
+  cases.push({
+    name: `fonte embutida: ${fam} ${weight}`,
+    min: 24,
+    shot: true,
+    run: () => page.evaluate(([f, w]) => window.H.text({ text: 'Grande é o Senhor\nAleluia, Ação de Graças', patch: (p) => { const s = p.slides[0].layers[0].style; s.fontFamily = `"${f}", sans-serif`; s.weight = w; s.bold = w >= 600; } }), [fam, weight]),
+  });
+}
 cases.push({ name: 'texto: itálico, espaçamento e alinhamento à esquerda', min: 24, shot: true, run: () => page.evaluate(() => window.H.text({ text: 'Tu és fiel\nSenhor meu Deus', patch: (p) => { const s = p.slides[0].layers[0].style; s.italic = true; s.letterSpacing = 8; s.align = 'left'; s.x = 40; s.fontSize = 10; } })) });
 
 let failed = 0;

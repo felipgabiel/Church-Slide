@@ -231,6 +231,18 @@ desenho em torno do mesmo centro (caso "caixa girada" no teste de fidelidade).
   número. Renomear depois para um nome existente é permitido.
 - **Lixeira com miniaturas:** cada item mostra o primeiro trecho com texto (`SlideThumb` em `LazyMount`).
 
+### "Afastar" e duração do estilo (`core/anim/engine.ts`, `features/editor/panels/AnimDuration.tsx`)
+
+- **Afastar** (`AnimPhase.spread`): as palavras saem juntinhas do centro da própria linha e se separam até o lugar (na
+  saída, se juntam e somem), como o efeito do Canva. `spreadOffsets` calcula, para cada unidade, a distância ao centro da
+  linha (palavras) ou do bloco (linhas, no estilo "Afastar linhas"); `measureUnitRects` mede as caixas no referencial da
+  camada (sem giro nem transformações), igual no palco e na cena do vídeo, e `unitState` puxa cada unidade para o centro
+  por `0,55 + 0,4 × intensidade`. O Motion Blur segue o sentido do afastamento. Também é um interruptor nas fases
+  Entrada/Saída do painel.
+- **Duração do estilo:** logo abaixo da predefinição (painel *Animação*) e no topo da biblioteca *Animações* há o controle
+  "Duração da animação" (0,1–6 s); duplo clique volta à duração original do estilo. Com várias partes entrando em
+  sequência, o painel mostra quanto o trecho leva para aparecer inteiro.
+
 ### Troca de cor (`core/anim/colorfx.ts`, `render/colorRun.ts`, `features/editor/panels/ColorChange.tsx`)
 
 A troca de cor é **sempre por palavra** (`WordOverride.colorFx`): só as palavras marcadas mudam de cor, as outras
@@ -364,11 +376,21 @@ grava nas mesmas preferências `cs:*` que as telas já usam, então muda na hora
 
 ## 9. Fontes embutidas
 
-Poppins 400/500/700 (SIL OFL 1.1, recortada para caracteres latinos, ~11 KB cada) está em `src/assets/fonts/`
-e é declarada em `src/styles/fonts.css`. Entra no pré-cache do modo offline. Motivo: o vídeo grava a fonte que o
-navegador usou, então depender de fonte instalada faria o resultado variar de computador para computador.
-**Limite conhecido:** só há os pesos 400/500/700. O peso 900 do estilo Impacto cai no 700; para um visual mais
-pesado (ex.: Montserrat ExtraBold/Black) envie o `.ttf` em *Texto → Família → Enviar fonte*.
+Todas em `src/assets/fonts/`, declaradas em `src/styles/fonts.css`, SIL Open Font License 1.1 (textos das licenças em
+`licenses/fonts/`). O vídeo grava a fonte que o navegador usou, então depender de fonte instalada faria o resultado variar
+de computador para computador; as embutidas saem iguais em qualquer lugar e funcionam offline (entram no pré-cache).
+
+- **Poppins** 400/500/700 (a fonte da interface e do estilo Impacto).
+- **As mais usadas em telões de igreja** (pesquisa em Church Motion Graphics, Renewed Vision/ProPresenter e MediaShout):
+  Montserrat (base da "CMG Sans"), Bebas Neue, Anton, Oswald, League Gothic, Barlow Condensed, Archivo Black, Open Sans,
+  Lato, Raleway, Nunito, Rubik, e equivalentes livres de fontes pagas famosas — Jost e League Spartan (≈ Futura, usada
+  pela Bethel), Cormorant Garamond (≈ Garamond), Libre Baskerville (≈ Baskerville) —, Playfair Display e Lora (serifas),
+  Great Vibes e Dancing Script (manuscritas, para títulos).
+- Recortadas para o alfabeto latino (português, espanhol, inglês) com `pyftsubset`; sempre que a família tem versão
+  variável, um arquivo cobre todos os pesos (`font-weight: 100 900`). ~720 KB no total; o navegador só baixa a que um
+  slide usa.
+- O painel *Texto* ganhou **Peso** (300–900). Fontes de um peso só (Bebas Neue, Anton, League Gothic, Archivo Black, Great
+  Vibes) tiram o negrito ao serem escolhidas, para não aparecer um negrito "falso".
 
 ## 10. Publicação (GitHub Pages, sem instalar nada)
 
@@ -408,8 +430,8 @@ Painéis laterais acompanham a largura do monitor (`clamp`), testados de 1280×7
 | Comando | O que faz |
 |---|---|
 | `npm run typecheck` | `tsc --noEmit` (ver limitação na seção 1) |
-| `npm test` | 123 testes unitários: backup (ZIP de ida e volta, deflate), camada de mídia, idiomas (marcadores e cobertura do dicionário), easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
-| `npm run build && npm run e2e` | 47 etapas no navegador contra o build de produção (ver abaixo) |
+| `npm test` | 125 testes unitários: "Afastar" (centros por linha e bloco, entrada e saída), backup (ZIP de ida e volta, deflate), camada de mídia, idiomas (marcadores e cobertura do dicionário), easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
+| `npm run build && npm run e2e` | 48 etapas no navegador contra o build de produção (ver abaixo) |
 | `npm run e2e:fidelity` | compara o desenho em canvas (vídeo) com o DOM do editor (PSNR; exige ffmpeg) |
 
 O e2e (`e2e/run.mjs`) cria um louvor pela interface, edita e confere a persistência após recarregar,
@@ -430,7 +452,8 @@ de louvor repetido, as miniaturas da lixeira e o primeiro acesso (boas-vindas, p
 e a volta ao português) a engrenagem (cada seção das configurações valendo no editor e na exportação), a camada "Imagem ou vídeo" (foto cobrindo o
 palco, caixa livre, vídeo com loop igualado e exportado em 75 quadros, fundo salvo e importado em arquivo) e o backup (baixar,
 restaurar num navegador vazio com tudo igual, restaurar de novo sem duplicar) e o celular (390×844 com toque: abas da biblioteca, do editor e do estúdio, sem rolagem
-lateral, deslizar e tela cheia na apresentação, troca para "Computador" e de volta; e o computador sem nada de celular). Termina conferindo que não houve erros de console.
+lateral, deslizar e tela cheia na apresentação, troca para "Computador" e de volta; e o computador sem nada de celular), o "Afastar" (palavras das pontas puxadas para o centro no meio da entrada, no lugar
+no fim), a duração escolhida e as fontes de igreja (catálogo, Bebas Neue carregada de verdade, peso salvo). Termina conferindo que não houve erros de console.
 
 O build **falha** se `sw.js` sair com marcadores sem substituir — um bug anterior fazia o service
 worker não registrar e o modo offline nunca funcionava, sem nenhum aviso.

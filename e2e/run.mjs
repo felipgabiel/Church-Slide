@@ -2037,6 +2037,66 @@ await step('computador continua igual: sem abas de celular', async () => {
   await pg.close();
 });
 
+await step('animação "Afastar" (palavras saem do centro e se separam), duração do estilo escolhida pela pessoa e fontes de igreja embutidas', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'afastar e fontes');
+  await pg.goto(BASE);
+  await pg.getByRole('button', { name: /Novo louvor/i }).first().click();
+  await pg.locator('dialog input').first().fill('Afastar');
+  await pg.locator('dialog textarea').first().fill('Grande é o Senhor');
+  await pg.getByRole('button', { name: /Criar e abrir/i }).click();
+  await pg.waitForURL(/#\/edit\//);
+  const pid = pg.url().split('/edit/')[1];
+  await pg.locator('.surface [data-w]').first().waitFor();
+  // escolhe "Afastar" na predefinição (neste trecho)
+  await pg.getByRole('tab', { name: 'Animação', exact: true }).click();
+  await pg.getByRole('combobox', { name: 'Predefinição de animação' }).click();
+  await pg.getByRole('option', { name: 'Afastar', exact: true }).click();
+  // duração escolhida: 2,5 s
+  const dur = pg.locator('.props').getByRole('textbox', { name: 'Duração da animação' });
+  await dur.fill('2.5');
+  await dur.press('Enter');
+  await pg.waitForTimeout(1200);
+  const anim = (await idbGet(pg, 'projects', pid));
+  const cfg = anim.slides[0].animation ?? anim.theme.animation;
+  assert(cfg.preset === 'spread' && cfg.enter.spread === true && cfg.unit === 'word', `estilo salvo: ${JSON.stringify(cfg).slice(0, 160)}`);
+  assert(cfg.duration === 2500, `duração salva (${cfg.duration})`);
+  // no meio da entrada as palavras das pontas estão puxadas para o centro; no fim, no lugar
+  await pg.locator('.props').getByRole('button', { name: 'Ver animação' }).click();
+  await pg.waitForTimeout(150);
+  const mid = await pg.locator('.surface .text-frame').last().locator('[data-unit]').evaluateAll((els) => els.map((e) => new DOMMatrix(getComputedStyle(e).transform === 'none' ? undefined : getComputedStyle(e).transform).m41));
+  assert(mid.length === 4, `uma unidade por palavra (${mid.length})`);
+  assert(mid[0] > 10 && Math.min(...mid) < -10, `as pontas começam perto do centro (${mid.map((v) => v.toFixed(0))})`);
+  await pg.waitForTimeout(3300);
+  const end = await pg.locator('.surface .text-frame').last().locator('[data-unit]').evaluateAll((els) => els.map((e) => getComputedStyle(e).transform));
+  assert(end.every((t) => t === 'none'), `no fim, cada palavra no lugar (${end})`);
+  // o mesmo controle de duração está na biblioteca de animações
+  await pg.getByRole('tab', { name: 'Animações' }).click();
+  assert((await pg.locator('.lp-dur').getByRole('textbox', { name: 'Duração da animação' }).inputValue()) === '2.5', 'a biblioteca mostra a duração escolhida');
+
+  // fontes: Bebas Neue (embutida) no catálogo, aplicada e carregada de verdade
+  await pg.getByRole('tab', { name: 'Texto', exact: true }).click();
+  await pg.getByRole('combobox', { name: 'Fonte', exact: true }).click();
+  for (const f of ['Montserrat', 'Bebas Neue', 'Anton', 'Oswald', 'Open Sans', 'Lato', 'Raleway', 'Playfair Display', 'Great Vibes']) await pg.getByRole('option', { name: f, exact: true }).waitFor();
+  await pg.getByRole('option', { name: 'Bebas Neue', exact: true }).click();
+  await pg.waitForFunction(() => document.fonts.check('40px "Bebas Neue"'), null, { timeout: 5000 });
+  const fam = await pg.locator('.surface .layer').first().evaluate((e) => getComputedStyle(e.querySelector('[data-w]') ?? e).fontFamily);
+  assert(fam.includes('Bebas Neue'), `fonte no palco: ${fam}`);
+  await pg.waitForTimeout(1200);
+  const st = (await idbGet(pg, 'projects', pid)).slides[0].layers[0].style;
+  assert(st.weight === 400 && st.bold === false, `fonte de um peso só tira o negrito (${st.weight}, ${st.bold})`);
+  // peso: Montserrat 300
+  await pg.getByRole('combobox', { name: 'Fonte', exact: true }).click();
+  await pg.getByRole('option', { name: 'Montserrat', exact: true }).click();
+  await pg.getByRole('combobox', { name: 'Peso da fonte' }).click();
+  await pg.getByRole('option', { name: /300/ }).click();
+  await pg.waitForTimeout(1200);
+  // (palavras com peso próprio, como no estilo Impacto, mantêm o delas; a camada guarda o peso escolhido)
+  const st2 = (await idbGet(pg, 'projects', pid)).slides[0].layers[0].style;
+  assert(st2.weight === 300 && st2.bold === false && st2.fontFamily.startsWith('"Montserrat"'), `peso 300 salvo (${st2.weight}, ${st2.fontFamily})`);
+  await pg.close();
+});
+
 await step('nenhum erro de console durante todo o fluxo', async () => {
   assert(consoleErrors.length === 0, `${consoleErrors.length} erro(s):\n      ${consoleErrors.slice(0, 5).join('\n      ')}`);
 });

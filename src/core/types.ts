@@ -297,6 +297,8 @@ export interface AnimPhase {
   slide: boolean;
   zoom: 'none' | 'in' | 'out';
   blur: boolean;
+  /** "Afastar": as palavras saem juntinhas do centro da linha e se separam até o lugar (na saída, se juntam) */
+  spread?: boolean;
 }
 
 export interface AnimationConfig {

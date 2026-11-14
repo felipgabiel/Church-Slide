@@ -1,4 +1,4 @@
-import type { AnimationConfig, AnimPhase, Direction, WordAnim } from '../types';
+import type { AnimationConfig, AnimPhase, AnimUnit, Direction, WordAnim } from '../types';
 import { easePeakSpeed, easeSpeed, getEase, type EaseFn } from './easing';
 
 /**
@@ -36,7 +36,79 @@ const MOVE: Record<Direction, { x: number; y: number }> = {
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 export function hasEffect(p: AnimPhase): boolean {
-  return p.fade || p.slide || p.blur || p.zoom !== 'none';
+  return p.fade || p.slide || p.blur || p.zoom !== 'none' || !!p.spread;
+}
+
+/** Distância (px) do centro da unidade ao centro da sua linha (palavras) ou do bloco (linhas). Usado pelo "Afastar". */
+export interface UnitOffset {
+  ux: number;
+  uy: number;
+}
+
+export interface UnitRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** camada a que a unidade pertence (palavras de camadas diferentes não se misturam) */
+  group: number;
+}
+
+/**
+ * Para o "Afastar": quanto cada unidade está afastada do centro.
+ * Palavras: em X, a partir do centro da própria linha. Linhas: em Y, a partir do centro do bloco. Bloco: nada.
+ * Função pura (coberta por testes); o palco e o vídeo passam as mesmas caixas.
+ */
+export function spreadOffsets(rects: UnitRect[], unit: AnimUnit): UnitOffset[] {
+  const out: UnitOffset[] = rects.map(() => ({ ux: 0, uy: 0 }));
+  if (unit === 'block') return out;
+  const groups = new Map<number, number[]>();
+  rects.forEach((r, i) => groups.set(r.group, [...(groups.get(r.group) ?? []), i]));
+  for (const idx of groups.values()) {
+    if (unit === 'line') {
+      const top = Math.min(...idx.map((i) => rects[i].y));
+      const bottom = Math.max(...idx.map((i) => rects[i].y + rects[i].h));
+      const c = (top + bottom) / 2;
+      for (const i of idx) out[i].uy = rects[i].y + rects[i].h / 2 - c;
+      continue;
+    }
+    // palavras: agrupa por linha (mesma altura, com folga de meia linha)
+    const lines: number[][] = [];
+    for (const i of [...idx].sort((a, b) => rects[a].y - rects[b].y || rects[a].x - rects[b].x)) {
+      const cy = rects[i].y + rects[i].h / 2;
+      const line = lines.find((l) => Math.abs(rects[l[0]].y + rects[l[0]].h / 2 - cy) < Math.max(rects[i].h, rects[l[0]].h) * 0.5);
+      if (line) line.push(i);
+      else lines.push([i]);
+    }
+    for (const line of lines) {
+      const left = Math.min(...line.map((i) => rects[i].x));
+      const right = Math.max(...line.map((i) => rects[i].x + rects[i].w));
+      const c = (left + right) / 2;
+      for (const i of line) out[i].ux = rects[i].x + rects[i].w / 2 - c;
+    }
+  }
+  return out;
+}
+
+/** Caixas das unidades no referencial da própria camada (sem giro nem transformações de animação). */
+export function measureUnitRects(units: HTMLElement[]): UnitRect[] {
+  const layers: Element[] = [];
+  return units.map((el) => {
+    const layer = el.closest('.layer') ?? el.parentElement ?? el;
+    let g = layers.indexOf(layer);
+    if (g < 0) g = layers.push(layer) - 1;
+    let x = 0;
+    let y = 0;
+    let n: HTMLElement | null = el;
+    while (n && n !== layer) {
+      x += n.offsetLeft;
+      y += n.offsetTop;
+      const p = n.offsetParent as HTMLElement | null;
+      if (!p || !(layer === p || layer.contains(p))) break;
+      n = p;
+    }
+    return { x, y, w: el.offsetWidth, h: el.offsetHeight, group: g };
+  });
 }
 
 /**
@@ -50,6 +122,7 @@ export function unitState(
   geo: Geometry,
   ease: EaseFn,
   peakSpeed: number,
+  off?: UnitOffset,
 ): UnitState {
   const fx = phase === 'enter' ? cfg.enter : cfg.exit;
   const pp = clamp01(p);
@@ -73,6 +146,13 @@ export function unitState(
     ty = sign * move.y * dist * k;
   }
 
+  // Afastar: começa puxada para o centro (da linha ou do bloco) e se separa até o lugar
+  if (fx.spread && off) {
+    const pull = 0.55 + 0.4 * i;
+    tx -= off.ux * pull * k;
+    ty -= off.uy * pull * k;
+  }
+
   let scale = 1;
   if (fx.zoom !== 'none') {
     const amt = 0.04 + 0.3 * i;
@@ -93,6 +173,11 @@ export function unitState(
     if (fx.slide) {
       mbx = px * Math.abs(move.x);
       mby = px * Math.abs(move.y);
+    } else if (fx.spread && off) {
+      // o borrão segue o sentido do afastamento e é maior nas palavras que andam mais
+      const far = clamp01(Math.hypot(off.ux, off.uy) / (geo.w * 0.25));
+      mbx = px * far * (Math.abs(off.ux) >= Math.abs(off.uy) ? 1 : 0);
+      mby = px * far * (Math.abs(off.uy) > Math.abs(off.ux) ? 1 : 0);
     } else if (fx.zoom !== 'none') {
       iso += px * 0.35;
     }
@@ -270,9 +355,12 @@ export function play(
     pool !== null &&
     plans.some((pl) => {
       const fx = fxOf(pl.cfg);
-      return fx.blur || (pl.cfg.motionBlur > 0 && (fx.slide || fx.zoom !== 'none'));
+      return fx.blur || (pl.cfg.motionBlur > 0 && (fx.slide || fx.zoom !== 'none' || !!fx.spread));
     });
   const filters: (PooledFilter | null)[] = units.map(() => null);
+  // a unidade que está de fato no palco (palavra com animação própria força "palavra")
+  const shown: AnimUnit = units[0]?.classList.contains('w') ? 'word' : units[0]?.classList.contains('ln') ? 'line' : cfg.unit;
+  const offsets = plans.some((pl) => fxOf(pl.cfg).spread) ? spreadOffsets(measureUnitRects(units), shown) : null;
 
   let raf = 0;
   let done = false;
@@ -311,7 +399,7 @@ export function play(
       const el = units[i];
       const plan = plans[i];
       const local = (t - plan.start) / plan.duration;
-      const s = unitState(plan.cfg, phase, local, geo, ease, peak);
+      const s = unitState(plan.cfg, phase, local, geo, ease, peak, offsets?.[i]);
       const startOp = opts.startOpacity?.[i] ?? 1;
       el.style.opacity = String(s.opacity * (phase === 'exit' ? startOp : 1));
       el.style.transform =

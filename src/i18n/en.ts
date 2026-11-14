@@ -1121,5 +1121,14 @@ export const en: Record<string, string> = {
   "Computador": "Computer",
   "Celular": "Phone",
   "Mostrar os controles": "Show controls",
-  "Adicionar texto livre": "Add free text"
+  "Adicionar texto livre": "Add free text",
+  "As palavras saem juntinhas do centro e se afastam até o lugar": "Words start close together at the center and spread out into place",
+  "As linhas saem do meio e se abrem para cima e para baixo": "Lines start in the middle and open up and down",
+  "Duração da animação": "Animation duration",
+  "Com {0} partes entrando uma depois da outra, o trecho leva {1} s para aparecer inteiro.": "With {0} parts coming in one after another, the section takes {1} s to fully appear.",
+  "Afastar": "Spread",
+  "Afastar linhas": "Spread lines",
+  "Afastar (palavras se separam)": "Spread (words move apart)",
+  "{0}: afastar": "{0}: spread",
+  "Manuscrita": "Script"
 };

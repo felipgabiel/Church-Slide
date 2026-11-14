@@ -5,16 +5,62 @@ export interface FontOption {
   label: string;
   /** Valor de `font-family` (com fallbacks). */
   value: string;
-  group: 'Sans-serif' | 'Serifa' | 'Destaque' | 'Mono' | 'Minhas fontes';
+  group: 'Sans-serif' | 'Serifa' | 'Destaque' | 'Manuscrita' | 'Mono' | 'Minhas fontes';
+  /** vem embutida no app (funciona offline e sai igual no vídeo em qualquer computador) */
+  builtIn?: boolean;
   /** Nome usado para detectar se a fonte está instalada. */
   probe?: string;
+  /** só tem um peso (ex.: Bebas Neue): ao escolher, o negrito sai para não ficar um negrito "falso" */
+  single?: boolean;
 }
 
 /** Poppins vem embutida no app (src/assets/fonts); as demais da lista são só fallback. */
 export const POPPINS_STACK = '"Poppins", "Montserrat", "Segoe UI Black", "Segoe UI", "Helvetica Neue", Arial, sans-serif';
 
+const SANS = '"Helvetica Neue", Arial, sans-serif';
+const SERIF = 'Georgia, "Times New Roman", serif';
+const emb = (family: string, group: FontOption['group'], single = false): FontOption => ({
+  label: family,
+  value: `"${family}", ${group === 'Serifa' ? SERIF : group === 'Manuscrita' ? 'cursive' : SANS}`,
+  group,
+  builtIn: true,
+  single,
+});
+
+/**
+ * Embutidas (src/assets/fonts, SIL OFL): as mais usadas em letras de louvor no telão, segundo Church Motion Graphics,
+ * Renewed Vision (ProPresenter) e MediaShout — Montserrat (base da "CMG Sans"), Bebas Neue, Raleway, Open Sans, Lato,
+ * Oswald… — e equivalentes livres das pagas famosas (Jost/League Spartan ≈ Futura, Cormorant ≈ Garamond,
+ * Libre Baskerville ≈ Baskerville).
+ */
+const BUILT_IN: FontOption[] = [
+  emb('Bebas Neue', 'Destaque', true),
+  emb('Anton', 'Destaque', true),
+  emb('Oswald', 'Destaque'),
+  emb('League Gothic', 'Destaque', true),
+  emb('Barlow Condensed', 'Destaque'),
+  emb('Archivo Black', 'Destaque', true),
+  emb('Montserrat', 'Sans-serif'),
+  emb('Open Sans', 'Sans-serif'),
+  emb('Lato', 'Sans-serif'),
+  emb('Raleway', 'Sans-serif'),
+  emb('Nunito', 'Sans-serif'),
+  emb('Rubik', 'Sans-serif'),
+  emb('Jost', 'Sans-serif'),
+  emb('League Spartan', 'Sans-serif'),
+  emb('Playfair Display', 'Serifa'),
+  emb('Lora', 'Serifa'),
+  emb('Cormorant Garamond', 'Serifa'),
+  emb('Libre Baskerville', 'Serifa'),
+  emb('Great Vibes', 'Manuscrita', true),
+  emb('Dancing Script', 'Manuscrita'),
+];
+
+export const BUILT_IN_FAMILIES = ['Poppins', ...BUILT_IN.map((f) => f.label)];
+
 const CANDIDATES: FontOption[] = [
-  { label: tr('Poppins (embutida)'), value: POPPINS_STACK, group: 'Destaque' },
+  { label: tr('Poppins (embutida)'), value: POPPINS_STACK, group: 'Destaque', builtIn: true },
+  ...BUILT_IN,
   { label: tr('Padrão do sistema'), value: SYSTEM_SANS, group: 'Sans-serif' },
   { label: tr('Arial'), value: 'Arial, Helvetica, sans-serif', group: 'Sans-serif', probe: 'Arial' },
   { label: tr('Helvetica Neue'), value: '"Helvetica Neue", Helvetica, Arial, sans-serif', group: 'Sans-serif', probe: 'Helvetica Neue' },
@@ -33,7 +79,7 @@ const CANDIDATES: FontOption[] = [
   { label: tr('Impact'), value: 'Impact, "Arial Narrow Bold", sans-serif', group: 'Destaque', probe: 'Impact' },
   { label: tr('Arial Black'), value: '"Arial Black", Gadget, sans-serif', group: 'Destaque', probe: 'Arial Black' },
   { label: tr('Copperplate'), value: 'Copperplate, "Copperplate Gothic Light", fantasy', group: 'Destaque', probe: 'Copperplate' },
-  { label: tr('Brush Script'), value: '"Brush Script MT", "Segoe Script", cursive', group: 'Destaque', probe: 'Brush Script MT' },
+  { label: tr('Brush Script'), value: '"Brush Script MT", "Segoe Script", cursive', group: 'Manuscrita', probe: 'Brush Script MT' },
   { label: tr('Courier New'), value: '"Courier New", Courier, monospace', group: 'Mono', probe: 'Courier New' },
 ];
 

@@ -1026,5 +1026,15 @@ export const es: Record<string, string> = {
   "Computador": "Computadora",
   "Celular": "Celular",
   "Mostrar os controles": "Mostrar los controles",
-  "Adicionar texto livre": "Agregar texto libre"
+  "Adicionar texto livre": "Agregar texto libre",
+  "As palavras saem juntinhas do centro e se afastam até o lugar": "Las palabras salen juntas del centro y se separan hasta su lugar",
+  "As linhas saem do meio e se abrem para cima e para baixo": "Las líneas salen del medio y se abren hacia arriba y hacia abajo",
+  "Duração da animação": "Duración de la animación",
+  "Com {0} partes entrando uma depois da outra, o trecho leva {1} s para aparecer inteiro.": "Con {0} partes entrando una tras otra, la sección tarda {1} s en aparecer completa.",
+  "Afastar": "Separar",
+  "Afastar linhas": "Separar líneas",
+  "Afastar (palavras se separam)": "Separar (las palabras se apartan)",
+  "{0}: afastar": "{0}: separar",
+  "Manuscrita": "Manuscrita",
+  "Peso": "Peso"
 };

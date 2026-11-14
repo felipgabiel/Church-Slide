@@ -39,6 +39,11 @@ Use **Chrome ou Edge** atualizados: foi neles que tudo foi testado. A geração 
   louvor guarda a própria cópia) ou *Exportar vídeo* para levar só o fundo, em MP4 que repete sem emenda, para o Holyrics.
 - **Alinhar e mover vários:** arrastando, o texto gruda nas bordas, na margem segura e no centro (botão *Ímã* liga e
   desliga; Alt solta na hora). Ctrl + clique seleciona vários textos (ou camadas no Estúdio) para mover e ajustar juntos.
+- **Fontes:** além das do computador, o site traz embutidas as mais usadas em telões de igreja (Montserrat, Bebas Neue,
+  Anton, Oswald, Open Sans, Lato, Raleway, Playfair Display, Great Vibes e outras). Funcionam sem internet e saem iguais
+  no vídeo exportado.
+- **Animações:** escolha um estilo e ajuste a *Duração da animação* logo abaixo. O estilo **Afastar** faz as palavras
+  saírem do centro e se separarem até o lugar.
 - **No celular:** abra o mesmo endereço no navegador do celular (dá para "Adicionar à tela inicial"). O site percebe sozinho
   e mostra a versão de celular, com abas embaixo. Na apresentação, *Tela cheia* usa o próprio celular como telão (ligado à
   TV por cabo ou espelhamento): toque à direita avança, à esquerda volta. Para forçar uma versão: *Configurações → Layout*.

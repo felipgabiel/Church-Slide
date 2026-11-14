@@ -16,6 +16,7 @@ import { Stage } from '../../render/Stage';
 import { editor, useActiveSlide, useEditor } from '../../store/editor';
 import { toast } from '../../ui/toast';
 import { applyAnimationPreset } from './applyPreset';
+import { AnimDuration } from './panels/AnimDuration';
 import { MediaGrid } from './MediaGrid';
 import { navigate, paths } from '../../app/router';
 import { designBackground } from '../../core/design/apply';
@@ -150,6 +151,9 @@ function AnimationLibrary() {
   return (
     <div className="lp-scroll">
       <p className="lp-hint">{tr('Passe o mouse sobre um estilo para ver a animação. Clique para aplicar.')}</p>
+      <div className="lp-dur">
+        <AnimDuration />
+      </div>
       {ANIM_GROUPS.map((g) => (
         <div key={g}>
           <h3 className="lp-title">{tr(g)}</h3>
