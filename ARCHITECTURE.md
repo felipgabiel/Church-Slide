@@ -301,6 +301,12 @@ O tamanho que a pessoa escolhe à mão não é limitado. O vídeo mede o mesmo D
 - **Cópia, não vínculo (decisão do produto):** aplicar um fundo grava uma cópia dentro do louvor (`Background.kind = 'design'`
   + `design`). Mudar "Meus fundos" não altera louvores prontos; o painel Fundo avisa que há versão mais nova e oferece
   "Atualizar". "Aplicar neste louvor" (vindo do editor) troca só as cópias daquele fundo, mantendo os ajustes do louvor.
+- **Proporção (`BackgroundDesign.aspect`):** 16:9 (padrão, não é gravado), 16:10, 4:3, 21:9, 1:1, 4:5 e 9:16, escolhida em
+  *Fundo inteiro → Proporção*. Muda o palco do Estúdio (`designRatio`), a medição de contraste, a miniatura (desenhada
+  inteira, no formato dela, dentro da moldura 16:9 da grade, com etiqueta) e o vídeo exportado: `core/export/loopSize.ts`
+  usa a resolução como lado MENOR (1080p em 9:16 = 1080 × 1920) e limita formatos mais compridos que 16:9 ao lado maior
+  do 16:9, para não passar do nível H.264. Como tudo no fundo é relativo à tela, usado num louvor ele se ajusta ao
+  formato do louvor (o diálogo "Usar num louvor" avisa).
 - **Modelos de louvor** levam o fundo junto (é só mais um fundo dentro do projeto); "Usar num louvor" lista modelos também.
 
 ### Imagem ou vídeo no Estúdio, fundo em arquivo e backup de tudo
@@ -430,8 +436,8 @@ Painéis laterais acompanham a largura do monitor (`clamp`), testados de 1280×7
 | Comando | O que faz |
 |---|---|
 | `npm run typecheck` | `tsc --noEmit` (ver limitação na seção 1) |
-| `npm test` | 125 testes unitários: "Afastar" (centros por linha e bloco, entrada e saída), backup (ZIP de ida e volta, deflate), camada de mídia, idiomas (marcadores e cobertura do dicionário), easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
-| `npm run build && npm run e2e` | 48 etapas no navegador contra o build de produção (ver abaixo) |
+| `npm test` | 127 testes unitários: proporção do fundo (validação e tamanho do vídeo), "Afastar" (centros por linha e bloco, entrada e saída), backup (ZIP de ida e volta, deflate), camada de mídia, idiomas (marcadores e cobertura do dicionário), easing, motor de animação, divisão de letras, atalhos, estilo Impacto, palavras, camadas, troca de cor (sequência, início, grupos, migração), proporção, fundos do Estúdio (loop sem emenda, validação, modelos, cópia) |
+| `npm run build && npm run e2e` | 49 etapas no navegador contra o build de produção (ver abaixo) |
 | `npm run e2e:fidelity` | compara o desenho em canvas (vídeo) com o DOM do editor (PSNR; exige ffmpeg) |
 
 O e2e (`e2e/run.mjs`) cria um louvor pela interface, edita e confere a persistência após recarregar,
@@ -453,7 +459,8 @@ e a volta ao português) a engrenagem (cada seção das configurações valendo 
 palco, caixa livre, vídeo com loop igualado e exportado em 75 quadros, fundo salvo e importado em arquivo) e o backup (baixar,
 restaurar num navegador vazio com tudo igual, restaurar de novo sem duplicar) e o celular (390×844 com toque: abas da biblioteca, do editor e do estúdio, sem rolagem
 lateral, deslizar e tela cheia na apresentação, troca para "Computador" e de volta; e o computador sem nada de celular), o "Afastar" (palavras das pontas puxadas para o centro no meio da entrada, no lugar
-no fim), a duração escolhida e as fontes de igreja (catálogo, Bebas Neue carregada de verdade, peso salvo). Termina conferindo que não houve erros de console.
+no fim), a duração escolhida e as fontes de igreja (catálogo, Bebas Neue carregada de verdade, peso salvo) e a proporção do fundo (palco e miniatura
+em 9:16, vídeo 720 × 1280). Termina conferindo que não houve erros de console.
 
 O build **falha** se `sw.js` sair com marcadores sem substituir — um bug anterior fazia o service
 worker não registrar e o modo offline nunca funcionava, sem nenhum aviso.

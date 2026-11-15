@@ -37,6 +37,8 @@ Use **Chrome ou Edge** atualizados: foi neles que tudo foi testado. A geração 
 - **Fundos próprios:** na biblioteca, clique em *Fundos*, escolha um modelo (Sol poente, Portais, Neblina…) e ajuste
   formas, luzes, ondas, texturas e o movimento em loop. Tudo salva sozinho em *Meus fundos*. Use *Usar num louvor* (cada
   louvor guarda a própria cópia) ou *Exportar vídeo* para levar só o fundo, em MP4 que repete sem emenda, para o Holyrics.
+  Em *Fundo inteiro → Proporção* dá para fazer o fundo em 16:9, 4:3, 21:9, quadrado, post (4:5) ou vertical (9:16, para
+  stories e status); o vídeo sai nesse formato.
 - **Alinhar e mover vários:** arrastando, o texto gruda nas bordas, na margem segura e no centro (botão *Ímã* liga e
   desliga; Alt solta na hora). Ctrl + clique seleciona vários textos (ou camadas no Estúdio) para mover e ajustar juntos.
 - **Fontes:** além das do computador, o site traz embutidas as mais usadas em telões de igreja (Montserrat, Bebas Neue,

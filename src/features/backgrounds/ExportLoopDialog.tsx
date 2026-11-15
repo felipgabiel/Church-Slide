@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { LuDownload, LuTriangleAlert, LuX } from 'react-icons/lu';
+import { designRatio } from '../../core/design/model';
 import { canEncodeVideo } from '../../core/export/encode';
 import type { Quality } from '../../core/export/exportSong';
 import { exportDesignVideo, loopFileName, loopVideoSize, type LoopVideoOptions } from '../../core/export/loopVideo';
@@ -42,7 +43,7 @@ function ExportLoop({ design }: { design: BackgroundDesign }) {
   const [url, setUrl] = useState<string | null>(null);
   const [showSupport, setShowSupport] = useState(supportDue);
   const supported = canEncodeVideo();
-  const size = loopVideoSize(p.height);
+  const size = loopVideoSize(p.height, designRatio(design));
   const seconds = design.loopSec * p.repeats;
 
   useEffect(() => {

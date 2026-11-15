@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { copyDesign, motionsFor, newDesign, newDesignLayer, sanitizeDesign, sanitizeLayer } from '../src/core/design/model';
+import { copyDesign, designRatio, motionsFor, newDesign, newDesignLayer, sanitizeDesign, sanitizeLayer } from '../src/core/design/model';
+import { loopVideoSize } from '../src/core/export/loopSize';
 import { layerState, mixHex, paletteAt, rng, twinkleAlpha } from '../src/core/design/motion';
 import { STARTERS } from '../src/core/design/starters';
 import { normalizeBackground, normalizeProject } from '../src/core/defaults';
@@ -100,4 +101,30 @@ test('louvor: fundo do Estúdio é validado ao abrir; dados ruins viram degradê
   const p = normalizeProject({ theme: { background: { kind: 'design', design: STARTERS[0].make() } }, slides: [{ background: { kind: 'design', design: STARTERS[1].make() } }] });
   assert.equal(p.theme.background.design?.name, 'Sol poente');
   assert.equal(p.slides[0].background?.design?.name, 'Portais');
+});
+
+test('proporção do fundo: guardada só quando não é 16:9, valores estranhos caem no padrão', () => {
+  const d = newDesign('x');
+  assert.equal(sanitizeDesign({ ...d, aspect: '9:16' })!.aspect, '9:16');
+  assert.equal(sanitizeDesign({ ...d, aspect: '4:5' })!.aspect, '4:5');
+  assert.equal('aspect' in sanitizeDesign({ ...d, aspect: '16:9' })!, false);
+  assert.equal('aspect' in sanitizeDesign({ ...d, aspect: '7:3' })!, false);
+  assert.equal(designRatio({}), 16 / 9);
+  assert.equal(designRatio({ aspect: '9:16' }), 9 / 16);
+});
+
+test('vídeo do fundo na proporção escolhida: lado menor = resolução, lados pares, nunca maior que o 16:9', () => {
+  assert.deepEqual(loopVideoSize(1080), { width: 1920, height: 1080 });
+  assert.deepEqual(loopVideoSize(1080, 9 / 16), { width: 1080, height: 1920 });
+  assert.deepEqual(loopVideoSize(1080, 1), { width: 1080, height: 1080 });
+  assert.deepEqual(loopVideoSize(1080, 4 / 5), { width: 1080, height: 1350 });
+  assert.deepEqual(loopVideoSize(720, 4 / 3), { width: 960, height: 720 });
+  const ultra = loopVideoSize(2160, 21 / 9);
+  assert.equal(ultra.width, 3840);
+  assert.ok(ultra.height % 2 === 0 && Math.abs(ultra.width / ultra.height - 21 / 9) < 0.01, JSON.stringify(ultra));
+  for (const h of [720, 1080, 2160]) for (const r of [16 / 9, 16 / 10, 4 / 3, 21 / 9, 1, 4 / 5, 9 / 16]) {
+    const s = loopVideoSize(h, r);
+    assert.ok(s.width % 2 === 0 && s.height % 2 === 0);
+    assert.ok(s.width * s.height <= ((h * 16) / 9) * h + 4, `${h} ${r}`);
+  }
 });

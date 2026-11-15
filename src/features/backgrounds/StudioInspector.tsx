@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { LuArrowLeftRight, LuMinus, LuPlus, LuX } from 'react-icons/lu';
 import { loadMedia, mediaSize } from '../../render/designMedia';
 import { BLEND_LABEL, KIND_LABEL, LOOP_OPTIONS, MAX_STOPS, MOTION_HINT, MOTION_LABEL, motionsFor, SHAPE_LABEL } from '../../core/design/model';
-import type { DesignBlend, DesignFill, DesignFillType, DesignLayer, DesignMotion, DesignShape, DesignTexture } from '../../core/types';
+import { DESIGN_ASPECT_RATIOS, DESIGN_ASPECTS } from '../../core/types';
+import type { DesignAspect, DesignBlend, DesignFill, DesignFillType, DesignLayer, DesignMotion, DesignShape, DesignTexture } from '../../core/types';
 import { Button, IconButton } from '../../ui/Button';
 import { SwatchButton } from '../../ui/ColorPicker';
 import { ColorField, Row, Section, Segmented, Select, Slider, ToggleRow } from '../../ui/Controls';
@@ -229,6 +230,47 @@ function MediaSection({ api, layer: l }: { api: StudioApi; layer: DesignLayer })
   );
 }
 
+const ASPECT_USE: Record<DesignAspect, string> = {
+  '16:9': tr('Telão, TV e projetor moderno'),
+  '16:10': tr('Monitores e alguns projetores'),
+  '4:3': tr('Projetor antigo'),
+  '21:9': tr('Telão ultralargo (painel de LED)'),
+  '1:1': tr('Quadrado (post)'),
+  '4:5': tr('Post de Instagram'),
+  '9:16': tr('Vertical: stories, reels, status e celular'),
+};
+
+/** Escolha da proporção com o desenho de cada formato. */
+function AspectPicker({ value, onChange }: { value: DesignAspect; onChange: (v: DesignAspect) => void }) {
+  return (
+    <>
+      <div className="aspect-pick" role="radiogroup" aria-label={tr('Proporção do fundo')}>
+        {DESIGN_ASPECTS.map((a) => {
+          const r = DESIGN_ASPECT_RATIOS[a];
+          const w = r >= 1 ? 26 : Math.round(26 * r * 10) / 10;
+          const h = r >= 1 ? Math.round((26 / r) * 10) / 10 : 26;
+          return (
+            <button
+              key={a}
+              type="button"
+              role="radio"
+              aria-checked={value === a}
+              className="aspect-opt"
+              data-on={value === a ? '1' : undefined}
+              title={`${a} · ${ASPECT_USE[a]}`}
+              onClick={() => onChange(a)}
+            >
+              <i aria-hidden style={{ width: w, height: h }} />
+              <span>{a}</span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="props-note">{ASPECT_USE[value]}</p>
+    </>
+  );
+}
+
 function DesignSettings({ api }: { api: StudioApi }) {
   const d = api.design;
   return (
@@ -248,6 +290,17 @@ function DesignSettings({ api }: { api: StudioApi }) {
             })
           }
           options={LOOP_OPTIONS.map((s) => ({ value: String(s), label: `${s} s` }))}
+        />
+      </Section>
+      <Section title={tr('Proporção')} hint={tr('O formato da tela deste fundo: muda o palco do Estúdio e o vídeo exportado. Usado num louvor, o fundo se ajusta ao formato do louvor.')}>
+        <AspectPicker
+          value={d.aspect ?? '16:9'}
+          onChange={(v) =>
+            api.update((x) => {
+              if (v === '16:9') delete x.aspect;
+              else x.aspect = v;
+            })
+          }
         />
       </Section>
       <Section title={tr('Cor de base')}>

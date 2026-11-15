@@ -1130,5 +1130,16 @@ export const en: Record<string, string> = {
   "Afastar linhas": "Spread lines",
   "Afastar (palavras se separam)": "Spread (words move apart)",
   "{0}: afastar": "{0}: spread",
-  "Manuscrita": "Script"
+  "Manuscrita": "Script",
+  "Este fundo foi feito em {0}. Em cada louvor ele se ajusta sozinho ao formato do louvor.": "This background was made in {0}. In each song it adapts to the song's format on its own.",
+  "Telão, TV e projetor moderno": "Big screen, TV and modern projector",
+  "Monitores e alguns projetores": "Monitors and some projectors",
+  "Projetor antigo": "Old projector",
+  "Telão ultralargo (painel de LED)": "Ultrawide screen (LED wall)",
+  "Quadrado (post)": "Square (post)",
+  "Post de Instagram": "Instagram post",
+  "Vertical: stories, reels, status e celular": "Vertical: stories, reels, status and phone",
+  "Proporção do fundo": "Background aspect ratio",
+  "O formato da tela deste fundo: muda o palco do Estúdio e o vídeo exportado. Usado num louvor, o fundo se ajusta ao formato do louvor.": "The screen shape of this background: it changes the Studio stage and the exported video. Used in a song, the background adapts to the song's format.",
+  "Cor de base, proporção e duração do loop": "Base color, aspect ratio and loop length"
 };

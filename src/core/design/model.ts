@@ -1,7 +1,9 @@
 import { normalizeHex } from '../colorMath';
 import { uid } from '../ids';
+import { DESIGN_ASPECT_RATIOS, DESIGN_ASPECTS } from '../types';
 import type {
   BackgroundDesign,
+  DesignAspect,
   DesignBlend,
   DesignFill,
   DesignFillType,
@@ -233,10 +235,16 @@ export function sanitizeDesign(raw: unknown): BackgroundDesign | null {
     name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.slice(0, 80) : tr('Fundo sem nome'),
     loopSec: num(raw.loopSec, DEFAULT_LOOP, 2, 60),
     base: hex(raw.base, '#0b0b12'),
+    ...(typeof raw.aspect === 'string' && raw.aspect !== '16:9' && (DESIGN_ASPECTS as string[]).includes(raw.aspect) ? { aspect: raw.aspect as DesignAspect } : {}),
     layers,
     createdAt: num(raw.createdAt, now, 0, Number.MAX_SAFE_INTEGER),
     updatedAt: num(raw.updatedAt, now, 0, Number.MAX_SAFE_INTEGER),
   };
+}
+
+/** Largura ÷ altura da tela do fundo. */
+export function designRatio(d: Pick<BackgroundDesign, 'aspect'>): number {
+  return DESIGN_ASPECT_RATIOS[d.aspect ?? '16:9'] ?? 16 / 9;
 }
 
 /** Cópia independente (novos ids), para duplicar ou para guardar dentro de um louvor. */

@@ -3,6 +3,7 @@ import { LuMaximize, LuPause, LuPlay, LuRotateCw, LuType } from 'react-icons/lu'
 import { DesignPainter, isPlaced, layerBox } from '../../core/design/paint';
 import type { BackgroundDesign, DesignLayer } from '../../core/types';
 import { FitBox } from '../../render/FitBox';
+import { designRatio } from '../../core/design/model';
 import { DesignCanvas } from '../../render/DesignCanvas';
 import { liveMedia } from '../../render/designMedia';
 import { useSetting } from '../../core/settings';
@@ -65,7 +66,7 @@ export function StudioStage({ api, clockRef }: { api: StudioApi; clockRef: Mutab
   return (
     <div className="st">
       <div className="st-view" ref={viewRef}>
-        <FitBox ratio={16 / 9} padding={24}>
+        <FitBox ratio={designRatio(design)} padding={24}>
           <Surface api={api} getTime={clock.now} sample={sample} />
         </FitBox>
       </div>
@@ -133,8 +134,9 @@ function ContrastMeter({ design, getTime, onFix }: { design: BackgroundDesign; g
   const dRef = useRef(design);
   dRef.current = design;
   useEffect(() => {
-    const W = 96;
-    const H = 54;
+    const r = designRatio(dRef.current);
+    const W = Math.round(r >= 1 ? 96 : 54 * r);
+    const H = Math.round(r >= 1 ? 96 / r : 54);
     const painter = new DesignPainter(W, H);
     painter.media = liveMedia;
     const cv = document.createElement('canvas');
@@ -171,7 +173,7 @@ function ContrastMeter({ design, getTime, onFix }: { design: BackgroundDesign; g
     measure();
     const id = window.setInterval(measure, 1200);
     return () => window.clearInterval(id);
-  }, [getTime]);
+  }, [getTime, design.aspect]);
   if (ratio === null) return null;
   const level = ratio >= 4.5 ? 'good' : ratio >= 3 ? 'ok' : 'low';
   return (

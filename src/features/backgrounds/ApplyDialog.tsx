@@ -48,6 +48,9 @@ export function ApplyDialog({ design, onClose }: { design: BackgroundDesign | nu
         <LuSearch aria-hidden />
         <input type="search" placeholder={tr('Buscar louvor')} value={q} onChange={(e) => setQ(e.currentTarget.value)} aria-label={tr('Buscar louvor')} autoFocus />
       </label>
+      {design?.aspect && design.aspect !== '16:9' && (
+        <p className="props-note apply-aspect">{tr('Este fundo foi feito em {0}. Em cada louvor ele se ajusta sozinho ao formato do louvor.', design.aspect)}</p>
+      )}
       <ul className="apply-list" aria-busy={busy}>
         {items === null && <li className="apply-empty">{tr('Carregando…')}</li>}
         {items && visible.length === 0 && <li className="apply-empty">{items.length ? tr('Nenhum louvor encontrado.') : tr('Você ainda não tem louvores. Crie um na biblioteca.')}</li>}

@@ -1036,5 +1036,16 @@ export const es: Record<string, string> = {
   "Afastar (palavras se separam)": "Separar (las palabras se apartan)",
   "{0}: afastar": "{0}: separar",
   "Manuscrita": "Manuscrita",
-  "Peso": "Peso"
+  "Peso": "Peso",
+  "Este fundo foi feito em {0}. Em cada louvor ele se ajusta sozinho ao formato do louvor.": "Este fondo se hizo en {0}. En cada alabanza se ajusta solo al formato de la alabanza.",
+  "Telão, TV e projetor moderno": "Pantalla grande, TV y proyector moderno",
+  "Monitores e alguns projetores": "Monitores y algunos proyectores",
+  "Projetor antigo": "Proyector antiguo",
+  "Telão ultralargo (painel de LED)": "Pantalla ultraancha (panel LED)",
+  "Quadrado (post)": "Cuadrado (post)",
+  "Post de Instagram": "Post de Instagram",
+  "Vertical: stories, reels, status e celular": "Vertical: stories, reels, estados y celular",
+  "Proporção do fundo": "Proporción del fondo",
+  "O formato da tela deste fundo: muda o palco do Estúdio e o vídeo exportado. Usado num louvor, o fundo se ajusta ao formato do louvor.": "El formato de pantalla de este fondo: cambia el escenario del Estudio y el video exportado. Usado en una alabanza, el fondo se ajusta al formato de la alabanza.",
+  "Cor de base, proporção e duração do loop": "Color base, proporción y duración del bucle"
 };

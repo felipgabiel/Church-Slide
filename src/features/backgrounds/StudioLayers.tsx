@@ -158,7 +158,7 @@ export function StudioLayers({ api }: { api: StudioApi }) {
         <span className="dl-swatch" style={{ background: design.base }} aria-hidden />
         <span>
           <b>{tr('Fundo inteiro')}</b>
-          <small>{tr('Cor de base e duração do loop')}</small>
+          <small>{tr('Cor de base, proporção e duração do loop')}</small>
         </span>
       </button>
     </div>

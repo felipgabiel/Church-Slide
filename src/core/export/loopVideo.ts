@@ -1,4 +1,6 @@
 import { DesignPainter } from '../design/paint';
+import { designRatio } from '../design/model';
+import { loopVideoSize } from './loopSize';
 import { ExportMedia } from '../design/mediaFrames';
 import type { BackgroundDesign } from '../types';
 import { bitrateFor, type Quality } from './exportSong';
@@ -15,18 +17,14 @@ export interface LoopVideoOptions {
   signal?: AbortSignal;
 }
 
-/** Tamanho 16:9 com lados pares (exigência do H.264). */
-export function loopVideoSize(height: number) {
-  const h = Math.round(height / 2) * 2;
-  return { width: Math.round((h * 16) / 9 / 2) * 2, height: h };
-}
+export { loopVideoSize };
 
 /**
  * Só o fundo, sem letra, em MP4 que repete sem emenda: são exatamente `loopSec × fps` quadros
  * por volta e o quadro seguinte ao último seria igual ao primeiro.
  */
 export async function exportDesignVideo(design: BackgroundDesign, o: LoopVideoOptions): Promise<Blob> {
-  const { width, height } = loopVideoSize(o.height);
+  const { width, height } = loopVideoSize(o.height, designRatio(design));
   const painter = new DesignPainter(width, height);
   const media = await ExportMedia.load([design]);
   painter.media = media;
@@ -52,4 +50,4 @@ export async function exportDesignVideo(design: BackgroundDesign, o: LoopVideoOp
 }
 
 export const loopFileName = (d: BackgroundDesign) =>
-  `${(d.name || tr('fundo')).replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'fundo'} (loop ${d.loopSec}s).mp4`;
+  `${(d.name || tr('fundo')).replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'fundo'} (loop ${d.loopSec}s${d.aspect && d.aspect !== '16:9' ? ` ${d.aspect.replace(':', 'x')}` : ''}).mp4`;

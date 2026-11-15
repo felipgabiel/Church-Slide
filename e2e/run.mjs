@@ -2097,6 +2097,59 @@ await step('animação "Afastar" (palavras saem do centro e se separam), duraç�
   await pg.close();
 });
 
+await step('Estúdio: proporção do fundo (9:16 vertical) no palco, na miniatura e no vídeo exportado', async () => {
+  const pg = await ctx.newPage();
+  watch(pg, 'proporção do fundo');
+  await pg.goto(BASE + '#/fundos');
+  await pg.getByRole('button', { name: /Sol poente/ }).click();
+  await pg.waitForURL(/#\/fundos\/bg/);
+  const id = decodeURIComponent(pg.url().split('/fundos/')[1]);
+  await pg.locator('.st-surface canvas').waitFor();
+  const r0 = await pg.locator('.st-surface').boundingBox();
+  assert(Math.abs(r0.width / r0.height - 16 / 9) < 0.02, `começa em 16:9 (${(r0.width / r0.height).toFixed(3)})`);
+  // "Fundo inteiro" aparece com nada selecionado (é como o estúdio abre)
+  const pick = pg.getByRole('radiogroup', { name: 'Proporção do fundo' });
+  await pick.waitFor();
+  assert((await pick.getByRole('radio', { name: '16:9' }).getAttribute('aria-checked')) === 'true', '16:9 marcado no começo');
+  await pick.getByRole('radio', { name: '9:16' }).click();
+  await pg.locator('.studio-props').getByText('Vertical: stories, reels, status e celular').waitFor();
+  await pg.waitForTimeout(300);
+  const r1 = await pg.locator('.st-surface').boundingBox();
+  assert(Math.abs(r1.width / r1.height - 9 / 16) < 0.02, `palco vertical (${(r1.width / r1.height).toFixed(3)})`);
+  const cv = await pg.locator('.st-surface canvas').evaluate((c) => c.width / c.height);
+  assert(Math.abs(cv - 9 / 16) < 0.03, `o desenho acompanha a proporção (${cv.toFixed(3)})`);
+  // loop curto para o vídeo sair rápido
+  await pg.getByRole('radio', { name: '6 s' }).click();
+  await pg.waitForTimeout(1200);
+  const rec = await idbGet(pg, 'designs', id);
+  assert(rec.aspect === '9:16' && rec.loopSec === 6, `salvo: ${rec.aspect} ${rec.loopSec}`);
+  // a galeria mostra o fundo inteiro, de pé, com a etiqueta
+  await pg.goto(BASE + '#/fundos');
+  const card = pg.locator('.dthumb[data-aspect="9:16"]').first();
+  await card.waitFor();
+  assert((await card.locator('.dthumb-tag').textContent()) === '9:16', 'etiqueta 9:16 na miniatura');
+  const inner = await card.locator('.dthumb-in').boundingBox();
+  assert(Math.abs(inner.width / inner.height - 9 / 16) < 0.03, `miniatura de pé (${(inner.width / inner.height).toFixed(3)})`);
+  // vídeo 720 × 1280
+  const name = (await idbGet(pg, 'designs', id)).name;
+  await pg.getByRole('button', { name: `Mais ações para ${name}` }).first().click();
+  await pg.getByRole('menuitem', { name: /Exportar vídeo/ }).click();
+  await pg.locator('dialog').getByRole('radio', { name: '720p' }).click();
+  await pg.locator('dialog').getByText('720 × 1280').waitFor();
+  await pg.locator('dialog').getByRole('button', { name: 'Gerar vídeo' }).click();
+  await pg.locator('dialog').getByRole('button', { name: 'Baixar vídeo' }).waitFor({ timeout: 180000 });
+  const [dl] = await Promise.all([pg.waitForEvent('download'), pg.locator('dialog').getByRole('button', { name: 'Baixar vídeo' }).click()]);
+  assert(/\(loop 6s 9x16\)\.mp4$/.test(dl.suggestedFilename()), `nome: ${dl.suggestedFilename()}`);
+  const f = join(mkdtempSync(join(tmpdir(), 'cs-asp-')), 'v.mp4');
+  await dl.saveAs(f);
+  const probe = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'json', f], { encoding: 'utf8' });
+  if (probe.status === 0) {
+    const s = JSON.parse(probe.stdout).streams[0];
+    assert(s.width === 720 && s.height === 1280, `vídeo ${s.width}×${s.height}`);
+  }
+  await pg.close();
+});
+
 await step('nenhum erro de console durante todo o fluxo', async () => {
   assert(consoleErrors.length === 0, `${consoleErrors.length} erro(s):\n      ${consoleErrors.slice(0, 5).join('\n      ')}`);
 });

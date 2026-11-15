@@ -14,6 +14,17 @@ export const ASPECT_RATIOS: Record<Aspect, number> = {
   '1:1': 1,
 };
 
+/** Proporções do Estúdio de Fundos: as do louvor e mais as de redes sociais (post e vertical). */
+export type DesignAspect = Aspect | '4:5' | '9:16';
+
+export const DESIGN_ASPECTS: DesignAspect[] = ['16:9', '16:10', '4:3', '21:9', '1:1', '4:5', '9:16'];
+
+export const DESIGN_ASPECT_RATIOS: Record<DesignAspect, number> = {
+  ...ASPECT_RATIOS,
+  '4:5': 4 / 5,
+  '9:16': 9 / 16,
+};
+
 export type Align = 'left' | 'center' | 'right';
 export type LayerRole = 'lyrics' | 'title' | 'credit' | 'free';
 
@@ -281,6 +292,11 @@ export interface BackgroundDesign {
   loopSec: number;
   /** cor que fica por baixo de tudo */
   base: string;
+  /**
+   * Formato da tela em que o fundo é desenhado no Estúdio e no vídeo exportado (ausente = 16:9).
+   * Tudo no fundo é relativo à tela, então num louvor de outro formato ele se ajusta sozinho.
+   */
+  aspect?: DesignAspect;
   /** de baixo para cima */
   layers: DesignLayer[];
   createdAt: number;
